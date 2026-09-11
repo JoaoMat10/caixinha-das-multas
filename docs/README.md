@@ -24,8 +24,8 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **nao iniciada**
-- Fase seguinte: **Fase 01 — Fundacao Web**
+- Implementacao: **Fase 01 concluida**
+- Fase seguinte: **Fase 02 — Base de Dados e RLS**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao

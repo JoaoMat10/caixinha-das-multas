@@ -4,7 +4,9 @@ Aplicação web mobile-first para gerir as multas internas de uma equipa de fute
 
 ## Estado atual
 
-A Fase 01 disponibiliza apenas a fundação web: shell, rotas e páginas placeholder. Não existem ligações a base de dados, autenticação ou operações de negócio.
+A Fase 01 está concluída e disponibiliza a fundação web: shell, rotas e páginas placeholder. Não existem ligações a base de dados, autenticação ou operações de negócio. A próxima etapa é a Fase 02 — Base de Dados e RLS.
+
+O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Requisitos
 
