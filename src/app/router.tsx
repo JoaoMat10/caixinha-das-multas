@@ -1,6 +1,6 @@
 import { createBrowserRouter, createMemoryRouter } from 'react-router-dom';
 
-import { AppShell } from '@/shared/components/AppShell';
+import { AppShell } from '@/app/layout/AppShell';
 import { NotFoundPage } from '@/shared/pages/NotFoundPage';
 import { FoundationPage } from '@/shared/pages/FoundationPage';
 import { AdminPlaceholderPage } from '@/domains/admin';

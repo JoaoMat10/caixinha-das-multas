@@ -4,6 +4,46 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+const domainNames = [
+  'admin',
+  'auth',
+  'dashboard',
+  'fines',
+  'leaderboard',
+  'treasury',
+];
+
+const appImportRestriction = {
+  regex: '^(?:@/app(?:/|$)|(?:\\.\\./)+app(?:/|$))',
+  message: 'Esta camada não pode depender de src/app.',
+};
+
+const domainBoundaryConfigs = domainNames.map((domainName) => {
+  const otherDomains = domainNames.filter(
+    (candidate) => candidate !== domainName,
+  );
+  const otherDomainsPattern = otherDomains.join('|');
+
+  return {
+    files: [`src/domains/${domainName}/**/*.{ts,tsx}`],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            appImportRestriction,
+            {
+              regex: `^(?:@/domains/|(?:\\.\\./)+)(?:${otherDomainsPattern})(?:/|$)`,
+              message:
+                'Um domínio não pode importar diretamente outro domínio.',
+            },
+          ],
+        },
+      ],
+    },
+  };
+});
+
 export default tseslint.config(
   {
     ignores: [
@@ -48,6 +88,24 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-member-access': 'off',
     },
   },
+  {
+    files: ['src/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            appImportRestriction,
+            {
+              regex: '^(?:@/domains(?:/|$)|(?:\\.\\./)+domains(?:/|$))',
+              message: 'src/shared não pode depender de src/domains.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  ...domainBoundaryConfigs,
   {
     files: ['*.config.{js,ts}'],
     languageOptions: {
