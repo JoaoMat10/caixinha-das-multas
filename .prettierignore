@@ -1,0 +1,7 @@
+dist
+node_modules
+coverage
+playwright-report
+test-results
+.playwright-browsers
+package-lock.json
