@@ -161,7 +161,7 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 - [x] Implementar login, sessão, logout, proteção de rotas e alteração de password.
 - [x] Implementar e executar testes unitários, reais/locais e E2E desktop/móvel.
 - [x] Executar o pipeline final e concluir o diário.
-- [ ] Publicar os commits finais da branch e abrir o pull request.
+- [x] Publicar os commits finais da branch e abrir o [pull request #3](https://github.com/JoaoMat10/caixinha-das-multas/pull/3), sem efetuar o merge.
 
 ## Handoff para a fase seguinte
 
