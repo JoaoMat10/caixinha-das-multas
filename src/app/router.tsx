@@ -2,9 +2,18 @@ import { createBrowserRouter, createMemoryRouter } from 'react-router-dom';
 
 import { AppShell } from '@/app/layout/AppShell';
 import { NotFoundPage } from '@/shared/pages/NotFoundPage';
-import { FoundationPage } from '@/shared/pages/FoundationPage';
 import { AdminPlaceholderPage } from '@/domains/admin';
-import { AuthPlaceholderPage } from '@/domains/auth';
+import {
+  AnonymousOnlyRoute,
+  AuthenticatedIndexRoute,
+  AuthorizedRoute,
+  LoginPage,
+  NoAccessPage,
+  PasswordChangePage,
+  PasswordChangeRequiredRoute,
+  PasswordSettingsPage,
+  ProtectedRoute,
+} from '@/domains/auth';
 import { DashboardPlaceholderPage } from '@/domains/dashboard';
 import { FinesPlaceholderPage } from '@/domains/fines';
 import { LeaderboardPlaceholderPage } from '@/domains/leaderboard';
@@ -12,17 +21,54 @@ import { TreasuryPlaceholderPage } from '@/domains/treasury';
 
 export const appRoutes = [
   {
-    path: '/',
-    element: <AppShell />,
+    element: <AnonymousOnlyRoute />,
+    children: [{ path: '/entrar', element: <LoginPage /> }],
+  },
+  {
+    element: <PasswordChangeRequiredRoute />,
     children: [
-      { index: true, element: <FoundationPage /> },
-      { path: 'entrar', element: <AuthPlaceholderPage /> },
-      { path: 'painel', element: <DashboardPlaceholderPage /> },
-      { path: 'multas', element: <FinesPlaceholderPage /> },
-      { path: 'tesouraria', element: <TreasuryPlaceholderPage /> },
-      { path: 'mural', element: <LeaderboardPlaceholderPage /> },
-      { path: 'administracao', element: <AdminPlaceholderPage /> },
-      { path: '*', element: <NotFoundPage /> },
+      {
+        path: '/alterar-password-obrigatoria',
+        element: <PasswordChangePage required />,
+      },
+    ],
+  },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: '/',
+        element: <AppShell />,
+        children: [
+          { index: true, element: <AuthenticatedIndexRoute /> },
+          {
+            element: <AuthorizedRoute capability="member" />,
+            children: [
+              { path: 'painel', element: <DashboardPlaceholderPage /> },
+              { path: 'mural', element: <LeaderboardPlaceholderPage /> },
+            ],
+          },
+          {
+            element: <AuthorizedRoute capability="treasurer" />,
+            children: [
+              { path: 'multas', element: <FinesPlaceholderPage /> },
+              { path: 'tesouraria', element: <TreasuryPlaceholderPage /> },
+            ],
+          },
+          {
+            element: <AuthorizedRoute capability="admin" />,
+            children: [
+              { path: 'administracao', element: <AdminPlaceholderPage /> },
+            ],
+          },
+          {
+            path: 'definicoes/password',
+            element: <PasswordSettingsPage />,
+          },
+          { path: 'sem-acesso', element: <NoAccessPage /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ];

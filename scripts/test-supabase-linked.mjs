@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -6,12 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(currentDirectory, '..');
-const testFile = path.join(
-  projectDirectory,
-  'supabase',
-  'tests',
-  'database_rls.test.sql',
-);
+const testsDirectory = path.join(projectDirectory, 'supabase', 'tests');
 
 function instrumentTestSuite(source) {
   const planMatch = source.match(/^select extensions\.plan\((\d+)\);\s*$/m);
@@ -69,19 +64,11 @@ function parseQueryResponse(output) {
   return report;
 }
 
-const source = await readFile(testFile, 'utf8');
-const { instrumentedSource, plannedAssertions } = instrumentTestSuite(source);
 const temporaryDirectory = await mkdtemp(
   path.join(tmpdir(), 'caixinha-pgtap-'),
 );
-const instrumentedFile = path.join(
-  temporaryDirectory,
-  'database_rls.linked.test.sql',
-);
 
 try {
-  await writeFile(instrumentedFile, instrumentedSource, 'utf8');
-
   const cliEntryPoint = path.join(
     projectDirectory,
     'node_modules',
@@ -89,20 +76,44 @@ try {
     'dist',
     'supabase.js',
   );
-  const result = spawnSync(
-    process.execPath,
-    [cliEntryPoint, 'db', 'query', '--linked', '--file', instrumentedFile],
-    {
-      cwd: projectDirectory,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  );
+  const testFiles = (await readdir(testsDirectory))
+    .filter((fileName) => fileName.endsWith('.test.sql'))
+    .sort();
 
-  if (result.status !== 0) {
-    process.stderr.write(result.stderr || result.stdout);
-    process.exitCode = result.status ?? 1;
-  } else {
+  if (testFiles.length === 0) {
+    throw new Error('Não foram encontradas suites pgTAP para executar.');
+  }
+
+  let totalPlanned = 0;
+  let totalExecuted = 0;
+
+  for (const testFileName of testFiles) {
+    const source = await readFile(
+      path.join(testsDirectory, testFileName),
+      'utf8',
+    );
+    const { instrumentedSource, plannedAssertions } =
+      instrumentTestSuite(source);
+    const instrumentedFile = path.join(temporaryDirectory, testFileName);
+
+    await writeFile(instrumentedFile, instrumentedSource, 'utf8');
+
+    const result = spawnSync(
+      process.execPath,
+      [cliEntryPoint, 'db', 'query', '--linked', '--file', instrumentedFile],
+      {
+        cwd: projectDirectory,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+
+    if (result.status !== 0) {
+      process.stderr.write(result.stderr || result.stdout);
+      process.exitCode = result.status ?? 1;
+      break;
+    }
+
     const report = parseQueryResponse(result.stdout);
     const failures = Array.isArray(report.failures) ? report.failures : [];
 
@@ -111,13 +122,25 @@ try {
       report.executed !== plannedAssertions ||
       failures.length > 0
     ) {
-      console.error('A suite pgTAP remota não passou integralmente.', report);
+      console.error(
+        `A suite pgTAP remota ${testFileName} não passou integralmente.`,
+        report,
+      );
       process.exitCode = 1;
+      break;
     } else {
       console.log(
-        `pgTAP remoto: ${report.executed}/${report.planned} asserções passaram.`,
+        `${testFileName}: ${report.executed}/${report.planned} asserções passaram.`,
       );
+      totalPlanned += report.planned;
+      totalExecuted += report.executed;
     }
+  }
+
+  if (!process.exitCode) {
+    console.log(
+      `pgTAP remoto: ${totalExecuted}/${totalPlanned} asserções passaram.`,
+    );
   }
 } finally {
   await rm(temporaryDirectory, { force: true, recursive: true });

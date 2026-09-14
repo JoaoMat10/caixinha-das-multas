@@ -25,6 +25,12 @@ enabled = true
 site_url = "http://127.0.0.1:5173"
 additional_redirect_urls = ["http://127.0.0.1:5173"]
 enable_signup = false
+minimum_password_length = 6
+password_requirements = "lower_upper_letters_digits"
+
+[auth.email]
+enable_signup = false
+secure_password_change = true
 
 [storage]
 enabled = true

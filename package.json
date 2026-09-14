@@ -18,13 +18,15 @@
     "test:db": "node --test tests/database/*.test.mjs",
     "test:db:supabase": "node scripts/test-supabase-linked.mjs",
     "test:db:supabase:local": "supabase db reset --local && supabase test db --local",
+    "test:auth:supabase": "node scripts/test-auth-supabase.mjs",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "node scripts/test-e2e.mjs",
     "test:e2e:install": "playwright install chromium",
     "typecheck": "tsc -b"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
+    "@supabase/supabase-js": "^2.109.0",
     "@tanstack/react-query": "^5.102.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
