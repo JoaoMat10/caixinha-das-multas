@@ -38,4 +38,4 @@ jobs:
         run: npx supabase start
 
       - name: Executar migrações, seed e pgTAP
-        run: npm run test:db:supabase
+        run: npm run test:db:supabase:local

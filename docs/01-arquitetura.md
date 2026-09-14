@@ -132,7 +132,7 @@ O nivel gratuito pode impor pausa por inatividade e nao oferece SLA. Se o uso re
 - HTTPS em todos os ambientes remotos.
 - Chaves publicaveis no frontend apenas com RLS ativa.
 - Chaves secretas apenas em Edge Functions/ambiente seguro.
-- Password minima robusta e validacao da password atual na alteracao, quando suportado.
+- Password minima de 6 caracteres, exigindo pelo menos uma letra minuscula, uma letra maiuscula e um algarismo; validacao da password atual na alteracao.
 - Rate limiting e mensagens de login que nao facilitem enumeracao de utilizadores.
 - Validacao Zod no cliente e validacao independente no servidor.
 - Timestamps em UTC; apresentacao em `Europe/Lisbon`.

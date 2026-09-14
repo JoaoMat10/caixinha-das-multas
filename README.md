@@ -44,10 +44,18 @@ Quando Docker Desktop estiver disponível, iniciar a stack e executar os testes 
 
 ```powershell
 npx supabase start
-npm run test:db:supabase
+npm run test:db:supabase:local
 ```
 
 Sem Docker local, o workflow `Base de dados Supabase` executa a mesma validação num runner descartável do GitHub Actions. Esta é a opção recomendada em máquinas com pouco espaço livre.
+
+Num projeto Supabase dedicado e previamente ligado com `npx supabase link`, a suite pode ser executada remotamente sem Docker. O runner agrega e valida as mesmas asserções pgTAP dentro da transação definida pela suite:
+
+```powershell
+npm run test:db:supabase
+```
+
+Aplicar migrações e seed num projeto remoto é uma operação separada e explícita. Nunca executar `supabase db reset --linked`.
 
 `supabase db reset` atua por omissão apenas na base local. Nunca executar `supabase db reset --linked` contra produção.
 

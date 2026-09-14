@@ -95,5 +95,5 @@ O segundo comando e destrutivo apenas para a base Supabase local. Nunca usar `su
 ## Resultado da Fase 02
 
 - `npm run test:db`: passou em 2026-09-14; quatro suites cobriram reproducao integral, constraints, metadados de seguranca, RLS/RBAC, isolamento entre equipas/epocas e RPCs atomicas.
-- `supabase/tests/database_rls.test.sql`: 39 assercoes pgTAP preparadas. Nao foram executadas neste host porque Docker Desktop e Supabase CLI nao estao instalados.
+- `supabase/tests/database_rls.test.sql`: 46 assercoes pgTAP executadas com sucesso em 2026-09-14 contra o projeto Supabase Free dedicado, atraves do runner remoto transacional do projeto.
 - Formatação, lint, typecheck, testes web, build e quatro testes E2E em Chromium desktop/movel passaram no mesmo ciclo final.
