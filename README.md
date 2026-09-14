@@ -4,7 +4,7 @@ Aplicação web mobile-first para gerir as multas internas de uma equipa de fute
 
 ## Estado atual
 
-A Fase 02 está concluída. A fundação web mantém-se sem login ou interfaces funcionais; a base PostgreSQL/Supabase é definida por migrações, RLS, RPCs seguras e seeds de desenvolvimento. A próxima etapa é a Fase 03 — Autenticação e Sessões.
+A Fase 03 implementa autenticação por username/password, sessões persistentes, proteção de rotas, contexto autorizado e alteração segura de password. A base PostgreSQL/Supabase continua definida por migrações, RLS, RPCs seguras e seeds de desenvolvimento. A próxima etapa é a Fase 04 — Painel Super Admin.
 
 O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
@@ -25,10 +25,15 @@ No PowerShell, a partir da raiz do repositório:
 ```powershell
 npm install
 Copy-Item .env.example .env.local
-npm run test:e2e:install
 ```
 
-O ficheiro `.env.local` é opcional nesta fase. Apenas variáveis públicas com o prefixo `VITE_` podem ser disponibilizadas ao frontend. Chaves secretas e credenciais administrativas nunca devem ser colocadas em ficheiros do cliente.
+Preencher em `.env.local` apenas `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`, disponíveis no projeto Supabase. O email usado pelo Supabase Auth é um identificador técnico interno e nunca é mostrado no frontend. Chaves secretas e credenciais administrativas nunca devem ser colocadas em ficheiros do cliente.
+
+Se ainda não existir um browser compatível com a versão do Playwright instalada:
+
+```powershell
+npm run test:e2e:install
+```
 
 ## Base de dados
 
@@ -47,12 +52,18 @@ npx supabase start
 npm run test:db:supabase:local
 ```
 
-Sem Docker local, o workflow `Base de dados Supabase` executa a mesma validação num runner descartável do GitHub Actions. Esta é a opção recomendada em máquinas com pouco espaço livre.
+Sem Docker local, o workflow `Base de dados Supabase` pode executar a mesma validação num runner descartável do GitHub Actions.
 
 Num projeto Supabase dedicado e previamente ligado com `npx supabase link`, a suite pode ser executada remotamente sem Docker. O runner agrega e valida as mesmas asserções pgTAP dentro da transação definida pela suite:
 
 ```powershell
 npm run test:db:supabase
+```
+
+Os fluxos de Auth reais usam uma conta aleatória e efémera, criada pela API administrativa apenas durante o teste e eliminada no fim. O comando exige login e ligação prévia do CLI, não grava passwords nem disponibiliza chaves administrativas ao frontend:
+
+```powershell
+npm run test:auth:supabase
 ```
 
 Aplicar migrações e seed num projeto remoto é uma operação separada e explícita. Nunca executar `supabase db reset --linked`.
@@ -84,11 +95,13 @@ npm run lint
 npm run typecheck
 npm test
 npm run test:db
+npm run test:db:supabase
+npm run test:auth:supabase
 npm run build
 npm run test:e2e
 ```
 
-Os testes Playwright cobrem Chromium em perfis desktop e móvel.
+Os testes Playwright cobrem Chromium em perfis desktop e móvel contra o projeto Supabase ligado e também removem a conta temporária no fim.
 
 ## Estrutura
 
