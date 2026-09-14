@@ -14,7 +14,7 @@ O fluxo de branches, commits, validações e pull requests está descrito em [`C
 - Node.js 22.22.2 (LTS) ou 24.15.0 ou superior;
 - npm 10 ou superior;
 - um browser baseado em Chromium para os testes de browser.
-- Docker Desktop e Supabase CLI para executar a stack Supabase local oficial (opcional para o harness PostgreSQL embebido).
+- Docker Desktop para executar a stack Supabase oficial diretamente no Windows (opcional; o CLI pertence às dependências do projeto e a mesma validação corre em GitHub Actions sem instalações locais).
 
 Todas as dependências usadas são gratuitas e open source.
 
@@ -40,11 +40,14 @@ O teste reproduzível que não requer Docker cria duas bases PostgreSQL independ
 npm run test:db
 ```
 
-Quando Docker Desktop e Supabase CLI estiverem disponíveis, executar a stack oficial e os testes pgTAP:
+Quando Docker Desktop estiver disponível, iniciar a stack e executar os testes pgTAP com o CLI instalado no projeto:
 
 ```powershell
+npx supabase start
 npm run test:db:supabase
 ```
+
+Sem Docker local, o workflow `Base de dados Supabase` executa a mesma validação num runner descartável do GitHub Actions. Esta é a opção recomendada em máquinas com pouco espaço livre.
 
 `supabase db reset` atua por omissão apenas na base local. Nunca executar `supabase db reset --linked` contra produção.
 
