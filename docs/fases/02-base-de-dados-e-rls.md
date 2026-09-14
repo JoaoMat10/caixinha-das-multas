@@ -50,6 +50,7 @@ Configurar a base Supabase/PostgreSQL e entregar um modelo de dados reproduzivel
 - Funcoes internas de autorizacao no schema nao exposto `private`, todas com `security definer` e `search_path` vazio.
 - RLS ativada nas doze tabelas publicas, sem qualquer privilegio para `anon` e sem escritas financeiras diretas para `authenticated`.
 - RPCs transacionais para gerir categorias, aplicar multas, liquidar/reabrir em lote e eliminar apenas multas nunca pagas.
+- `save_fine_category` regista criacoes e alteracoes em `audit_events` na mesma transacao, identificando ator, categoria, equipa e epoca; alteracoes preservam os valores anteriores e novos de nome, descricao, preco, estado e ordenacao.
 - RPC transacional e idempotente para criar/copiar epoca, incluindo apenas plantel ativo, roles e catalogo.
 - Vistas `security_invoker` para saldos e tesouraria; RPCs filtradas para diretorio e rankings sem dados privados.
 - Seed deterministico com duas equipas, tres epocas e perfis de Owner, jogadores, capitao, equipa tecnica e tesoureiros.
@@ -57,7 +58,8 @@ Configurar a base Supabase/PostgreSQL e entregar um modelo de dados reproduzivel
 ### Testes e documentacao de seguranca
 
 - Harness Node/PGlite que cria PostgreSQL isolado, aplica todas as migracoes e seed e testa constraints, RLS e RPCs.
-- Suite pgTAP equivalente preparada para `supabase test db` na stack oficial.
+- Testes PGlite da auditoria de categorias cobrem criacao, desativacao, reativacao, alteracao de preco/ordenacao, falha de constraint e rollback explicito sem residuos.
+- Suite pgTAP equivalente com 46 assercoes preparada para `supabase test db` na stack oficial, incluindo os mesmos cenarios de auditoria e atomicidade.
 - Matriz de RLS/RBAC documentada por tabela, operacao, vista, RPC e cenario positivo/negativo.
 
 ## Ficheiros criados ou alterados
@@ -80,35 +82,35 @@ Configurar a base Supabase/PostgreSQL e entregar um modelo de dados reproduzivel
 
 - Migracoes adicionadas: quatro migracoes sequenciais em `supabase/migrations/`.
 - Alteracoes de schema: primeira versao integral do modelo aprovado, com doze tabelas publicas, cinco enums, tres vistas e schema interno `private`.
-- Funcoes/RPCs/Edge Functions: funcoes auxiliares internas; cinco RPCs de escrita e duas RPCs seguras de leitura; nenhuma Edge Function, por pertencer a fases posteriores.
+- Funcoes/RPCs/Edge Functions: funcoes auxiliares internas; cinco RPCs de escrita e duas RPCs seguras de leitura; `save_fine_category` escreve o evento de auditoria atomicamente; nenhuma Edge Function, por pertencer a fases posteriores.
 - Politicas RLS: ativadas e separadas por operacao nas doze tabelas; `anon` sem privilegios e tabelas financeiras sem escrita direta.
 - Compatibilidade e dados existentes: primeira versao do schema; nao existem dados anteriores a migrar.
 
 ## Testes e verificacoes
 
-| Comando/cenario                                     | Resultado     | Observacoes                                                                             |
-| --------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------- |
-| `git fetch --prune origin main` e divergencia `0/0` | passou        | `main` e `origin/main` apontam para `944cf91`.                                          |
-| Inventario de ferramentas locais                    | passou        | Node 24.19.0 disponivel; Docker, Supabase CLI, `psql` e `gh` estao ausentes.            |
-| `npm run format:check`                              | passou        | Todos os ficheiros abrangidos seguem Prettier.                                          |
-| `npm run lint`                                      | passou        | ESLint terminou sem erros ou avisos.                                                    |
-| `npm run typecheck`                                 | passou        | TypeScript em modo estrito terminou sem erros.                                          |
-| `npm test`                                          | passou        | 3 ficheiros e 5 testes Vitest passaram.                                                 |
-| `npm run test:db`                                   | passou        | 4 suites: reproducao dupla, constraints, isolamento RLS/RBAC e RPCs atomicas.           |
-| `npm run build`                                     | passou        | 185 modulos transformados e build de producao concluido.                                |
-| Primeira execucao de `npm run test:e2e`             | falhou        | O Playwright procurou o Chromium no cache global; o processo foi terminado.             |
-| `npm run test:e2e` com browser local configurado    | passou        | 4 testes passaram em Chromium desktop e movel.                                          |
-| `npm run test:db:supabase`                          | nao executado | Requer Docker Desktop e Supabase CLI, ausentes; suite pgTAP com 39 assercoes preparada. |
+| Comando/cenario                                     | Resultado | Observacoes                                                                                                                                                                   |
+| --------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `git fetch --prune origin main` e divergencia `0/0` | passou    | `main` e `origin/main` apontam para `944cf91`.                                                                                                                                |
+| Inventario de ferramentas locais                    | passou    | Node 24.19.0 disponivel; Docker, Supabase CLI, `psql` e `gh` estao ausentes.                                                                                                  |
+| `npm run format:check`                              | passou    | Todos os ficheiros abrangidos seguem Prettier.                                                                                                                                |
+| `npm run lint`                                      | passou    | ESLint terminou sem erros ou avisos.                                                                                                                                          |
+| `npm run typecheck`                                 | passou    | TypeScript em modo estrito terminou sem erros.                                                                                                                                |
+| `npm test`                                          | passou    | 3 ficheiros e 5 testes Vitest passaram.                                                                                                                                       |
+| `npm run test:db`                                   | passou    | 5 testes: reproducao dupla, constraints, isolamento RLS/RBAC, auditoria de categorias e RPCs atomicas.                                                                        |
+| `npm run build`                                     | passou    | 185 modulos transformados e build de producao concluido.                                                                                                                      |
+| Primeira execucao de `npm run test:e2e`             | falhou    | O Playwright procurou o Chromium no cache global; o processo foi terminado.                                                                                                   |
+| `npm run test:e2e` com browser local configurado    | passou    | 4 testes passaram em Chromium desktop e movel.                                                                                                                                |
+| `npm run test:db:supabase`                          | bloqueado | Comando executado, mas o executavel `supabase` nao existe; Docker Desktop tambem esta ausente. A validacao oficial nao foi concluida; suite pgTAP com 46 assercoes preparada. |
 
 ## Desvios ao planeamento
 
-- Nenhum desvio funcional. A ausencia da stack Supabase local foi compensada por testes PostgreSQL embebidos e por comandos oficiais documentados para ambientes com Docker.
+- Nenhum desvio funcional. A ausencia da stack Supabase local foi compensada por testes PostgreSQL embebidos, sem considerar concluida a validacao oficial Supabase.
 
 ## Riscos e limitacoes
 
-- A verificacao com a stack Supabase CLI oficial requer Docker Desktop e Supabase CLI, indisponiveis neste ambiente.
+- A verificacao com a stack Supabase CLI oficial permanece bloqueada: Docker Desktop e Supabase CLI estao indisponiveis neste ambiente e a tentativa de `npm run test:db:supabase` terminou antes de iniciar a stack.
 - Antes de ligar um projeto Supabase remoto ou promover migracoes, deve executar-se `npm run test:db:supabase` num ambiente com Docker para confirmar tambem as integracoes especificas da stack local.
-- A abertura do pull request exigira GitHub CLI, API autenticada ou browser autenticado, porque `gh` nao esta instalado.
+- O pull request da Fase 02 esta aberto; a correcao pre-merge deve permanecer na mesma branch.
 
 ## Trabalho pendente
 
@@ -126,6 +128,6 @@ Configurar a base Supabase/PostgreSQL e entregar um modelo de dados reproduzivel
 - Preservar `auth.uid()` como identidade de todas as funcoes e politicas; roles de plantel continuam exclusivamente em `member_roles`.
 - Usar apenas contratos publicos autorizados. O schema `private` nao deve ser adicionado aos schemas expostos pela Data API.
 - Manter as escritas financeiras exclusivamente nas RPCs `apply_fine`, `record_payment_batch` e `delete_pending_fine`; nao conceder DML direto nas tabelas do livro-razao.
-- `create_season` e `save_fine_category` ja validam autorizacao e invariantes na base, mas as interfaces e Edge Functions administrativas continuam reservadas para as fases previstas.
+- `create_season` e `save_fine_category` ja validam autorizacao e invariantes na base; a segunda RPC tambem garante auditoria atomica de todas as alteracoes do catalogo. As interfaces e Edge Functions administrativas continuam reservadas para as fases previstas.
 - Executar `npm run test:db` depois de qualquer alteracao de migracao. Num ambiente com Docker, executar tambem `npm run test:db:supabase`.
 - Nunca executar `supabase db reset --linked` contra um projeto com dados reais nem colocar chaves secretas em variaveis `VITE_`.

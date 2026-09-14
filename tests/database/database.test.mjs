@@ -486,6 +486,196 @@ test('RLS isola equipas, epocas, perfis privados e detalhe financeiro', async ()
   }
 });
 
+test('save_fine_category audita criacao, alteracoes e rollback atomico', async () => {
+  const database = await createSeededDatabase();
+  let categoryId;
+
+  try {
+    await asRole(database, 'authenticated', ids.treasurerA, async () => {
+      const category = (
+        await rows(
+          database,
+          `select * from public.save_fine_category(
+            $1, null, 'Equipamento', 'Material em falta', 250, true, 40
+          )`,
+          [ids.seasonA],
+        )
+      )[0];
+      categoryId = category.id;
+
+      await rows(
+        database,
+        `select * from public.save_fine_category(
+          $1, $2, 'Equipamento atualizado', null, 350, false, 45
+        )`,
+        [ids.seasonA, categoryId],
+      );
+
+      await rows(
+        database,
+        `select * from public.save_fine_category(
+          $1, $2, 'Equipamento atualizado', 'Categoria reativada', 400, true, 50
+        )`,
+        [ids.seasonA, categoryId],
+      );
+
+      await assert.rejects(
+        database.query(
+          `select * from public.save_fine_category(
+            $1, null, 'Categoria invalida', null, 9, true, 60
+          )`,
+          [ids.seasonA],
+        ),
+        /fine_categories_minimum_amount/,
+      );
+
+      await database.exec('begin');
+      try {
+        await rows(
+          database,
+          `select * from public.save_fine_category(
+            $1, null, 'Categoria revertida', null, 500, true, 70
+          )`,
+          [ids.seasonA],
+        );
+      } finally {
+        await database.exec('rollback');
+      }
+    });
+
+    assert.deepEqual(
+      (
+        await rows(
+          database,
+          `select
+            action,
+            actor_user_id::text,
+            entity_type,
+            entity_id::text,
+            team_id::text,
+            season_id::text,
+            metadata ? 'previous_values' as has_previous_values,
+            metadata #>> '{new_values,name}' as new_name,
+            metadata #>> '{new_values,description}' as new_description,
+            (metadata #>> '{new_values,base_amount_cents}')::integer as new_amount,
+            (metadata #>> '{new_values,is_active}')::boolean as new_is_active,
+            (metadata #>> '{new_values,display_order}')::integer as new_order
+          from public.audit_events
+          where action = 'fine_category.created'
+            and entity_id = $1`,
+          [categoryId],
+        )
+      )[0],
+      {
+        action: 'fine_category.created',
+        actor_user_id: ids.treasurerA,
+        entity_type: 'fine_category',
+        entity_id: categoryId,
+        team_id: ids.teamA,
+        season_id: ids.seasonA,
+        has_previous_values: false,
+        new_name: 'Equipamento',
+        new_description: 'Material em falta',
+        new_amount: 250,
+        new_is_active: true,
+        new_order: 40,
+      },
+    );
+
+    const updateEventSql = `select
+      action,
+      actor_user_id::text,
+      entity_id::text,
+      team_id::text,
+      season_id::text,
+      metadata #>> '{previous_values,name}' as previous_name,
+      metadata #>> '{previous_values,description}' as previous_description,
+      (metadata #>> '{previous_values,base_amount_cents}')::integer as previous_amount,
+      (metadata #>> '{previous_values,is_active}')::boolean as previous_is_active,
+      (metadata #>> '{previous_values,display_order}')::integer as previous_order,
+      metadata #>> '{new_values,name}' as new_name,
+      metadata #>> '{new_values,description}' as new_description,
+      (metadata #>> '{new_values,base_amount_cents}')::integer as new_amount,
+      (metadata #>> '{new_values,is_active}')::boolean as new_is_active,
+      (metadata #>> '{new_values,display_order}')::integer as new_order
+    from public.audit_events
+    where action = 'fine_category.updated'
+      and entity_id = $1
+      and (metadata #>> '{new_values,is_active}')::boolean = $2`;
+
+    assert.deepEqual(
+      (await rows(database, updateEventSql, [categoryId, false]))[0],
+      {
+        action: 'fine_category.updated',
+        actor_user_id: ids.treasurerA,
+        entity_id: categoryId,
+        team_id: ids.teamA,
+        season_id: ids.seasonA,
+        previous_name: 'Equipamento',
+        previous_description: 'Material em falta',
+        previous_amount: 250,
+        previous_is_active: true,
+        previous_order: 40,
+        new_name: 'Equipamento atualizado',
+        new_description: null,
+        new_amount: 350,
+        new_is_active: false,
+        new_order: 45,
+      },
+    );
+
+    assert.deepEqual(
+      (await rows(database, updateEventSql, [categoryId, true]))[0],
+      {
+        action: 'fine_category.updated',
+        actor_user_id: ids.treasurerA,
+        entity_id: categoryId,
+        team_id: ids.teamA,
+        season_id: ids.seasonA,
+        previous_name: 'Equipamento atualizado',
+        previous_description: null,
+        previous_amount: 350,
+        previous_is_active: false,
+        previous_order: 45,
+        new_name: 'Equipamento atualizado',
+        new_description: 'Categoria reativada',
+        new_amount: 400,
+        new_is_active: true,
+        new_order: 50,
+      },
+    );
+
+    assert.deepEqual(
+      (
+        await rows(
+          database,
+          `select
+            (select count(*)::integer
+             from public.fine_categories
+             where name = 'Categoria invalida') as invalid_categories,
+            (select count(*)::integer
+             from public.audit_events
+             where metadata #>> '{new_values,name}' = 'Categoria invalida') as invalid_audit_events,
+            (select count(*)::integer
+             from public.fine_categories
+             where name = 'Categoria revertida') as reverted_categories,
+            (select count(*)::integer
+             from public.audit_events
+             where metadata #>> '{new_values,name}' = 'Categoria revertida') as reverted_audit_events`,
+        )
+      )[0],
+      {
+        invalid_categories: 0,
+        invalid_audit_events: 0,
+        reverted_categories: 0,
+        reverted_audit_events: 0,
+      },
+    );
+  } finally {
+    await database.close();
+  }
+});
+
 test('RPCs aplicam multiplicadores, transicoes, idempotencia e autorizacao', async () => {
   const database = await createSeededDatabase();
 

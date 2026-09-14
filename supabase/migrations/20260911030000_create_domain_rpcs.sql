@@ -203,7 +203,9 @@ set search_path = ''
 as $$
 declare
   v_actor_id uuid := auth.uid();
+  v_team_id uuid;
   v_category public.fine_categories;
+  v_previous_category public.fine_categories;
 begin
   if v_actor_id is null then
     raise exception using errcode = '42501', message = 'Autenticacao obrigatoria.';
@@ -212,6 +214,11 @@ begin
   if not private.can_manage_catalog(p_season_id, v_actor_id) then
     raise exception using errcode = '42501', message = 'Sem permissao para gerir o catalogo desta epoca.';
   end if;
+
+  select s.team_id
+  into strict v_team_id
+  from public.seasons as s
+  where s.id = p_season_id;
 
   if p_fine_category_id is null then
     insert into public.fine_categories (
@@ -244,6 +251,8 @@ begin
       raise exception using errcode = 'P0002', message = 'Categoria nao encontrada nesta epoca.';
     end if;
 
+    v_previous_category := v_category;
+
     update public.fine_categories
     set
       name = btrim(p_name),
@@ -255,12 +264,65 @@ begin
     returning * into v_category;
   end if;
 
+  insert into public.audit_events (
+    actor_user_id,
+    action,
+    entity_type,
+    entity_id,
+    team_id,
+    season_id,
+    metadata
+  )
+  values (
+    v_actor_id,
+    case
+      when p_fine_category_id is null then 'fine_category.created'
+      else 'fine_category.updated'
+    end,
+    'fine_category',
+    v_category.id,
+    v_team_id,
+    p_season_id,
+    case
+      when p_fine_category_id is null then
+        jsonb_build_object(
+          'new_values',
+          jsonb_build_object(
+            'name', v_category.name,
+            'description', v_category.description,
+            'base_amount_cents', v_category.base_amount_cents,
+            'is_active', v_category.is_active,
+            'display_order', v_category.display_order
+          )
+        )
+      else
+        jsonb_build_object(
+          'previous_values',
+          jsonb_build_object(
+            'name', v_previous_category.name,
+            'description', v_previous_category.description,
+            'base_amount_cents', v_previous_category.base_amount_cents,
+            'is_active', v_previous_category.is_active,
+            'display_order', v_previous_category.display_order
+          ),
+          'new_values',
+          jsonb_build_object(
+            'name', v_category.name,
+            'description', v_category.description,
+            'base_amount_cents', v_category.base_amount_cents,
+            'is_active', v_category.is_active,
+            'display_order', v_category.display_order
+          )
+        )
+    end
+  );
+
   return v_category;
 end;
 $$;
 
 comment on function public.save_fine_category(uuid, uuid, text, text, integer, boolean, integer) is
-  'Cria ou altera uma categoria; apenas tesoureiros da epoca e nunca em epocas arquivadas.';
+  'Cria ou altera uma categoria e regista a operacao na auditoria; apenas tesoureiros da epoca e nunca em epocas arquivadas.';
 
 create function public.apply_fine(
   p_season_member_id uuid,

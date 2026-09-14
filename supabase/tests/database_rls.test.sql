@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(39);
+select extensions.plan(46);
 
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000003';
@@ -224,19 +224,136 @@ select extensions.results_eq(
   'catalogo suporta o minimo de dez centimos'
 );
 
+reset role;
+
+select extensions.results_eq(
+  $$select
+      action,
+      actor_user_id,
+      entity_type,
+      entity_id = (
+        select id from public.fine_categories where name = 'Multa minima'
+      ),
+      team_id,
+      season_id,
+      metadata #>> '{new_values,name}',
+      (metadata #>> '{new_values,base_amount_cents}')::integer,
+      (metadata #>> '{new_values,is_active}')::boolean,
+      (metadata #>> '{new_values,display_order}')::integer
+    from public.audit_events
+    where action = 'fine_category.created'
+      and metadata #>> '{new_values,name}' = 'Multa minima'$$,
+  $$values (
+    'fine_category.created'::text,
+    '00000000-0000-4000-8000-000000000002'::uuid,
+    'fine_category'::text,
+    true,
+    '20000000-0000-4000-8000-000000000001'::uuid,
+    '30000000-0000-4000-8000-000000000001'::uuid,
+    'Multa minima'::text,
+    10,
+    true,
+    30
+  )$$,
+  'criacao de categoria regista ator, categoria, equipa, epoca e novos valores'
+);
+
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';
+
 select extensions.results_eq(
   $$select is_active from public.save_fine_category(
     '30000000-0000-4000-8000-000000000001',
     (select id from public.fine_categories where name = 'Multa minima'),
-    'Multa minima',
-    null,
-    10,
+    'Multa minima atualizada',
+    'Desativada em teste',
+    20,
     false,
-    30
+    31
   )$$,
   array[false],
   'tesoureiro pode desativar categoria'
 );
+
+reset role;
+
+select extensions.results_eq(
+  $$select
+      action,
+      actor_user_id,
+      entity_type,
+      entity_id = (
+        select id from public.fine_categories where name = 'Multa minima atualizada'
+      ),
+      team_id,
+      season_id,
+      metadata #>> '{previous_values,name}',
+      (metadata #>> '{previous_values,base_amount_cents}')::integer,
+      (metadata #>> '{previous_values,is_active}')::boolean,
+      (metadata #>> '{previous_values,display_order}')::integer,
+      metadata #>> '{new_values,name}',
+      (metadata #>> '{new_values,base_amount_cents}')::integer,
+      (metadata #>> '{new_values,is_active}')::boolean,
+      (metadata #>> '{new_values,display_order}')::integer
+    from public.audit_events
+    where action = 'fine_category.updated'
+      and metadata #>> '{new_values,name}' = 'Multa minima atualizada'
+      and (metadata #>> '{new_values,is_active}')::boolean = false$$,
+  $$values (
+    'fine_category.updated'::text,
+    '00000000-0000-4000-8000-000000000002'::uuid,
+    'fine_category'::text,
+    true,
+    '20000000-0000-4000-8000-000000000001'::uuid,
+    '30000000-0000-4000-8000-000000000001'::uuid,
+    'Multa minima'::text,
+    10,
+    true,
+    30,
+    'Multa minima atualizada'::text,
+    20,
+    false,
+    31
+  )$$,
+  'desativacao regista valores anteriores e novos, incluindo preco e ordenacao'
+);
+
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';
+
+select extensions.results_eq(
+  $$select is_active from public.save_fine_category(
+    '30000000-0000-4000-8000-000000000001',
+    (select id from public.fine_categories where name = 'Multa minima atualizada'),
+    'Multa minima reativada',
+    null,
+    25,
+    true,
+    32
+  )$$,
+  array[true],
+  'tesoureiro pode reativar categoria'
+);
+
+reset role;
+
+select extensions.results_eq(
+  $$select
+      (metadata #>> '{previous_values,is_active}')::boolean,
+      (metadata #>> '{new_values,is_active}')::boolean,
+      (metadata #>> '{previous_values,base_amount_cents}')::integer,
+      (metadata #>> '{new_values,base_amount_cents}')::integer,
+      (metadata #>> '{previous_values,display_order}')::integer,
+      (metadata #>> '{new_values,display_order}')::integer
+    from public.audit_events
+    where action = 'fine_category.updated'
+      and metadata #>> '{new_values,name}' = 'Multa minima reativada'$$,
+  $$values (false, true, 20, 25, 31, 32)$$,
+  'reativacao regista a transicao e os restantes valores alterados'
+);
+
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';
 
 select extensions.throws_ok(
   $$select * from public.save_fine_category(
@@ -252,6 +369,54 @@ select extensions.throws_ok(
   'Sem permissao para gerir o catalogo desta epoca.',
   'catalogo de epoca arquivada e apenas de leitura'
 );
+
+reset role;
+
+select extensions.results_eq(
+  $$select count(*) from public.audit_events
+    where metadata #>> '{new_values,name}' = 'Epoca arquivada'$$,
+  array[0::bigint],
+  'operacao rejeitada nao deixa evento de auditoria'
+);
+
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';
+
+select extensions.throws_ok(
+  $statement$
+    do $$
+    begin
+      perform public.save_fine_category(
+        '30000000-0000-4000-8000-000000000001',
+        null,
+        'Categoria revertida',
+        null,
+        500,
+        true,
+        70
+      );
+      raise exception 'rollback intencional';
+    end;
+    $$
+  $statement$,
+  'P0001',
+  'rollback intencional',
+  'erro posterior reverte categoria e evento na mesma transacao'
+);
+
+reset role;
+
+select extensions.results_eq(
+  $$select
+      (select count(*) from public.fine_categories where name = 'Categoria revertida'),
+      (select count(*) from public.audit_events
+       where metadata #>> '{new_values,name}' = 'Categoria revertida')$$,
+  $$values (0::bigint, 0::bigint)$$,
+  'rollback nao deixa categoria nem evento de auditoria'
+);
+
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';
 
 select extensions.throws_ok(
   $$select * from public.apply_fine(
