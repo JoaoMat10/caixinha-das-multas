@@ -11,6 +11,7 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 | [02-modelo-de-dados.md](02-modelo-de-dados.md)     | Entidades, relacoes, estados e constraints           |
 | [03-regras-de-negocio.md](03-regras-de-negocio.md) | Regras funcionais e fluxos criticos aprovados        |
 | [04-plano-de-execucao.md](04-plano-de-execucao.md) | Fases, ordem, entregaveis e criterios de conclusao   |
+| [rls-rbac.md](rls-rbac.md)                         | Matriz executavel de autorizacao da base de dados    |
 | [fases/TEMPLATE.md](fases/TEMPLATE.md)             | Modelo obrigatorio do diario de cada fase            |
 
 ## Como iniciar uma nova fase de implementacao
@@ -24,8 +25,8 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 01 concluida**
-- Fase seguinte: **Fase 02 — Base de Dados e RLS**
+- Implementacao: **Fase 02 concluida**
+- Fase seguinte: **Fase 03 — Autenticacao e Sessoes**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao

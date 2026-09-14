@@ -82,6 +82,7 @@ So o Super Admin cria, altera ou arquiva equipas.
 - `status`: `draft`, `active`, `archived`;
 - `copied_from_season_id`, opcional;
 - `created_by`;
+- `idempotency_key`, unica por equipa e utilizador criador;
 - timestamps.
 
 Constraints:

@@ -1,5 +1,6 @@
 # Dependencias
 node_modules/
+.npm-cache/
 
 # Artefactos de build e testes
 dist/
@@ -24,3 +25,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Estado local do Supabase CLI
+supabase/.branches/
+supabase/.temp/
