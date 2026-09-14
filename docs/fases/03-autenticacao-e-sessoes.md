@@ -49,6 +49,7 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 - Docker Desktop/WSL 2 permanece pendente de autorização por constituir alteração externa ao projeto.
 - Após verificação de apenas 3,1 GB livres no disco `C:`, foi aprovada a alternativa sem instalação local: GitHub Actions com runner descartável e Docker já disponível.
 - Workflow dedicado preparado com Node 24.15.0, `npm ci`, arranque da stack Supabase e execução do comando oficial do projeto.
+- A publicação do workflow revelou um bloqueio da conta no GitHub: Actions não pode executar enquanto a faturação estiver bloqueada. Nenhum runner foi iniciado e o checkpoint permanece pendente.
 
 ## Ficheiros criados ou alterados
 
@@ -75,6 +76,7 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 | Verificação de branch, histórico e working tree | passou    | `main` e `origin/main` em `03a6302`; árvore limpa; conteúdo do PR #2 confirmado pelo commit squash `e628b50`. |
 | `npm exec -- supabase --version`                | passou    | CLI local 2.117.0.                                                                                            |
 | `npm run test:db:supabase`                      | bloqueado | `LegacyLocalDbRunningError: failed to inspect service`; não existe runtime de containers instalado.           |
+| GitHub Actions — `Base de dados Supabase`       | bloqueado | O GitHub impede a execução porque a faturação da conta está bloqueada; não foi criado qualquer run.           |
 
 ## Desvios ao planeamento
 
@@ -82,7 +84,7 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 
 ## Riscos e limitações
 
-- A validação da stack Supabase oficial depende agora da disponibilidade e quota do GitHub Actions; não será instalado um runtime de containers neste host.
+- A validação da stack Supabase oficial está bloqueada externamente porque a conta GitHub não permite executar Actions enquanto a faturação estiver bloqueada; não será instalado um runtime de containers neste host.
 - O Node disponível no shell é 21.7.2, fora do intervalo declarado pelo projeto; as execuções finais devem usar Node 22.22.2 ou 24.15.0+.
 
 ## Trabalho pendente
