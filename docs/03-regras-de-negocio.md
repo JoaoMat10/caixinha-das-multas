@@ -11,6 +11,7 @@
 7. O utilizador pode alterar apenas a propria password.
 8. Uma password esquecida e reposta pelo Super Admin.
 9. Desativar um utilizador impede novos logins sem destruir o historico.
+10. A password tem no minimo 6 caracteres e inclui pelo menos uma letra minuscula, uma letra maiuscula e um algarismo; nao e obrigatorio usar simbolos.
 
 ## 2. Equipas e epocas
 

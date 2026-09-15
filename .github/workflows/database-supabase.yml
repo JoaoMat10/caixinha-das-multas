@@ -1,0 +1,41 @@
+name: Base de dados Supabase
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - feature/**
+    paths:
+      - '.github/workflows/database-supabase.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'supabase/**'
+
+permissions:
+  contents: read
+
+jobs:
+  test-database:
+    name: Migrações, seed e pgTAP
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Obter o código
+        uses: actions/checkout@v5
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.15.0
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Iniciar Supabase local
+        run: npx supabase start
+
+      - name: Executar migrações, seed e pgTAP
+        run: npm run test:db:supabase:local

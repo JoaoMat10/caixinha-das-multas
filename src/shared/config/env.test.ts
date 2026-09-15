@@ -15,4 +15,16 @@ describe('variáveis de ambiente públicas', () => {
       parsePublicEnvironment({ VITE_PUBLIC_APP_URL: 'valor-invalido' }),
     ).toThrow();
   });
+
+  it('aceita apenas a configuração pública necessária ao Supabase', () => {
+    expect(
+      parsePublicEnvironment({
+        VITE_SUPABASE_URL: 'https://exemplo.supabase.co',
+        VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_exemplo',
+      }),
+    ).toMatchObject({
+      VITE_SUPABASE_URL: 'https://exemplo.supabase.co',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_exemplo',
+    });
+  });
 });

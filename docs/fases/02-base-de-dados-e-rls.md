@@ -88,19 +88,21 @@ Configurar a base Supabase/PostgreSQL e entregar um modelo de dados reproduzivel
 
 ## Testes e verificacoes
 
-| Comando/cenario                                     | Resultado | Observacoes                                                                                                                                                                   |
-| --------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `git fetch --prune origin main` e divergencia `0/0` | passou    | `main` e `origin/main` apontam para `944cf91`.                                                                                                                                |
-| Inventario de ferramentas locais                    | passou    | Node 24.19.0 disponivel; Docker, Supabase CLI, `psql` e `gh` estao ausentes.                                                                                                  |
-| `npm run format:check`                              | passou    | Todos os ficheiros abrangidos seguem Prettier.                                                                                                                                |
-| `npm run lint`                                      | passou    | ESLint terminou sem erros ou avisos.                                                                                                                                          |
-| `npm run typecheck`                                 | passou    | TypeScript em modo estrito terminou sem erros.                                                                                                                                |
-| `npm test`                                          | passou    | 3 ficheiros e 5 testes Vitest passaram.                                                                                                                                       |
-| `npm run test:db`                                   | passou    | 5 testes: reproducao dupla, constraints, isolamento RLS/RBAC, auditoria de categorias e RPCs atomicas.                                                                        |
-| `npm run build`                                     | passou    | 185 modulos transformados e build de producao concluido.                                                                                                                      |
-| Primeira execucao de `npm run test:e2e`             | falhou    | O Playwright procurou o Chromium no cache global; o processo foi terminado.                                                                                                   |
-| `npm run test:e2e` com browser local configurado    | passou    | 4 testes passaram em Chromium desktop e movel.                                                                                                                                |
-| `npm run test:db:supabase`                          | bloqueado | Comando executado, mas o executavel `supabase` nao existe; Docker Desktop tambem esta ausente. A validacao oficial nao foi concluida; suite pgTAP com 46 assercoes preparada. |
+| Comando/cenario                                        | Resultado | Observacoes                                                                                                                                                                   |
+| ------------------------------------------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `git fetch --prune origin main` e divergencia `0/0`    | passou    | `main` e `origin/main` apontam para `944cf91`.                                                                                                                                |
+| Inventario de ferramentas locais                       | passou    | Node 24.19.0 disponivel; Docker, Supabase CLI, `psql` e `gh` estao ausentes.                                                                                                  |
+| `npm run format:check`                                 | passou    | Todos os ficheiros abrangidos seguem Prettier.                                                                                                                                |
+| `npm run lint`                                         | passou    | ESLint terminou sem erros ou avisos.                                                                                                                                          |
+| `npm run typecheck`                                    | passou    | TypeScript em modo estrito terminou sem erros.                                                                                                                                |
+| `npm test`                                             | passou    | 3 ficheiros e 5 testes Vitest passaram.                                                                                                                                       |
+| `npm run test:db`                                      | passou    | 5 testes: reproducao dupla, constraints, isolamento RLS/RBAC, auditoria de categorias e RPCs atomicas.                                                                        |
+| `npm run build`                                        | passou    | 185 modulos transformados e build de producao concluido.                                                                                                                      |
+| Primeira execucao de `npm run test:e2e`                | falhou    | O Playwright procurou o Chromium no cache global; o processo foi terminado.                                                                                                   |
+| `npm run test:e2e` com browser local configurado       | passou    | 4 testes passaram em Chromium desktop e movel.                                                                                                                                |
+| `npm run test:db:supabase`                             | bloqueado | Comando executado, mas o executavel `supabase` nao existe; Docker Desktop tambem esta ausente. A validacao oficial nao foi concluida; suite pgTAP com 46 assercoes preparada. |
+| `npm exec -- supabase db push --linked --include-seed` | passou    | Em 2026-09-14, as quatro migracoes e o seed foram aplicados ao projeto Supabase Free dedicado sem usar `db reset --linked`.                                                   |
+| `npm run test:db:supabase`                             | passou    | Em 2026-09-14, o runner remoto transacional validou 46/46 assercoes pgTAP no Supabase real.                                                                                   |
 
 ## Desvios ao planeamento
 
@@ -108,8 +110,8 @@ Configurar a base Supabase/PostgreSQL e entregar um modelo de dados reproduzivel
 
 ## Riscos e limitacoes
 
-- A verificacao com a stack Supabase CLI oficial permanece bloqueada: Docker Desktop e Supabase CLI estao indisponiveis neste ambiente e a tentativa de `npm run test:db:supabase` terminou antes de iniciar a stack.
-- Antes de ligar um projeto Supabase remoto ou promover migracoes, deve executar-se `npm run test:db:supabase` num ambiente com Docker para confirmar tambem as integracoes especificas da stack local.
+- A verificacao original com a stack local permaneceu inviavel por falta de espaco para Docker. A reproducao foi concluida num projeto Supabase Free dedicado: quatro migracoes, seed e 46/46 assercoes pgTAP passaram.
+- O comando nativo `supabase test db --linked` ainda tenta usar `pg_prove` num container. O runner `scripts/test-supabase-linked.mjs` executa a mesma suite SQL remotamente, agrega todas as linhas TAP numa unica resposta e falha perante contagem ou assercao incorreta.
 - O pull request da Fase 02 esta aberto; a correcao pre-merge deve permanecer na mesma branch.
 
 ## Trabalho pendente
@@ -120,7 +122,7 @@ Configurar a base Supabase/PostgreSQL e entregar um modelo de dados reproduzivel
 - [x] Implementar vistas e RPCs derivadas seguras.
 - [x] Criar e executar a matriz de testes RLS/RBAC no PostgreSQL embebido.
 - Nenhum item de implementacao pendente dentro da Fase 02.
-- Verificacao complementar externa: executar a suite pgTAP quando Docker Desktop e Supabase CLI estiverem disponiveis.
+- [x] Executar a suite pgTAP contra Supabase real: 46/46 assercoes passaram no projeto Free dedicado.
 
 ## Handoff para a fase seguinte
 
@@ -129,5 +131,5 @@ Configurar a base Supabase/PostgreSQL e entregar um modelo de dados reproduzivel
 - Usar apenas contratos publicos autorizados. O schema `private` nao deve ser adicionado aos schemas expostos pela Data API.
 - Manter as escritas financeiras exclusivamente nas RPCs `apply_fine`, `record_payment_batch` e `delete_pending_fine`; nao conceder DML direto nas tabelas do livro-razao.
 - `create_season` e `save_fine_category` ja validam autorizacao e invariantes na base; a segunda RPC tambem garante auditoria atomica de todas as alteracoes do catalogo. As interfaces e Edge Functions administrativas continuam reservadas para as fases previstas.
-- Executar `npm run test:db` depois de qualquer alteracao de migracao. Num ambiente com Docker, executar tambem `npm run test:db:supabase`.
+- Executar `npm run test:db` depois de qualquer alteracao de migracao. O projeto ligado permite executar `npm run test:db:supabase` sem Docker; num ambiente com Docker, usar `npm run test:db:supabase:local`.
 - Nunca executar `supabase db reset --linked` contra um projeto com dados reais nem colocar chaves secretas em variaveis `VITE_`.
