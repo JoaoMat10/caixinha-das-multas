@@ -51,7 +51,7 @@ function runCli(argumentsList) {
   });
 }
 
-async function runLinkedSql(sql) {
+export async function runLinkedSql(sql) {
   const temporaryDirectory = await mkdtemp(
     path.join(tmpdir(), 'caixinha-auth-'),
   );
@@ -73,7 +73,7 @@ async function runLinkedSql(sql) {
   }
 }
 
-async function getLinkedConfiguration() {
+export async function getLinkedConfiguration() {
   const projectRef = await requireLinkedTestProject(projectDirectory);
 
   const result = runCli([
@@ -267,4 +267,173 @@ export async function cleanupAuthTestUser(testUser) {
       }
     },
   );
+}
+
+export async function prepareAdminTestOwner({
+  usernamePrefix = 'admin.test',
+  displayName = 'Owner temporário Fase 04',
+} = {}) {
+  if (!/^[a-z0-9._-]{3,20}$/.test(usernamePrefix)) {
+    throw new Error('O prefixo do Owner temporário é inválido.');
+  }
+  const configuration = await getLinkedConfiguration();
+  const suffix = randomBytes(5).toString('hex');
+  const username = `${usernamePrefix}.${suffix}`;
+  const password = `Aa1${randomBytes(18).toString('base64url')}`;
+  const technicalEmail = `u-${encodeBase32(username)}@auth.caixinha.invalid`;
+  const administrator = createClient(
+    configuration.url,
+    configuration.serviceRoleKey,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const created = await administrator.auth.admin.createUser({
+    email: technicalEmail,
+    password,
+    email_confirm: true,
+  });
+  if (created.error || !created.data.user) {
+    throw new Error('Não foi possível criar o Owner temporário.');
+  }
+
+  const testOwner = {
+    id: created.data.user.id,
+    username,
+    password,
+    technicalEmail,
+    configuration,
+  };
+  try {
+    await runLinkedSql(`
+      insert into public.users (
+        id, username, username_normalized, display_name,
+        must_change_password, created_by
+      ) values (
+        ${sqlLiteral(testOwner.id)}::uuid,
+        ${sqlLiteral(username)},
+        ${sqlLiteral(username)},
+        ${sqlLiteral(displayName)},
+        false,
+        ${sqlLiteral(testOwner.id)}::uuid
+      );
+      insert into public.app_admins (user_id)
+      values (${sqlLiteral(testOwner.id)}::uuid);
+    `);
+  } catch (error) {
+    await administrator.auth.admin.deleteUser(testOwner.id);
+    throw error;
+  }
+  return testOwner;
+}
+
+export async function cleanupAdminTestOwner(testOwner) {
+  if (!testOwner) return;
+  const administrator = createClient(
+    testOwner.configuration.url,
+    testOwner.configuration.serviceRoleKey,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const { data: createdProfiles, error: profilesError } = await administrator
+    .from('users')
+    .select('id')
+    .eq('created_by', testOwner.id)
+    .neq('id', testOwner.id);
+  if (profilesError)
+    throw new Error('Não foi possível identificar os perfis temporários.');
+  const createdIds = (createdProfiles ?? []).map((profile) => profile.id);
+
+  const storageUserIds = [...createdIds, testOwner.id];
+  for (const userId of storageUserIds) {
+    const listed = await administrator.storage
+      .from('private-photos')
+      .list(`users/${userId}`, { limit: 1000 });
+    if (listed.error) {
+      throw new Error('Não foi possível listar as fotografias temporárias.');
+    }
+    const paths = (listed.data ?? [])
+      .filter((entry) => entry.id)
+      .map((entry) => `users/${userId}/${entry.name}`);
+    if (paths.length > 0) {
+      const removed = await administrator.storage
+        .from('private-photos')
+        .remove(paths);
+      if (removed.error) {
+        throw new Error(
+          'Não foi possível eliminar as fotografias temporárias.',
+        );
+      }
+    }
+  }
+
+  await runCleanupWithAuthFinally(
+    () =>
+      runLinkedSql(`
+        begin;
+        delete from public.member_roles where season_member_id in (
+          select id from public.season_members where user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}])
+        );
+        delete from public.season_members where user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}]);
+        delete from public.admin_user_requests
+        where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
+           or user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}]);
+        alter table public.audit_events disable trigger audit_events_are_immutable;
+        delete from public.audit_events where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid;
+        alter table public.audit_events enable trigger audit_events_are_immutable;
+        delete from public.app_admins where user_id = ${sqlLiteral(testOwner.id)}::uuid;
+        delete from public.users where id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}]);
+        delete from public.users where id = ${sqlLiteral(testOwner.id)}::uuid;
+        commit;
+      `),
+    async () => {
+      for (const id of createdIds) {
+        const deleted = await administrator.auth.admin.deleteUser(id);
+        if (deleted.error)
+          throw new Error(
+            'Não foi possível eliminar uma conta administrativa temporária.',
+          );
+      }
+      const deletedOwner = await administrator.auth.admin.deleteUser(
+        testOwner.id,
+      );
+      if (deletedOwner.error)
+        throw new Error('Não foi possível eliminar o Owner temporário.');
+    },
+  );
+}
+
+export async function cleanupStrandedAdminTestOwners() {
+  const configuration = await getLinkedConfiguration();
+  const administrator = createClient(
+    configuration.url,
+    configuration.serviceRoleKey,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const { data: owners, error } = await administrator
+    .from('users')
+    .select('id')
+    .like('username_normalized', 'admin.test.%');
+  if (error)
+    throw new Error('Não foi possível procurar Owners temporários pendentes.');
+  for (const owner of owners ?? []) {
+    await cleanupAdminTestOwner({ id: owner.id, configuration });
+  }
+}
+
+export async function assertNoStrandedAdminTestOwners() {
+  const configuration = await getLinkedConfiguration();
+  const administrator = createClient(
+    configuration.url,
+    configuration.serviceRoleKey,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const { count, error } = await administrator
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .or(
+      'username_normalized.like.admin.test.%,username_normalized.like.managed.%',
+    );
+  if (error || count !== 0) {
+    throw new Error(
+      'Permanecem perfis administrativos temporários no projeto.',
+    );
+  }
 }

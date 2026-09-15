@@ -35,3 +35,6 @@ secure_password_change = true
 [storage]
 enabled = true
 file_size_limit = "10MiB"
+
+[functions.admin-users]
+verify_jwt = true

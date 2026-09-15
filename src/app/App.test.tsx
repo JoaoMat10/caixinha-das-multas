@@ -159,6 +159,16 @@ describe('autenticação e rotas da aplicação', () => {
     ).toBeInTheDocument();
   });
 
+  it('impede um membro de ver ou abrir a Administração', async () => {
+    renderRoute('/administracao', createGateway(member));
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Ainda não tens acesso a uma área da aplicação.',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Administração' })).toBeNull();
+  });
+
   it('termina a sessão através do logout', async () => {
     const user = userEvent.setup();
     const gateway = createGateway(member);

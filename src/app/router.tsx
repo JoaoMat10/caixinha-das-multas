@@ -2,7 +2,7 @@ import { createBrowserRouter, createMemoryRouter } from 'react-router-dom';
 
 import { AppShell } from '@/app/layout/AppShell';
 import { NotFoundPage } from '@/shared/pages/NotFoundPage';
-import { AdminPlaceholderPage } from '@/domains/admin';
+import { AdminPage } from '@/domains/admin';
 import {
   AnonymousOnlyRoute,
   AuthenticatedIndexRoute,
@@ -57,9 +57,7 @@ export const appRoutes = [
           },
           {
             element: <AuthorizedRoute capability="admin" />,
-            children: [
-              { path: 'administracao', element: <AdminPlaceholderPage /> },
-            ],
+            children: [{ path: 'administracao', element: <AdminPage /> }],
           },
           {
             path: 'definicoes/password',
