@@ -63,6 +63,7 @@ Entregar um painel administrativo funcional, exclusivo do Super Admin, para geri
 - Corrigida a permissão interna de leitura de `service_role` identificada pelo primeiro teste real, sem ampliar privilégios de `authenticated` ou `anon`.
 - Reforçada a limpeza dos testes para remover perfis, identidades Auth e ficheiros; a auditoria temporária é eliminada numa transação de teardown que reativa a proteção de imutabilidade antes do commit.
 - Criado um Owner temporário exclusivo da validação manual. O projeto já contém duas equipas, três épocas, utilizadores, jogadores, equipa técnica, capitães, tesoureiros e eventos de auditoria; foi ainda criada uma imagem PNG local para testar fotografias.
+- Pull request `#4` aberto a partir de `feature/painel-super-admin` para `main`; permanece sem aprovação para merge enquanto decorre a validação manual.
 
 ## Ficheiros criados ou alterados
 
@@ -113,6 +114,7 @@ Entregar um painel administrativo funcional, exclusivo do Super Admin, para geri
 | Dry-run remoto final                               | passou    | Zero migrações, seeds ou roles pendentes; base remota atualizada.                                                                           |
 | Verificação da Edge Function                       | passou    | `admin-users` ativa, versão 1, com validação JWT.                                                                                           |
 | Preparação da validação manual                     | passou    | Owner temporário criado; dados mínimos confirmados; credenciais e PNG apenas na pasta local ignorada.                                       |
+| Abertura do pull request                           | passou    | PR `#4` aberto sobre `main`; mantido sem merge e pendente do resultado do teste manual.                                                     |
 
 Comandos remotos executados, sempre depois da comparação exata com a referência autorizada:
 
