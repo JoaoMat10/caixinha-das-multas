@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { requireLinkedTestProject } from './supabase-test-project.mjs';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(currentDirectory, '..');
@@ -72,15 +74,7 @@ async function runLinkedSql(sql) {
 }
 
 async function getLinkedConfiguration() {
-  const projectRef = (
-    await readFile(
-      path.join(projectDirectory, 'supabase', '.temp', 'project-ref'),
-      'utf8',
-    )
-  ).trim();
-  if (!/^[a-z0-9]{20}$/.test(projectRef)) {
-    throw new Error('A referência do projeto Supabase ligado é inválida.');
-  }
+  const projectRef = await requireLinkedTestProject(projectDirectory);
 
   const result = runCli([
     'projects',
@@ -217,28 +211,60 @@ export async function setAuthTestUserActive(testUser, isActive) {
   `);
 }
 
+export async function runCleanupWithAuthFinally(cleanupPublic, cleanupAuth) {
+  let publicCleanupError;
+  let authCleanupError;
+
+  try {
+    await cleanupPublic();
+  } catch (error) {
+    publicCleanupError = error;
+  } finally {
+    try {
+      await cleanupAuth();
+    } catch (error) {
+      authCleanupError = error;
+    }
+  }
+
+  if (publicCleanupError && authCleanupError) {
+    throw new AggregateError(
+      [publicCleanupError, authCleanupError],
+      'A limpeza da conta de teste falhou nas tabelas públicas e no Supabase Auth.',
+    );
+  }
+  if (authCleanupError) throw authCleanupError;
+  if (publicCleanupError) throw publicCleanupError;
+}
+
 export async function cleanupAuthTestUser(testUser) {
   if (!testUser) return;
-
-  await runLinkedSql(`
-    delete from public.member_roles
-    where season_member_id in (
-      select id from public.season_members
-      where user_id = ${sqlLiteral(testUser.id)}::uuid
-    );
-    delete from public.season_members
-    where user_id = ${sqlLiteral(testUser.id)}::uuid;
-    delete from public.users
-    where id = ${sqlLiteral(testUser.id)}::uuid;
-  `);
 
   const administrator = createClient(
     testUser.configuration.url,
     testUser.configuration.serviceRoleKey,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
-  const deleted = await administrator.auth.admin.deleteUser(testUser.id);
-  if (deleted.error) {
-    throw new Error('Não foi possível eliminar a conta Auth temporária.');
-  }
+  await runCleanupWithAuthFinally(
+    () =>
+      runLinkedSql(`
+      delete from public.member_roles
+      where season_member_id in (
+        select id from public.season_members
+        where user_id = ${sqlLiteral(testUser.id)}::uuid
+      );
+      delete from public.season_members
+      where user_id = ${sqlLiteral(testUser.id)}::uuid;
+      delete from public.users
+      where id = ${sqlLiteral(testUser.id)}::uuid;
+    `),
+    async () => {
+      const deleted = await administrator.auth.admin.deleteUser(testUser.id);
+      if (deleted.error) {
+        throw new Error('Não foi possível eliminar a conta Auth temporária.', {
+          cause: deleted.error,
+        });
+      }
+    },
+  );
 }

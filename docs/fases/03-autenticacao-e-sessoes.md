@@ -5,7 +5,7 @@
 - Estado: concluída
 - Responsável: equipa de engenharia
 - Início: 2026-09-14
-- Última atualização: 2026-09-14
+- Última atualização: 2026-09-15
 - Dependências recebidas: Fase 02 integrada em `main` pelo commit squash `e628b50`; fronteiras modulares reforçadas em `03a6302`; quatro migrações, seed e 46 asserções da Fase 02 validados no Supabase Free dedicado.
 
 ## Objetivo
@@ -24,20 +24,22 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 
 ## Decisões tomadas
 
-| Data       | Decisão                                                                                                                       | Justificação                                                                                                                              | Impacto                                                                                                                 |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| 2026-09-14 | Usar a branch `feature/autenticacao-e-sessoes` criada a partir de `main` limpa e sincronizada com `origin/main`.              | Mantém a Fase 03 isolada e pronta para revisão por pull request.                                                                          | Nenhuma alteração da fase será feita diretamente em `main`.                                                             |
-| 2026-09-14 | Usar uma exceção `safe.directory` apenas por comando Git.                                                                     | O utilizador efetivo do ambiente difere do proprietário do checkout e a configuração Git global não deve ser alterada desnecessariamente. | Operações Git permanecem limitadas a este repositório.                                                                  |
-| 2026-09-14 | Instalar o Supabase CLI 2.117.0 como dependência de desenvolvimento do projeto.                                               | É a instalação por projeto suportada oficialmente, evita dependência global e fixa a ferramenta no lockfile.                              | Os scripts npm resolvem o executável local; continua a ser necessário um runtime compatível com Docker.                 |
-| 2026-09-14 | Propor Docker Desktop com backend WSL 2 para a stack local em Windows, condicionado à licença gratuita aplicável.             | É o caminho recomendado pela documentação Supabase para Windows e suporta toda a stack local.                                             | Requer autorização antes da instalação externa; alternativas compatíveis são Rancher Desktop ou Podman.                 |
-| 2026-09-14 | Executar a stack Supabase oficial num runner descartável do GitHub Actions, sem instalar um runtime de containers no Windows. | O disco `C:` dispõe de apenas 3,1 GB livres e o utilizador privilegiou minimizar instalações locais.                                      | O checkpoint pgTAP e os testes reais de Auth correrão em CI; os testes unitários e o harness PGlite permanecem locais.  |
-| 2026-09-14 | Exigir passwords com mínimo de 6 caracteres, incluindo maiúscula, minúscula e algarismo, sem obrigatoriedade de símbolos.     | Decisão explícita do produto, confirmada após apresentação da recomendação de usar um mínimo superior.                                    | A configuração Supabase, validação cliente e testes devem coincidir; fica aceite um risco superior de passwords curtas. |
-| 2026-09-14 | Usar um projeto Supabase Free dedicado como ambiente real de desenvolvimento e testes.                                        | Evita instalar Docker numa máquina com apenas 3,1 GB livres e permite validar PostgreSQL, Auth, API e RLS geridos.                        | Migrações são aplicadas com `db push`; é proibido executar `db reset --linked`.                                         |
-| 2026-09-14 | Derivar o email técnico por Base32 do username normalizado e um domínio reservado interno.                                    | Garante uma conversão determinística, sem colisões por maiúsculas/minúsculas e sem apresentar o identificador técnico.                    | Apenas o adaptador/serviço de autenticação conhece o email; a interface recebe sempre username.                         |
-| 2026-09-14 | Expor o contexto autorizado por uma RPC `security definer` sem argumentos e com `search_path` vazio.                          | A identidade é obtida exclusivamente de `auth.uid()` e o estado ativo é validado no servidor antes de devolver perfil e permissões.       | `anon` não pode executar a função; uma conta desativada perde contexto e a sessão local é terminada.                    |
-| 2026-09-14 | Persistir e renovar a sessão no adaptador Supabase, revalidando o contexto a cada minuto e quando a janela recupera foco.     | Recupera sessões ao abrir a aplicação e limita o tempo durante o qual uma desativação externa poderia permanecer visível.                 | Falhas, expiração ou desativação limpam a sessão; RLS continua a ser a autorização efetiva.                             |
-| 2026-09-14 | Criar contas Auth aleatórias e efémeras nos testes reais/E2E, com limpeza obrigatória em `finally`.                           | Testa GoTrue e a Data API reais sem passwords fixas em seeds, ficheiros ou histórico.                                                     | Os testes requerem um projeto ligado; nenhuma conta temporária permanece depois da execução.                            |
-| 2026-09-14 | Executar os E2E sequencialmente por perfil desktop/móvel e reutilizar o Chromium já instalado.                                | Evita interferência entre sessões da mesma conta temporária e evita downloads adicionais nesta máquina.                                   | O runner continua portátil, usando o browser gerido pelo Playwright quando o executável local não existe.               |
+| Data       | Decisão                                                                                                                                    | Justificação                                                                                                                                  | Impacto                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-14 | Usar a branch `feature/autenticacao-e-sessoes` criada a partir de `main` limpa e sincronizada com `origin/main`.                           | Mantém a Fase 03 isolada e pronta para revisão por pull request.                                                                              | Nenhuma alteração da fase será feita diretamente em `main`.                                                                |
+| 2026-09-14 | Usar uma exceção `safe.directory` apenas por comando Git.                                                                                  | O utilizador efetivo do ambiente difere do proprietário do checkout e a configuração Git global não deve ser alterada desnecessariamente.     | Operações Git permanecem limitadas a este repositório.                                                                     |
+| 2026-09-14 | Instalar o Supabase CLI 2.117.0 como dependência de desenvolvimento do projeto.                                                            | É a instalação por projeto suportada oficialmente, evita dependência global e fixa a ferramenta no lockfile.                                  | Os scripts npm resolvem o executável local; continua a ser necessário um runtime compatível com Docker.                    |
+| 2026-09-14 | Propor Docker Desktop com backend WSL 2 para a stack local em Windows, condicionado à licença gratuita aplicável.                          | É o caminho recomendado pela documentação Supabase para Windows e suporta toda a stack local.                                                 | Requer autorização antes da instalação externa; alternativas compatíveis são Rancher Desktop ou Podman.                    |
+| 2026-09-14 | Executar a stack Supabase oficial num runner descartável do GitHub Actions, sem instalar um runtime de containers no Windows.              | O disco `C:` dispõe de apenas 3,1 GB livres e o utilizador privilegiou minimizar instalações locais.                                          | O checkpoint pgTAP e os testes reais de Auth correrão em CI; os testes unitários e o harness PGlite permanecem locais.     |
+| 2026-09-14 | Exigir passwords com mínimo de 6 caracteres, incluindo maiúscula, minúscula e algarismo, sem obrigatoriedade de símbolos.                  | Decisão explícita do produto, confirmada após apresentação da recomendação de usar um mínimo superior.                                        | A configuração Supabase, validação cliente e testes devem coincidir; fica aceite um risco superior de passwords curtas.    |
+| 2026-09-14 | Usar um projeto Supabase Free dedicado como ambiente real de desenvolvimento e testes.                                                     | Evita instalar Docker numa máquina com apenas 3,1 GB livres e permite validar PostgreSQL, Auth, API e RLS geridos.                            | Migrações são aplicadas com `db push`; é proibido executar `db reset --linked`.                                            |
+| 2026-09-14 | Derivar o email técnico por Base32 do username normalizado e um domínio reservado interno.                                                 | Garante uma conversão determinística, sem colisões por maiúsculas/minúsculas e sem apresentar o identificador técnico.                        | Apenas o adaptador/serviço de autenticação conhece o email; a interface recebe sempre username.                            |
+| 2026-09-14 | Expor o contexto autorizado por uma RPC `security definer` sem argumentos e com `search_path` vazio.                                       | A identidade é obtida exclusivamente de `auth.uid()` e o estado ativo é validado no servidor antes de devolver perfil e permissões.           | `anon` não pode executar a função; uma conta desativada perde contexto e a sessão local é terminada.                       |
+| 2026-09-14 | Persistir e renovar a sessão no adaptador Supabase, revalidando o contexto a cada minuto e quando a janela recupera foco.                  | Recupera sessões ao abrir a aplicação e limita o tempo durante o qual uma desativação externa poderia permanecer visível.                     | Falhas, expiração ou desativação limpam a sessão; RLS continua a ser a autorização efetiva.                                |
+| 2026-09-14 | Criar contas Auth aleatórias e efémeras nos testes reais/E2E, com limpeza obrigatória em `finally`.                                        | Testa GoTrue e a Data API reais sem passwords fixas em seeds, ficheiros ou histórico.                                                         | Os testes requerem um projeto ligado; nenhuma conta temporária permanece depois da execução.                               |
+| 2026-09-14 | Executar os E2E sequencialmente por perfil desktop/móvel e reutilizar o Chromium já instalado.                                             | Evita interferência entre sessões da mesma conta temporária e evita downloads adicionais nesta máquina.                                       | O runner continua portátil, usando o browser gerido pelo Playwright quando o executável local não existe.                  |
+| 2026-09-15 | Exigir `SUPABASE_TEST_PROJECT_REF` em todos os runners ligados e compará-la com a referência local do CLI antes de qualquer acesso remoto. | Impede que testes destrutivos ou com identidades efémeras sejam executados acidentalmente noutro projeto.                                     | Apenas projetos Supabase descartáveis e exclusivos para testes podem ser usados; ausência ou divergência falha cedo.       |
+| 2026-09-15 | Diferir eventos de sessão positivos para a tarefa seguinte e versionar todas as operações assíncronas de sessão.                           | O callback do Supabase Auth não deve iniciar recuperação assíncrona diretamente, e resultados antigos não podem reabrir uma sessão terminada. | `SIGNED_IN`, `TOKEN_REFRESHED` e `USER_UPDATED` usam `setTimeout(..., 0)`; logout/desativação invalidam trabalho pendente. |
 
 ## Trabalho realizado
 
@@ -83,6 +85,14 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 - Nove cenários reais validaram login, erro, RPC, password atual, trigger, desativação e logout; uma consulta posterior confirmou zero contas temporárias.
 - E2E executado em Chromium desktop e móvel contra a conta efémera, incluindo recuperação da sessão após reload.
 
+### Correções pré-merge do PR #3
+
+- Todos os runners ligados exigem `SUPABASE_TEST_PROJECT_REF`, validam o formato e comparam-na com `supabase/.temp/project-ref` antes de obter chaves ou executar SQL.
+- A documentação operacional restringe explicitamente os testes remotos a um projeto descartável e dedicado exclusivamente a testes.
+- A limpeza do fixture Auth tenta eliminar a identidade num bloco `finally`, mesmo que a remoção de roles, associação e perfil públicos falhe; erros simultâneos são preservados num `AggregateError`.
+- O `AuthProvider` agenda os eventos positivos de sessão com atraso zero, cancela eventos agendados perante `SIGNED_OUT` e usa uma versão monotónica para ignorar resultados assíncronos obsoletos após logout, desativação ou desmontagem.
+- Foram acrescentados testes dos três eventos diferidos, das corridas após logout/desativação e das referências remotas ausente, divergente e válida.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                               | Tipo de alteração | Motivo                                                                        |
@@ -108,6 +118,9 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 | `scripts/test-e2e.mjs` / `e2e/auth.spec.ts`                            | criado            | Build e E2E reais em desktop/móvel com fixture efémero.                       |
 | `playwright.config.ts`                                                 | alterado          | Runtime Node/browser existente e execução de sessões isolada.                 |
 | `tests/database/database.test.mjs`                                     | alterado          | Compatibilidade do harness com o trigger em `auth.users`.                     |
+| `scripts/supabase-test-project.mjs`                                    | criado            | Fail-safe comum para confirmar o projeto remoto descartável antes dos testes. |
+| `tests/scripts/supabase-test-project.test.mjs`                         | criado            | Cobertura das referências ausente, divergente e coincidente.                  |
+| `src/domains/auth/state/AuthProvider.test.tsx`                         | criado            | Cobertura dos eventos diferidos e das condições de corrida de sessão.         |
 | `supabase/config.toml`                                                 | alterado          | Política Auth local alinhada com o ambiente real.                             |
 | `README.md`                                                            | alterado          | Configuração pública, comandos reais e estado da aplicação.                   |
 
@@ -135,7 +148,8 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 | `npm run test:db` após migração de Auth                          | passou    | 5/5 cenários PGlite; migrações e seed reproduzíveis.                                                          |
 | `npm run test:db:supabase` após migração de Auth                 | passou    | 54/54: 46 asserções da Fase 02 e 8 da Fase 03.                                                                |
 | `npm run test:auth:supabase`                                     | passou    | 9/9 cenários contra Auth/API/RPC reais; conta temporária removida.                                            |
-| Testes unitários e de integração React                           | passou    | 25/25 em 6 ficheiros com Node 24.19.0 isolado.                                                                |
+| Referência remota ausente ou divergente                          | passou    | Ambos os cenários foram recusados antes de obter chaves ou executar SQL; a referência coincidente foi aceite. |
+| Testes unitários e de integração React                           | passou    | 36/36 em 8 ficheiros com Node 24.19.0 isolado, incluindo eventos, corridas, proteção remota e `finally`.      |
 | TypeScript                                                       | passou    | Sem erros com Node 24.19.0 isolado.                                                                           |
 | ESLint                                                           | passou    | Sem erros ou avisos.                                                                                          |
 | Playwright — Chromium desktop e móvel                            | passou    | 4/4; rota protegida, erro genérico, login, password obrigatória, reload, logout e manifesto.                  |
@@ -153,6 +167,7 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 - Passwords com apenas 6 caracteres têm menor resistência a adivinhação e reutilização indevida do que o mínimo técnico recomendado; o risco foi aceite pelo produto.
 - A desativação é detetada imediatamente em novo pedido protegido e, no frontend aberto sem pedidos, no máximo no ciclo de revalidação de 60 segundos; RLS/RPC bloqueiam de imediato no servidor.
 - O bundle inicial em produção ultrapassa 500 kB sem compressão e gera um aviso não bloqueante; code splitting deve ser avaliado quando as páginas funcionais das fases seguintes substituírem os placeholders.
+- Os testes remotos recusam execução até `SUPABASE_TEST_PROJECT_REF` ser definida na sessão e coincidir com o projeto ligado; esta fricção é deliberada e não deve ser removida na Fase 04.
 
 ## Trabalho pendente
 
@@ -162,6 +177,7 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 - [x] Implementar e executar testes unitários, reais/locais e E2E desktop/móvel.
 - [x] Executar o pipeline final e concluir o diário.
 - [x] Publicar os commits finais da branch e abrir o [pull request #3](https://github.com/JoaoMat10/caixinha-das-multas/pull/3), sem efetuar o merge.
+- [x] Aplicar e validar as correções pré-merge de proteção do projeto remoto e concorrência da sessão.
 
 ## Handoff para a fase seguinte
 
@@ -171,3 +187,4 @@ Entregar autenticação por username e password, gestão segura de sessões, pro
 - A desativação em `public.users.is_active` já bloqueia `get_auth_context`; a Fase 04 deve preservar esta fonte de verdade e invalidar sessões no servidor quando implementar a operação administrativa.
 - Preservar `AuthGateway` como fronteira do fornecedor e usar `useAuth` apenas na composição/apresentação; regras de autorização permanecem em funções puras e na base de dados.
 - Configurar localmente apenas `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`. Executar `npm run test:db`, `npm run test:db:supabase`, `npm run test:auth:supabase` e `npm run test:e2e` antes de alterar contratos.
+- Antes de qualquer teste remoto, definir `SUPABASE_TEST_PROJECT_REF` com a referência do projeto Supabase descartável ligado; nunca contornar a comparação com `supabase/.temp/project-ref` nem usar estes runners contra produção.

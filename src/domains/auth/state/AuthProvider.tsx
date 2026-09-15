@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react';
@@ -26,6 +27,7 @@ export function AuthProvider({
   const [user, setUser] = useState<AuthenticatedUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const operationVersion = useRef(0);
 
   const applyUser = useCallback((nextUser: AuthenticatedUser | null) => {
     setUser(nextUser);
@@ -33,10 +35,18 @@ export function AuthProvider({
     setError(null);
   }, []);
 
+  const invalidatePendingOperations = useCallback(() => {
+    operationVersion.current += 1;
+  }, []);
+
   const recover = useCallback(async () => {
+    const version = ++operationVersion.current;
+
     try {
-      applyUser(await service.recoverSession());
+      const nextUser = await service.recoverSession();
+      if (version === operationVersion.current) applyUser(nextUser);
     } catch (recoverError) {
+      if (version !== operationVersion.current) return;
       setUser(null);
       setStatus('configuration-error');
       setError(
@@ -48,44 +58,60 @@ export function AuthProvider({
   }, [applyUser, service]);
 
   const refresh = useCallback(async () => {
-    applyUser(await service.refreshAuthorizationContext());
+    const version = ++operationVersion.current;
+    const nextUser = await service.refreshAuthorizationContext();
+    if (version === operationVersion.current) applyUser(nextUser);
   }, [applyUser, service]);
 
   useEffect(() => {
-    let active = true;
-
-    const recoverIfActive = async () => {
-      if (active) await recover();
+    const scheduledRecoveries = new Set<number>();
+    const scheduleRecovery = () => {
+      const timeout = window.setTimeout(() => {
+        scheduledRecoveries.delete(timeout);
+        void recover();
+      }, 0);
+      scheduledRecoveries.add(timeout);
     };
 
-    void recoverIfActive();
+    scheduleRecovery();
     const unsubscribe = service.onSessionEvent((event) => {
-      if (!active || event === 'initial') return;
+      if (event === 'initial') return;
       if (event === 'signed-out') {
-        applyUser(null);
+        for (const timeout of scheduledRecoveries) {
+          window.clearTimeout(timeout);
+        }
+        scheduledRecoveries.clear();
+        invalidatePendingOperations();
+        setUser(null);
+        setStatus('anonymous');
         return;
       }
-      void recoverIfActive();
+      scheduleRecovery();
     });
 
-    const validateSession = () => void recoverIfActive();
+    const validateSession = () => void recover();
     const interval = window.setInterval(validateSession, 60_000);
     window.addEventListener('focus', validateSession);
 
     return () => {
-      active = false;
+      invalidatePendingOperations();
+      for (const timeout of scheduledRecoveries) {
+        window.clearTimeout(timeout);
+      }
       unsubscribe();
       window.clearInterval(interval);
       window.removeEventListener('focus', validateSession);
     };
-  }, [applyUser, recover, service]);
+  }, [applyUser, invalidatePendingOperations, recover, service]);
 
   const login = useCallback(
     async (username: string, password: string) => {
       setIsBusy(true);
       setError(null);
+      const version = ++operationVersion.current;
       try {
-        applyUser(await service.login(username, password));
+        const nextUser = await service.login(username, password);
+        if (version === operationVersion.current) applyUser(nextUser);
       } catch (loginError) {
         setError(
           loginError instanceof Error
@@ -102,28 +128,34 @@ export function AuthProvider({
 
   const logout = useCallback(async () => {
     setIsBusy(true);
+    invalidatePendingOperations();
+    applyUser(null);
     try {
       await service.logout();
-      applyUser(null);
     } finally {
       setIsBusy(false);
     }
-  }, [applyUser, service]);
+  }, [applyUser, invalidatePendingOperations, service]);
 
   const changePassword = useCallback(
     async (currentPassword: string, newPassword: string) => {
       setIsBusy(true);
       setError(null);
+      const version = ++operationVersion.current;
       try {
-        applyUser(
-          await service.changePassword({ currentPassword, newPassword }),
-        );
+        const nextUser = await service.changePassword({
+          currentPassword,
+          newPassword,
+        });
+        if (version === operationVersion.current) applyUser(nextUser);
       } catch (passwordError) {
-        setError(
-          passwordError instanceof Error
-            ? passwordError.message
-            : 'Não foi possível alterar a password.',
-        );
+        if (version === operationVersion.current) {
+          setError(
+            passwordError instanceof Error
+              ? passwordError.message
+              : 'Não foi possível alterar a password.',
+          );
+        }
         throw passwordError;
       } finally {
         setIsBusy(false);

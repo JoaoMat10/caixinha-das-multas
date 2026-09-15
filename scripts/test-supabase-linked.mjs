@@ -4,9 +4,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+import { requireLinkedTestProject } from './supabase-test-project.mjs';
+
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(currentDirectory, '..');
 const testsDirectory = path.join(projectDirectory, 'supabase', 'tests');
+
+await requireLinkedTestProject(projectDirectory);
 
 function instrumentTestSuite(source) {
   const planMatch = source.match(/^select extensions\.plan\((\d+)\);\s*$/m);

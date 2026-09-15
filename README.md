@@ -54,13 +54,19 @@ npm run test:db:supabase:local
 
 Sem Docker local, o workflow `Base de dados Supabase` pode executar a mesma validação num runner descartável do GitHub Actions.
 
-Num projeto Supabase dedicado e previamente ligado com `npx supabase link`, a suite pode ser executada remotamente sem Docker. O runner agrega e valida as mesmas asserções pgTAP dentro da transação definida pela suite:
+Os testes remotos só podem ser executados contra um projeto Supabase descartável, dedicado exclusivamente a desenvolvimento/testes e sem dados reais. Depois de ligar explicitamente esse projeto com `npx supabase link`, definir a respetiva referência na sessão PowerShell:
+
+```powershell
+$env:SUPABASE_TEST_PROJECT_REF = 'referencia-do-projeto-de-testes'
+```
+
+Antes de obter chaves ou executar SQL, todos os runners remotos comparam esta variável com `supabase/.temp/project-ref` e recusam referências ausentes, inválidas ou divergentes. A suite de base de dados pode então ser executada sem Docker e agrega as mesmas asserções pgTAP dentro da transação definida pela suite:
 
 ```powershell
 npm run test:db:supabase
 ```
 
-Os fluxos de Auth reais usam uma conta aleatória e efémera, criada pela API administrativa apenas durante o teste e eliminada no fim. O comando exige login e ligação prévia do CLI, não grava passwords nem disponibiliza chaves administrativas ao frontend:
+Os fluxos de Auth reais usam uma conta aleatória e efémera, criada pela API administrativa apenas durante o teste e eliminada no fim, mesmo que a limpeza das tabelas públicas falhe. O comando exige login, ligação prévia do CLI e a mesma `SUPABASE_TEST_PROJECT_REF`; não grava passwords nem disponibiliza chaves administrativas ao frontend:
 
 ```powershell
 npm run test:auth:supabase
@@ -101,7 +107,7 @@ npm run build
 npm run test:e2e
 ```
 
-Os testes Playwright cobrem Chromium em perfis desktop e móvel contra o projeto Supabase ligado e também removem a conta temporária no fim.
+Os testes Playwright cobrem Chromium em perfis desktop e móvel contra o projeto Supabase de testes explicitamente confirmado por `SUPABASE_TEST_PROJECT_REF` e também removem a conta temporária no fim.
 
 ## Estrutura
 
