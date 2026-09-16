@@ -986,7 +986,34 @@ test('contratos administrativos validam Owner, idempotencia, plantel e auditoria
         )
       )[0];
       assert.equal(repeated.id, newUserId);
+      await rows(
+        database,
+        'select public.prepare_admin_password_reset($1, $2, $3)',
+        [ids.owner, newUserId, 'aa000000-0000-4000-8000-000000000010'],
+      );
+      await rows(
+        database,
+        'select * from public.complete_admin_password_reset($1, $2, $3)',
+        [ids.owner, newUserId, 'aa000000-0000-4000-8000-000000000010'],
+      );
+      await rows(
+        database,
+        'select * from public.complete_admin_password_reset($1, $2, $3)',
+        [ids.owner, newUserId, 'aa000000-0000-4000-8000-000000000010'],
+      );
     });
+
+    assert.equal(
+      (
+        await rows(
+          database,
+          `select count(*)::integer as count from public.audit_events
+           where action = 'user.password_reset' and entity_id = $1`,
+          [newUserId],
+        )
+      )[0].count,
+      1,
+    );
 
     await asRole(database, 'authenticated', ids.owner, async () => {
       const team = (

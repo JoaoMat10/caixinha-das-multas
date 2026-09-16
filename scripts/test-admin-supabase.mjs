@@ -220,8 +220,13 @@ try {
     'Um utilizador sem relação conseguiu ler a fotografia.',
   );
 
+  const resetBody = {
+    action: 'reset-password',
+    userId: targetId,
+    idempotencyKey: randomUUID(),
+  };
   const reset = await ownerClient.functions.invoke('admin-users', {
-    body: { action: 'reset-password', userId: targetId },
+    body: resetBody,
   });
   assert(
     !reset.error && reset.data?.temporaryPassword,
@@ -230,6 +235,17 @@ try {
   assert(
     reset.data.temporaryPassword !== firstPassword,
     'A reposição repetiu a password temporária.',
+  );
+  const resetReplay = await ownerClient.functions.invoke('admin-users', {
+    body: resetBody,
+  });
+  assert(
+    !resetReplay.error && resetReplay.data?.replayed === true,
+    'A repetição da reposição não foi reconhecida.',
+  );
+  assert(
+    resetReplay.data?.temporaryPassword === reset.data.temporaryPassword,
+    'A repetição não recuperou a mesma password temporária.',
   );
   await targetClient.auth.signOut();
   const resetLogin = await targetClient.auth.signInWithPassword({
@@ -279,6 +295,11 @@ try {
   assert(
     targetEvents.some((event) => event.action === 'user.password_reset'),
     'A reposição não foi auditada.',
+  );
+  assert(
+    targetEvents.filter((event) => event.action === 'user.password_reset')
+      .length === 1,
+    'A repetição duplicou a auditoria da reposição.',
   );
   assert(
     !JSON.stringify(targetEvents)

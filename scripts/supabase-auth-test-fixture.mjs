@@ -68,6 +68,7 @@ export async function runLinkedSql(sql) {
       process.stderr.write(diagnostic);
       throw new Error('A preparação SQL da conta de teste falhou.');
     }
+    return `${result.stdout}\n${result.stderr}`;
   } finally {
     await rm(temporaryDirectory, { force: true, recursive: true });
   }
@@ -373,6 +374,9 @@ export async function cleanupAdminTestOwner(testOwner) {
         );
         delete from public.season_members where user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}]);
         delete from public.admin_user_requests
+        where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
+           or user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}]);
+        delete from public.admin_password_reset_requests
         where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
            or user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}]);
         alter table public.audit_events disable trigger audit_events_are_immutable;

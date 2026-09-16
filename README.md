@@ -4,7 +4,7 @@ Aplicação web mobile-first para gerir as multas internas de uma equipa de fute
 
 ## Estado atual
 
-A implementação da Fase 04 está pronta e aguarda validação manual antes da aprovação para merge. Acrescenta o painel protegido do Super Admin para gerir contas, equipas, épocas, plantéis, roles, fotografias privadas e auditoria. A autenticação, a base PostgreSQL/Supabase, RLS e as RPCs seguras das fases anteriores permanecem ativas.
+A Fase 04 foi concluída, passou a validação manual e está pronta para merge no PR #4, que permanece aberto até autorização explícita. Acrescenta o painel protegido do Super Admin para gerir contas, equipas, épocas, plantéis, roles, fotografias privadas e auditoria. A Fase 05 — Catálogo e Tesouraria — é a próxima e ainda não foi iniciada.
 
 O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

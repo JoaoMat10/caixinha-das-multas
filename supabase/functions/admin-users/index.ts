@@ -3,6 +3,7 @@ import {
   isValidUsername,
   usernameToTechnicalEmail,
 } from '../../../src/shared/rules/username.ts';
+import { executeAdminPasswordReset } from '../../../src/shared/rules/adminPasswordReset.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Headers':
@@ -221,19 +222,50 @@ Deno.serve(async (request) => {
     }
 
     if (action === 'reset-password') {
-      const password = temporaryPassword();
-      const { error: passwordError } =
-        await adminClient.auth.admin.updateUserById(userId, { password });
-      if (passwordError) throw passwordError;
-      const { data: profile, error: resetError } = await adminClient.rpc(
-        'mark_admin_password_reset',
+      const idempotencyKey = requiredUuid(body, 'idempotencyKey');
+      let replayed = false;
+      const reset = await executeAdminPasswordReset(
+        { actorUserId: actorId, userId, idempotencyKey },
         {
-          p_actor_user_id: actorId,
-          p_user_id: userId,
+          secret: serviceRoleKey,
+          prepare: async () => {
+            const { data, error } = await adminClient.rpc(
+              'prepare_admin_password_reset',
+              {
+                p_actor_user_id: actorId,
+                p_user_id: userId,
+                p_idempotency_key: idempotencyKey,
+              },
+            );
+            if (error) throw error;
+            replayed = data?.completed === true;
+          },
+          updateAuth: async (password) => {
+            const { error } = await adminClient.auth.admin.updateUserById(
+              userId,
+              { password },
+            );
+            if (error) throw error;
+          },
+          complete: async () => {
+            const { data, error } = await adminClient.rpc(
+              'complete_admin_password_reset',
+              {
+                p_actor_user_id: actorId,
+                p_user_id: userId,
+                p_idempotency_key: idempotencyKey,
+              },
+            );
+            if (error) throw error;
+            return data;
+          },
         },
       );
-      if (resetError) throw resetError;
-      return jsonResponse(200, { user: profile, temporaryPassword: password });
+      return jsonResponse(200, {
+        user: reset.result,
+        temporaryPassword: reset.temporaryPassword,
+        replayed,
+      });
     }
 
     return jsonResponse(400, { error: 'Operação administrativa inválida.' });

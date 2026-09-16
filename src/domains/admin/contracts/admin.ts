@@ -79,6 +79,11 @@ export type TemporaryPasswordResult = {
   replayed?: boolean;
 };
 
+export type ResetAdminPassword = {
+  userId: string;
+  idempotencyKey: string;
+};
+
 export type SaveAdminTeam = {
   id?: string;
   name: string;
@@ -112,7 +117,7 @@ export interface AdminGateway {
   createUser(input: CreateAdminUser): Promise<TemporaryPasswordResult>;
   updateUser(input: UpdateAdminUser): Promise<void>;
   setUserActive(userId: string, isActive: boolean): Promise<void>;
-  resetPassword(userId: string): Promise<TemporaryPasswordResult>;
+  resetPassword(input: ResetAdminPassword): Promise<TemporaryPasswordResult>;
   saveTeam(input: SaveAdminTeam): Promise<void>;
   saveSeason(input: SaveAdminSeason): Promise<void>;
   saveMember(input: SaveAdminMember): Promise<void>;

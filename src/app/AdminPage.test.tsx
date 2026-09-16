@@ -133,4 +133,30 @@ describe('Painel Super Admin', () => {
       }),
     );
   });
+
+  it('repete a mesma chave quando a resposta de reposição falha', async () => {
+    const user = userEvent.setup();
+    const adapter = adminGateway();
+    vi.mocked(adapter.resetPassword)
+      .mockRejectedValueOnce(new Error('Ligação interrompida.'))
+      .mockResolvedValueOnce({ temporaryPassword: 'Aa1recuperada' });
+    renderAdmin(adapter);
+    await screen.findByRole('heading', { name: 'Administração' });
+    await user.click(screen.getByRole('button', { name: 'Utilizadores' }));
+    const resetButton = screen.getByRole('button', { name: 'Repor password' });
+
+    await user.click(resetButton);
+    expect(
+      await screen.findByText('Ligação interrompida.'),
+    ).toBeInTheDocument();
+    await user.click(resetButton);
+    expect(await screen.findByText('Aa1recuperada')).toBeInTheDocument();
+
+    const firstInput = vi.mocked(adapter.resetPassword).mock.calls[0]?.[0];
+    const secondInput = vi.mocked(adapter.resetPassword).mock.calls[1]?.[0];
+    expect(firstInput).toBeDefined();
+    expect(secondInput).toBeDefined();
+    if (!firstInput || !secondInput) throw new Error('Chamadas em falta.');
+    expect(secondInput.idempotencyKey).toBe(firstInput.idempotencyKey);
+  });
 });

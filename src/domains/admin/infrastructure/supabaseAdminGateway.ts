@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type {
   AdminGateway,
   CreateAdminUser,
+  ResetAdminPassword,
   SaveAdminMember,
   SaveAdminSeason,
   SaveAdminTeam,
@@ -124,8 +125,8 @@ export class SupabaseAdminGateway implements AdminGateway {
     await this.invokeAccount({ action: 'set-active', userId, isActive });
   }
 
-  resetPassword(userId: string) {
-    return this.invokeAccount({ action: 'reset-password', userId });
+  resetPassword(input: ResetAdminPassword) {
+    return this.invokeAccount({ action: 'reset-password', ...input });
   }
 
   async saveTeam(input: SaveAdminTeam) {

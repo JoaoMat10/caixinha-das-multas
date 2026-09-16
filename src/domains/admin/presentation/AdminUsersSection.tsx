@@ -31,6 +31,9 @@ export function AdminUsersSection({ overview, service, busy, run }: Props) {
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(
     null,
   );
+  const [passwordResetKeys, setPasswordResetKeys] = useState<
+    Record<string, string>
+  >({});
 
   const filtered = overview.users.filter((user) =>
     `${user.displayName} ${user.username}`
@@ -69,6 +72,25 @@ export function AdminUsersSection({ overview, service, busy, run }: Props) {
         }),
       (result: TemporaryPasswordResult) => {
         clearForm();
+        setTemporaryPassword(result.temporaryPassword);
+      },
+    );
+  }
+
+  function resetPassword(userId: string) {
+    const idempotencyKey = passwordResetKeys[userId] ?? crypto.randomUUID();
+    setPasswordResetKeys((current) => ({
+      ...current,
+      [userId]: idempotencyKey,
+    }));
+    return run(
+      () => service.resetPassword({ userId, idempotencyKey }),
+      (result: TemporaryPasswordResult) => {
+        setPasswordResetKeys((current) => {
+          const next = { ...current };
+          delete next[userId];
+          return next;
+        });
         setTemporaryPassword(result.temporaryPassword);
       },
     );
@@ -193,13 +215,7 @@ export function AdminUsersSection({ overview, service, busy, run }: Props) {
                   <button
                     className={secondaryButtonClass}
                     disabled={busy}
-                    onClick={() =>
-                      void run(
-                        () => service.resetPassword(user.id),
-                        (result: TemporaryPasswordResult) =>
-                          setTemporaryPassword(result.temporaryPassword),
-                      )
-                    }
+                    onClick={() => void resetPassword(user.id)}
                     type="button"
                   >
                     Repor password

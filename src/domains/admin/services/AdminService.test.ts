@@ -76,13 +76,39 @@ describe('AdminService', () => {
     expect(adapter.saveMember).toHaveBeenCalledOnce();
   });
 
-  it('rejeita fotografias acima do limite ou com MIME indevido', () => {
+  it('rejeita fotografias acima do limite ou com MIME indevido', async () => {
     const adapter = gateway();
     const service = new AdminService(adapter);
     const textFile = new File(['texto'], 'foto.txt', { type: 'text/plain' });
-    expect(() =>
+    await expect(
       service.uploadUserPhoto(crypto.randomUUID(), textFile),
-    ).toThrow('JPEG');
+    ).rejects.toThrow('JPEG');
     expect(adapter.uploadUserPhoto).not.toHaveBeenCalled();
+
+    const oversized = new File(
+      [new Uint8Array(5 * 1024 * 1024 + 1)],
+      'foto.png',
+      { type: 'image/png' },
+    );
+    await expect(
+      service.uploadUserPhoto(crypto.randomUUID(), oversized),
+    ).rejects.toThrow('5 MiB');
+    expect(adapter.uploadUserPhoto).not.toHaveBeenCalled();
+  });
+
+  it('exige uma chave idempotente na reposição de password', async () => {
+    const adapter = gateway();
+    vi.mocked(adapter.resetPassword).mockResolvedValue({
+      temporaryPassword: 'Aa1temporaria',
+    });
+    const service = new AdminService(adapter);
+    const input = {
+      userId: crypto.randomUUID(),
+      idempotencyKey: crypto.randomUUID(),
+    };
+
+    await service.resetPassword(input);
+
+    expect(adapter.resetPassword).toHaveBeenCalledWith(input);
   });
 });

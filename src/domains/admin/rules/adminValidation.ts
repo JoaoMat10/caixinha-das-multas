@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { isValidUsername } from '@/shared/rules/username';
+import { adminPhotoMaxBytes } from '@/domains/admin/rules/photoProcessing';
 
 export const adminUserSchema = z.object({
   username: z
@@ -15,6 +16,11 @@ export const adminUserSchema = z.object({
 
 export const adminTeamSchema = z.object({
   name: z.string().trim().min(1, 'Indica o nome da equipa.').max(120),
+});
+
+export const adminPasswordResetSchema = z.object({
+  userId: z.uuid(),
+  idempotencyKey: z.uuid(),
 });
 
 export const adminSeasonSchema = z
@@ -55,6 +61,6 @@ const allowedPhotoTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 export function validateAdminPhoto(file: File) {
   if (!allowedPhotoTypes.has(file.type))
     throw new Error('Usa uma imagem JPEG, PNG ou WebP.');
-  if (file.size > 5 * 1024 * 1024)
+  if (file.size > adminPhotoMaxBytes)
     throw new Error('A fotografia não pode exceder 5 MiB.');
 }

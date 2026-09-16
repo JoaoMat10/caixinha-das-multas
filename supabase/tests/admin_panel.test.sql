@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(20);
+select extensions.plan(27);
 
 select extensions.has_function('public', 'get_admin_overview', array[]::text[], 'painel administrativo exposto por RPC');
 select extensions.function_privs_are('public', 'get_admin_overview', array[]::text[], 'authenticated', array['EXECUTE'], 'authenticated pode pedir o painel sujeito a autorizacao interna');
@@ -9,6 +9,10 @@ select extensions.function_privs_are('public', 'get_admin_overview', array[]::te
 select extensions.function_privs_are(
   'public', 'register_admin_user', array['uuid','uuid','text','text','uuid'],
   'authenticated', array[]::text[], 'authenticated nao finaliza contas diretamente'
+);
+select extensions.function_privs_are(
+  'public', 'prepare_admin_password_reset', array['uuid','uuid','uuid'],
+  'authenticated', array[]::text[], 'authenticated nao prepara reposicoes diretamente'
 );
 
 set local role authenticated;
@@ -45,10 +49,57 @@ select extensions.results_eq(
   )$$,
   array[1::bigint], 'criacao repetida devolve o mesmo perfil'
 );
+select extensions.lives_ok(
+  $$select public.prepare_admin_password_reset(
+    '00000000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000099',
+    'a4000000-0000-4000-8000-000000000010'
+  )$$,
+  'service_role prepara reposicao idempotente'
+);
+select extensions.throws_ok(
+  $$select public.prepare_admin_password_reset(
+    '00000000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000001',
+    'a4000000-0000-4000-8000-000000000010'
+  )$$,
+  '22023', 'Chave de idempotencia reutilizada para outro utilizador.',
+  'a chave nao pode mudar de utilizador'
+);
+select extensions.lives_ok(
+  $$select * from public.complete_admin_password_reset(
+    '00000000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000099',
+    'a4000000-0000-4000-8000-000000000010'
+  )$$,
+  'service_role conclui a reposicao'
+);
+select extensions.lives_ok(
+  $$select * from public.complete_admin_password_reset(
+    '00000000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000099',
+    'a4000000-0000-4000-8000-000000000010'
+  )$$,
+  'conclusao repetida e idempotente'
+);
 reset role;
 select extensions.results_eq(
   $$select count(*) from public.admin_user_requests where user_id = '00000000-0000-4000-8000-000000000099'$$,
   array[1::bigint], 'idempotencia nao duplica pedidos'
+);
+select extensions.results_eq(
+  $$select count(*) from public.admin_password_reset_requests
+    where actor_user_id = '00000000-0000-4000-8000-000000000001'
+      and idempotency_key = 'a4000000-0000-4000-8000-000000000010'
+      and completed_at is not null$$,
+  array[1::bigint], 'reposicao fica marcada como concluida uma vez'
+);
+select extensions.results_eq(
+  $$select count(*) from public.audit_events
+    where actor_user_id = '00000000-0000-4000-8000-000000000001'
+      and entity_id = '00000000-0000-4000-8000-000000000099'
+      and action = 'user.password_reset'$$,
+  array[1::bigint], 'reposicao repetida nao duplica auditoria'
 );
 
 set local role authenticated;

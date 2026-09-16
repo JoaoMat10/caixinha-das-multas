@@ -23,13 +23,52 @@ test('Owner abre a Administração e cria uma conta temporária', async ({
 
   await page.getByRole('button', { name: 'Utilizadores' }).click();
   const suffix = Date.now().toString(36);
-  await page.getByLabel('Username').fill(`e2e.${suffix}`);
+  const managedUsername = `e2e.${suffix}`;
+  await page.getByLabel('Username').fill(managedUsername);
   await page.getByLabel('Nome apresentado').fill('Utilizador E2E Admin');
   await page.getByRole('button', { name: 'Criar conta' }).click();
   await expect(
     page.getByText('Password temporária — mostrar uma vez'),
   ).toBeVisible();
-  await expect(page.getByText('Utilizador E2E Admin')).toBeVisible();
+  const createdUser = page
+    .getByRole('listitem')
+    .filter({ hasText: `@${managedUsername}` });
+  await expect(createdUser.getByText('Utilizador E2E Admin')).toBeVisible();
+
+  const imagePage = await page.context().newPage();
+  await imagePage.setViewportSize({ width: 1600, height: 800 });
+  await imagePage.setContent(
+    '<div style="width:1600px;height:800px;background:linear-gradient(135deg,#102a43,#f0b429)"></div>',
+  );
+  const sourceBytes = await imagePage.screenshot({
+    clip: { x: 0, y: 0, width: 1600, height: 800 },
+  });
+  await imagePage.close();
+  const uploadRequestPromise = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      request.url().includes('/storage/v1/object/private-photos/users/'),
+  );
+  await createdUser.locator('input[type="file"]').setInputFiles({
+    name: 'fotografia-grande.png',
+    mimeType: 'image/png',
+    buffer: sourceBytes,
+  });
+  const uploadRequest = await uploadRequestPromise;
+  await expect(createdUser.getByText('Com fotografia')).toBeVisible();
+  const uploadHeaders = await uploadRequest.allHeaders();
+  const storedPhoto = await page.request.get(uploadRequest.url(), {
+    headers: {
+      apikey: uploadHeaders.apikey,
+      authorization: uploadHeaders.authorization,
+    },
+  });
+  expect(storedPhoto.ok()).toBe(true);
+  const uploadedBytes = await storedPhoto.body();
+  expect(uploadedBytes.readUInt32BE(16)).toBe(1024);
+  expect(uploadedBytes.readUInt32BE(20)).toBe(512);
+  await createdUser.getByRole('button', { name: 'Remover foto' }).click();
+  await expect(createdUser.getByText('Sem fotografia')).toBeVisible();
 
   await page.getByRole('button', { name: 'Auditoria' }).click();
   await expect(page.getByText('Utilizador criado').first()).toBeVisible();

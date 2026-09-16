@@ -4,15 +4,18 @@ import type {
   SaveAdminMember,
   SaveAdminSeason,
   SaveAdminTeam,
+  ResetAdminPassword,
   UpdateAdminUser,
 } from '@/domains/admin/contracts/admin';
 import {
   adminMemberSchema,
+  adminPasswordResetSchema,
   adminSeasonSchema,
   adminTeamSchema,
   adminUserSchema,
   validateAdminPhoto,
 } from '@/domains/admin/rules/adminValidation';
+import { processAdminPhoto } from '@/domains/admin/rules/photoProcessing';
 
 export class AdminService {
   constructor(private readonly gateway: AdminGateway) {}
@@ -35,8 +38,9 @@ export class AdminService {
     return this.gateway.setUserActive(userId, isActive);
   }
 
-  resetPassword(userId: string) {
-    return this.gateway.resetPassword(userId);
+  resetPassword(input: ResetAdminPassword) {
+    adminPasswordResetSchema.parse(input);
+    return this.gateway.resetPassword(input);
   }
 
   saveTeam(input: SaveAdminTeam) {
@@ -58,9 +62,11 @@ export class AdminService {
     return this.gateway.saveMember(input);
   }
 
-  uploadUserPhoto(userId: string, file: File) {
+  async uploadUserPhoto(userId: string, file: File) {
     validateAdminPhoto(file);
-    return this.gateway.uploadUserPhoto(userId, file);
+    const processed = await processAdminPhoto(file);
+    validateAdminPhoto(processed);
+    return this.gateway.uploadUserPhoto(userId, processed);
   }
 
   removeUserPhoto(userId: string) {
