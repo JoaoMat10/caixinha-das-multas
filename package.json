@@ -19,6 +19,7 @@
     "test:db:supabase": "node scripts/test-supabase-linked.mjs",
     "test:db:supabase:local": "supabase db reset --local && supabase test db --local",
     "test:auth:supabase": "node scripts/test-auth-supabase.mjs",
+    "test:admin:supabase": "node scripts/test-admin-supabase.mjs",
     "test:watch": "vitest",
     "test:e2e": "node scripts/test-e2e.mjs",
     "test:e2e:install": "playwright install chromium",

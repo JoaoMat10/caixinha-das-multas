@@ -17,64 +17,86 @@ Este documento descreve o contrato de autorizacao implementado na Fase 02. As po
 
 `Negado` significa ausencia de privilegio direto, de politica aplicavel ou ambos. Operacoes administrativas futuras que precisem de `service_role` pertencem a Edge Functions e nunca ao frontend.
 
-| Recurso           | SELECT                                              | INSERT                                                               | UPDATE                                                               | DELETE                                            |
-| ----------------- | --------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------- |
-| `users`           | Proprio perfil; Owner consulta todos                | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado                                            |
-| `app_admins`      | Apenas Owner; invisivel para restantes utilizadores | Negado diretamente; politica defensiva para Owner                    | Negado                                                               | Negado diretamente; politica defensiva para Owner |
-| `teams`           | Owner ou membro ativo de uma epoca da equipa        | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado; arquivar/desativar substitui eliminacao   |
-| `seasons`         | Owner ou membro ativo da epoca                      | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado; o estado `archived` preserva historico    |
-| `season_members`  | Owner ou membro ativo da mesma epoca                | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado; usa-se `inactive`                         |
-| `roles`           | Utilizador autenticado ativo                        | Negado                                                               | Negado                                                               | Negado                                            |
-| `member_roles`    | Owner ou membro ativo da mesma epoca                | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner |
-| `fine_categories` | Owner ou membro ativo da epoca                      | Apenas via `save_fine_category`; politica defensiva exige tesoureiro | Apenas via `save_fine_category`; politica defensiva exige tesoureiro | Negado; categorias usadas sao desativadas         |
-| `fines`           | Proprio infrator ou tesoureiro da epoca             | Apenas via `apply_fine`                                              | Apenas via `record_payment_batch`                                    | Apenas via `delete_pending_fine`                  |
-| `payment_batches` | Proprio pagador ou tesoureiro da epoca              | Apenas via `record_payment_batch`                                    | Negado                                                               | Negado                                            |
-| `payment_logs`    | Proprio pagador ou tesoureiro da epoca              | Apenas via `record_payment_batch`                                    | Negado; eventos imutaveis                                            | Negado; eventos imutaveis                         |
-| `audit_events`    | Apenas Owner                                        | Negado diretamente; politica defensiva para Owner                    | Negado                                                               | Negado                                            |
+| Recurso                         | SELECT                                              | INSERT                                                               | UPDATE                                                               | DELETE                                            |
+| ------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------- |
+| `users`                         | Proprio perfil; Owner consulta todos                | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado                                            |
+| `app_admins`                    | Apenas Owner; invisivel para restantes utilizadores | Negado diretamente; politica defensiva para Owner                    | Negado                                                               | Negado diretamente; politica defensiva para Owner |
+| `teams`                         | Owner ou membro ativo de uma epoca da equipa        | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado; arquivar/desativar substitui eliminacao   |
+| `seasons`                       | Owner ou membro ativo da epoca                      | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado; o estado `archived` preserva historico    |
+| `season_members`                | Owner ou membro ativo da mesma epoca                | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado; usa-se `inactive`                         |
+| `roles`                         | Utilizador autenticado ativo                        | Negado                                                               | Negado                                                               | Negado                                            |
+| `member_roles`                  | Owner ou membro ativo da mesma epoca                | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner                    | Negado diretamente; politica defensiva para Owner |
+| `fine_categories`               | Owner ou membro ativo da epoca                      | Apenas via `save_fine_category`; politica defensiva exige tesoureiro | Apenas via `save_fine_category`; politica defensiva exige tesoureiro | Negado; categorias usadas sao desativadas         |
+| `fines`                         | Proprio infrator ou tesoureiro da epoca             | Apenas via `apply_fine`                                              | Apenas via `record_payment_batch`                                    | Apenas via `delete_pending_fine`                  |
+| `payment_batches`               | Proprio pagador ou tesoureiro da epoca              | Apenas via `record_payment_batch`                                    | Negado                                                               | Negado                                            |
+| `payment_logs`                  | Proprio pagador ou tesoureiro da epoca              | Apenas via `record_payment_batch`                                    | Negado; eventos imutaveis                                            | Negado; eventos imutaveis                         |
+| `audit_events`                  | Apenas Owner                                        | Negado diretamente; politica defensiva para Owner                    | Negado                                                               | Negado                                            |
+| `admin_user_requests`           | Negado; contrato interno de idempotência            | Apenas por RPC restrita a `service_role`                             | Negado                                                               | Negado                                            |
+| `admin_password_reset_requests` | Negado; estado interno de reposição                 | Apenas por RPC restrita a `service_role`                             | Apenas por RPC restrita a `service_role`                             | Negado                                            |
 
 ## Vistas e RPCs
 
-| Contrato                      | Quem pode usar                                    | Garantias                                                                                                  |
-| ----------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `my_season_balances`          | Utilizador autenticado ativo                      | Apenas o proprio saldo por epoca; totais em centimos inteiros                                              |
-| `treasury_season_totals`      | Tesoureiro da epoca                               | Total multado, recebido e em divida calculados a partir do estado atual                                    |
-| `pending_fines_by_member`     | Proprio membro ou tesoureiro da epoca             | Respeita a RLS de `fines` e nao inclui observacoes                                                         |
-| `get_season_member_directory` | Owner ou membro ativo da epoca                    | Nome apresentado, fotografia e dados de plantel; omite identidade tecnica e permissao global               |
-| `get_season_leaderboard`      | Membro ativo da epoca                             | Quantidade, acumulado e divida; omite detalhe das multas e permissao global                                |
-| `create_season`               | Apenas Owner                                      | Cria de forma idempotente e copia plantel ativo, roles e catalogo; nunca dados financeiros                 |
-| `save_fine_category`          | Tesoureiro da epoca em estado `draft` ou `active` | Calcula autoria, valida valor minimo e impede gestao em epoca arquivada                                    |
-| `apply_fine`                  | Tesoureiro da epoca ativa                         | Valida membro/categoria, fixa snapshots, calcula multiplicador 1x/2x e aplica idempotencia por epoca/ator  |
-| `record_payment_batch`        | Tesoureiro da epoca ativa                         | Uma so pessoa por batch, total calculado no servidor, transicao atomica, logs imutaveis e idempotencia     |
-| `delete_pending_fine`         | Tesoureiro da epoca ativa                         | Elimina apenas `pending` com `has_ever_been_paid = false`; nao cria historico funcional da multa eliminada |
+| Contrato                                                         | Quem pode usar                                    | Garantias                                                                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `my_season_balances`                                             | Utilizador autenticado ativo                      | Apenas o proprio saldo por epoca; totais em centimos inteiros                                              |
+| `treasury_season_totals`                                         | Tesoureiro da epoca                               | Total multado, recebido e em divida calculados a partir do estado atual                                    |
+| `pending_fines_by_member`                                        | Proprio membro ou tesoureiro da epoca             | Respeita a RLS de `fines` e nao inclui observacoes                                                         |
+| `get_season_member_directory`                                    | Owner ou membro ativo da epoca                    | Nome apresentado, fotografia e dados de plantel; omite identidade tecnica e permissao global               |
+| `get_season_leaderboard`                                         | Membro ativo da epoca                             | Quantidade, acumulado e divida; omite detalhe das multas e permissao global                                |
+| `create_season`                                                  | Apenas Owner                                      | Cria de forma idempotente e copia plantel ativo, roles e catalogo; nunca dados financeiros                 |
+| `save_fine_category`                                             | Tesoureiro da epoca em estado `draft` ou `active` | Calcula autoria, valida valor minimo e impede gestao em epoca arquivada                                    |
+| `apply_fine`                                                     | Tesoureiro da epoca ativa                         | Valida membro/categoria, fixa snapshots, calcula multiplicador 1x/2x e aplica idempotencia por epoca/ator  |
+| `record_payment_batch`                                           | Tesoureiro da epoca ativa                         | Uma so pessoa por batch, total calculado no servidor, transicao atomica, logs imutaveis e idempotencia     |
+| `delete_pending_fine`                                            | Tesoureiro da epoca ativa                         | Elimina apenas `pending` com `has_ever_been_paid = false`; nao cria historico funcional da multa eliminada |
+| `get_admin_overview`                                             | Apenas Owner                                      | Agrega utilizadores, equipas, épocas, plantéis e auditoria; omite email técnico e `app_admins`             |
+| `save_admin_team`                                                | Apenas Owner                                      | Cria/edita/desativa equipas e audita na mesma transação                                                    |
+| `update_admin_season`                                            | Apenas Owner                                      | Edita/transita épocas; impede regressão de ativa e reabertura/alteração de arquivada                       |
+| `save_admin_member`                                              | Apenas Owner                                      | Gere tipo, número/função, estado, capitão e tesoureiro atomicamente                                        |
+| `set_admin_photo`                                                | Apenas Owner                                      | Altera apenas a referência privada e audita sem guardar URL pública                                        |
+| RPCs de coordenação de conta                                     | `service_role` via Edge Function validada         | Perfil e Auth usam o mesmo UUID; idempotência e auditoria sem credenciais                                  |
+| `prepare_admin_password_reset` e `complete_admin_password_reset` | `service_role` via Edge Function validada         | Preparação antes da alteração Auth; conclusão e auditoria idempotentes, sem guardar passwords              |
+
+## Storage privado
+
+- O bucket `private-photos` não é público, limita objetos a 5 MiB e aceita apenas JPEG, PNG e WebP.
+- Antes do upload, o cliente redimensiona a fotografia proporcionalmente até 1024 px e recomprime no formato original; valida o limite de 5 MiB antes e depois do processamento.
+- `INSERT`, `UPDATE` e `DELETE` em `storage.objects` exigem `private.is_app_admin(auth.uid())`.
+- O Owner lê todas as fotografias; um utilizador ativo lê a própria fotografia, fotografias de membros com quem partilha uma época ativa e emblemas das suas equipas.
+- Os caminhos usam o formato `users/<uuid>/<uuid>.<ext>` ou `teams/<uuid>/<uuid>.<ext>`; a base guarda apenas esse caminho, nunca uma URL pública permanente.
 
 ## Casos de teste
 
-| Cenario                                               | Resultado esperado                                               | Cobertura automatizada      |
-| ----------------------------------------------------- | ---------------------------------------------------------------- | --------------------------- |
-| Pedido `anon` a `teams`                               | Negado por privilegios                                           | PostgreSQL embebido e pgTAP |
-| Jogador A consulta equipas/epocas                     | Apenas Clube Azul e as epocas em que participa                   | PostgreSQL embebido e pgTAP |
-| Jogador A consulta `users` e `app_admins`             | Apenas o proprio perfil; zero linhas de Owner                    | PostgreSQL embebido e pgTAP |
-| Jogador A consulta multas                             | Apenas as multas do proprio membro, incluindo epocas autorizadas | PostgreSQL embebido e pgTAP |
-| Jogador B tenta consultar Clube Azul                  | Zero linhas/dados inacessiveis                                   | PostgreSQL embebido e pgTAP |
-| Membro tenta ranking de outra equipa                  | Erro `42501`                                                     | PostgreSQL embebido e pgTAP |
-| Membro tenta ranking de outra epoca da mesma equipa   | Erro `42501`                                                     | PostgreSQL embebido e pgTAP |
-| Owner copia uma epoca                                 | Plantel ativo, roles e catalogo copiados; zero dados financeiros | PostgreSQL embebido e pgTAP |
-| Repeticao da copia com a mesma chave                  | Devolve a mesma epoca sem duplicar dados                         | PostgreSQL embebido e pgTAP |
-| Owner tenta copiar uma epoca de outra equipa          | Erro `P0002`                                                     | PostgreSQL embebido e pgTAP |
-| Jogador tenta criar uma epoca                         | Erro `42501`                                                     | PostgreSQL embebido e pgTAP |
-| Owner sem associacao consulta multas/ranking          | Zero multas e ranking negado                                     | PostgreSQL embebido e pgTAP |
-| Owner consulta equipas, perfis, auditoria e diretorio | Permitido                                                        | PostgreSQL embebido e pgTAP |
-| Jogador normal tenta aplicar multa                    | Erro `42501`                                                     | PostgreSQL embebido e pgTAP |
-| Tesoureiro A tenta operar na equipa B                 | Erro `42501`                                                     | PostgreSQL embebido e pgTAP |
-| Tesoureiro aplica multa a jogador normal              | Permitido; multiplicador 1x                                      | PostgreSQL embebido e pgTAP |
-| Tesoureiro aplica multa a capitao e equipa tecnica    | Permitido; multiplicador 2x sem acumulacao                       | PostgreSQL embebido e pgTAP |
-| Repeticao da aplicacao com a mesma chave              | Devolve a mesma multa sem duplicar                               | PostgreSQL embebido e pgTAP |
-| Liquidacao de multas selecionadas                     | Total calculado, estado `paid`, batch e um log por multa         | PostgreSQL embebido e pgTAP |
-| Repeticao da liquidacao com a mesma chave             | Devolve o mesmo batch sem duplicar logs                          | PostgreSQL embebido e pgTAP |
-| Reabertura                                            | Estado `pending`, novo log e `has_ever_been_paid = true`         | PostgreSQL embebido e pgTAP |
-| Eliminacao de multa reaberta                          | Negada com erro `55000`                                          | PostgreSQL embebido e pgTAP |
-| Eliminacao de multa pendente nunca paga               | Permitida ao tesoureiro da epoca                                 | PostgreSQL embebido e pgTAP |
-| Escrita direta em tabela financeira                   | Negada por privilegios mesmo ao tesoureiro                       | PostgreSQL embebido e pgTAP |
+| Cenario                                               | Resultado esperado                                               | Cobertura automatizada                  |
+| ----------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------- |
+| Pedido `anon` a `teams`                               | Negado por privilegios                                           | PostgreSQL embebido e pgTAP             |
+| Jogador A consulta equipas/epocas                     | Apenas Clube Azul e as epocas em que participa                   | PostgreSQL embebido e pgTAP             |
+| Jogador A consulta `users` e `app_admins`             | Apenas o proprio perfil; zero linhas de Owner                    | PostgreSQL embebido e pgTAP             |
+| Jogador A consulta multas                             | Apenas as multas do proprio membro, incluindo epocas autorizadas | PostgreSQL embebido e pgTAP             |
+| Jogador B tenta consultar Clube Azul                  | Zero linhas/dados inacessiveis                                   | PostgreSQL embebido e pgTAP             |
+| Membro tenta ranking de outra equipa                  | Erro `42501`                                                     | PostgreSQL embebido e pgTAP             |
+| Membro tenta ranking de outra epoca da mesma equipa   | Erro `42501`                                                     | PostgreSQL embebido e pgTAP             |
+| Owner copia uma epoca                                 | Plantel ativo, roles e catalogo copiados; zero dados financeiros | PostgreSQL embebido e pgTAP             |
+| Repeticao da copia com a mesma chave                  | Devolve a mesma epoca sem duplicar dados                         | PostgreSQL embebido e pgTAP             |
+| Owner tenta copiar uma epoca de outra equipa          | Erro `P0002`                                                     | PostgreSQL embebido e pgTAP             |
+| Jogador tenta criar uma epoca                         | Erro `42501`                                                     | PostgreSQL embebido e pgTAP             |
+| Owner sem associacao consulta multas/ranking          | Zero multas e ranking negado                                     | PostgreSQL embebido e pgTAP             |
+| Owner consulta equipas, perfis, auditoria e diretorio | Permitido                                                        | PostgreSQL embebido e pgTAP             |
+| Jogador normal tenta aplicar multa                    | Erro `42501`                                                     | PostgreSQL embebido e pgTAP             |
+| Tesoureiro A tenta operar na equipa B                 | Erro `42501`                                                     | PostgreSQL embebido e pgTAP             |
+| Tesoureiro aplica multa a jogador normal              | Permitido; multiplicador 1x                                      | PostgreSQL embebido e pgTAP             |
+| Tesoureiro aplica multa a capitao e equipa tecnica    | Permitido; multiplicador 2x sem acumulacao                       | PostgreSQL embebido e pgTAP             |
+| Repeticao da aplicacao com a mesma chave              | Devolve a mesma multa sem duplicar                               | PostgreSQL embebido e pgTAP             |
+| Liquidacao de multas selecionadas                     | Total calculado, estado `paid`, batch e um log por multa         | PostgreSQL embebido e pgTAP             |
+| Repeticao da liquidacao com a mesma chave             | Devolve o mesmo batch sem duplicar logs                          | PostgreSQL embebido e pgTAP             |
+| Reabertura                                            | Estado `pending`, novo log e `has_ever_been_paid = true`         | PostgreSQL embebido e pgTAP             |
+| Eliminacao de multa reaberta                          | Negada com erro `55000`                                          | PostgreSQL embebido e pgTAP             |
+| Eliminacao de multa pendente nunca paga               | Permitida ao tesoureiro da epoca                                 | PostgreSQL embebido e pgTAP             |
+| Escrita direta em tabela financeira                   | Negada por privilegios mesmo ao tesoureiro                       | PostgreSQL embebido e pgTAP             |
+| Anónimo/não-Owner executa operação administrativa     | Negado por privilégios ou validação server-side                  | PostgreSQL embebido e pgTAP             |
+| Criação de conta repetida com a mesma chave           | Devolve o mesmo perfil, sem duplicar pedido ou identidade        | PostgreSQL embebido, pgTAP e teste real |
+| Jogador/equipa técnica com campos incompatíveis       | Negado por validação e constraint                                | PostgreSQL embebido e pgTAP             |
+| Capitão e tesoureiro no mesmo membro                  | Permitido e preservado como duas funções independentes           | PostgreSQL embebido e pgTAP             |
+| Não-Owner escreve/remove fotografia                   | Negado por políticas de Storage                                  | pgTAP e teste real de Storage           |
 
 ## Execucao
 

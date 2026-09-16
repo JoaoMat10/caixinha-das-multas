@@ -37,6 +37,7 @@ const ids = {
 const authBootstrap = `
   create role anon nologin;
   create role authenticated nologin;
+  create role service_role nologin;
   create schema auth;
   create table auth.users (
     id uuid primary key,
@@ -51,8 +52,8 @@ const authBootstrap = `
   as $$
     select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
   $$;
-  grant usage on schema auth to anon, authenticated;
-  grant execute on function auth.uid() to anon, authenticated;
+  grant usage on schema auth to anon, authenticated, service_role;
+  grant execute on function auth.uid() to anon, authenticated, service_role;
 `;
 
 async function createSeededDatabase() {
@@ -934,6 +935,142 @@ test('RPCs aplicam multiplicadores, transicoes, idempotencia e autorizacao', asy
         ])
       )[0];
       assert.equal(deleted.id, deletableFine.id);
+    });
+  } finally {
+    await database.close();
+  }
+});
+
+test('contratos administrativos validam Owner, idempotencia, plantel e auditoria', async () => {
+  const database = await createSeededDatabase();
+  const newUserId = '00000000-0000-4000-8000-000000000099';
+  try {
+    await database.query(
+      "insert into auth.users (id, email, raw_user_meta_data) values ($1, 'novo@local.invalid', '{}'::jsonb)",
+      [newUserId],
+    );
+
+    await asRole(database, 'authenticated', ids.playerA, async () => {
+      await assert.rejects(
+        database.query('select public.get_admin_overview()'),
+        /Apenas o Owner/,
+      );
+      await assert.rejects(
+        database.query(
+          "select * from public.save_admin_team(null, 'Equipa negada', true)",
+        ),
+        /Apenas o Owner/,
+      );
+    });
+
+    const idempotencyKey = 'aa000000-0000-4000-8000-000000000001';
+    await asRole(database, 'service_role', null, async () => {
+      const created = (
+        await rows(
+          database,
+          `select id::text, username, must_change_password
+        from public.register_admin_user($1, $2, 'Novo.User', 'Novo Utilizador', $3)`,
+          [ids.owner, newUserId, idempotencyKey],
+        )
+      )[0];
+      assert.deepEqual(created, {
+        id: newUserId,
+        username: 'Novo.User',
+        must_change_password: true,
+      });
+      const repeated = (
+        await rows(
+          database,
+          `select id::text from public.register_admin_user($1, $2, 'novo.user', 'Novo Utilizador', $3)`,
+          [ids.owner, newUserId, idempotencyKey],
+        )
+      )[0];
+      assert.equal(repeated.id, newUserId);
+      await rows(
+        database,
+        'select public.prepare_admin_password_reset($1, $2, $3)',
+        [ids.owner, newUserId, 'aa000000-0000-4000-8000-000000000010'],
+      );
+      await rows(
+        database,
+        'select * from public.complete_admin_password_reset($1, $2, $3)',
+        [ids.owner, newUserId, 'aa000000-0000-4000-8000-000000000010'],
+      );
+      await rows(
+        database,
+        'select * from public.complete_admin_password_reset($1, $2, $3)',
+        [ids.owner, newUserId, 'aa000000-0000-4000-8000-000000000010'],
+      );
+    });
+
+    assert.equal(
+      (
+        await rows(
+          database,
+          `select count(*)::integer as count from public.audit_events
+           where action = 'user.password_reset' and entity_id = $1`,
+          [newUserId],
+        )
+      )[0].count,
+      1,
+    );
+
+    await asRole(database, 'authenticated', ids.owner, async () => {
+      const team = (
+        await rows(
+          database,
+          "select * from public.save_admin_team(null, 'Equipa Nova', true)",
+        )
+      )[0];
+      const season = (
+        await rows(
+          database,
+          `select * from public.create_season($1, '2027/28', null, null, 'draft', null, 'aa000000-0000-4000-8000-000000000002')`,
+          [team.id],
+        )
+      )[0];
+      const member = (
+        await rows(
+          database,
+          `select * from public.save_admin_member(null, $1, $2, 'player', 77, null, 'active', array['captain','treasurer'])`,
+          [season.id, newUserId],
+        )
+      )[0];
+      assert.equal(member.shirt_number, 77);
+      assert.deepEqual(
+        (
+          await rows(
+            database,
+            `select r.code from public.member_roles mr join public.roles r on r.id = mr.role_id where mr.season_member_id = $1 order by r.code`,
+            [member.id],
+          )
+        ).map((row) => row.code),
+        ['captain', 'treasurer'],
+      );
+      await assert.rejects(
+        database.query(
+          `select * from public.save_admin_member($1, $2, $3, 'staff', 77, 'Treinador', 'active', '{}'::text[])`,
+          [member.id, season.id, newUserId],
+        ),
+        /season_members_identity_by_type/,
+      );
+      const overview = (
+        await rows(database, 'select public.get_admin_overview() as data')
+      )[0].data;
+      assert.equal(
+        overview.users.some((user) => Object.hasOwn(user, 'email')),
+        false,
+      );
+      assert.equal(
+        overview.users.some((user) => Object.hasOwn(user, 'isAppAdmin')),
+        false,
+      );
+      assert.equal(
+        overview.auditEvents.some((event) =>
+          JSON.stringify(event.metadata).toLowerCase().includes('password'),
+        ),
+        false,
+      );
     });
   } finally {
     await database.close();

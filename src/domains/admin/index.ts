@@ -1,1 +1,1 @@
-export { AdminPlaceholderPage } from './pages/AdminPlaceholderPage';
+export { AdminPage } from './pages/AdminPage';

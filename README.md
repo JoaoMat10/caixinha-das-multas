@@ -4,7 +4,7 @@ Aplicação web mobile-first para gerir as multas internas de uma equipa de fute
 
 ## Estado atual
 
-A Fase 03 implementa autenticação por username/password, sessões persistentes, proteção de rotas, contexto autorizado e alteração segura de password. A base PostgreSQL/Supabase continua definida por migrações, RLS, RPCs seguras e seeds de desenvolvimento. A próxima etapa é a Fase 04 — Painel Super Admin.
+A Fase 04 foi concluída, passou a validação manual e está pronta para merge no PR #4, que permanece aberto até autorização explícita. Acrescenta o painel protegido do Super Admin para gerir contas, equipas, épocas, plantéis, roles, fotografias privadas e auditoria. A Fase 05 — Catálogo e Tesouraria — é a próxima e ainda não foi iniciada.
 
 O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
@@ -70,6 +70,7 @@ Os fluxos de Auth reais usam uma conta aleatória e efémera, criada pela API ad
 
 ```powershell
 npm run test:auth:supabase
+npm run test:admin:supabase
 ```
 
 Aplicar migrações e seed num projeto remoto é uma operação separada e explícita. Nunca executar `supabase db reset --linked`.
@@ -103,6 +104,7 @@ npm test
 npm run test:db
 npm run test:db:supabase
 npm run test:auth:supabase
+npm run test:admin:supabase
 npm run build
 npm run test:e2e
 ```
