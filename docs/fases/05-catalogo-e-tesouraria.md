@@ -54,6 +54,7 @@ Entregar a experiência do tesoureiro para gerir o catálogo, aplicar e consulta
 - Obtida autorização específica da Fase 05 para operações remotas no projeto descartável `showcasetestref00001` após apresentar o alvo e o dry-run sem migrações pendentes.
 - Criada conta temporária `manual.finance.*` com função de tesoureiro numa época ativa; login e leitura dos totais confirmados. As credenciais estão em `.manual-validation/treasurer.local.json`, ignorado pelo Git.
 - Pré-visualização local iniciada em `http://127.0.0.1:4173/` e confirmada com HTTP 200. A conta manual será mantida até ao feedback e removida pelo script dedicado.
+- Commit `b29fede` publicado na branch `feature/catalogo-e-tesouraria`; PR #5 aberto em draft sobre `main`, sem merge e sem conflitos.
 
 ## Ficheiros criados ou alterados
 
@@ -101,6 +102,7 @@ Entregar a experiência do tesoureiro para gerir o catálogo, aplicar e consulta
 | `node scripts/prepare-manual-financial.mjs`                | passou    | Conta temporária criada no projeto descartável; credenciais apenas na pasta local ignorada.                    |
 | `node scripts/verify-manual-financial.mjs`                 | passou    | Login, papel de tesoureiro e leitura dos totais confirmados.                                                   |
 | Pré-visualização local                                     | passou    | `http://127.0.0.1:4173/` respondeu HTTP 200.                                                                   |
+| Commit, push e PR #5                                       | passou    | Branch publicada; PR draft e mergeável, pendente de feedback manual.                                           |
 
 ## Desvios ao planeamento
 
@@ -120,7 +122,8 @@ Entregar a experiência do tesoureiro para gerir o catálogo, aplicar e consulta
 - [x] Executar validação remota autorizada e E2E desktop/móvel.
 - [x] Preparar conta e URL para validação manual.
 - [ ] Receber o feedback manual; corrigir eventuais problemas e limpar a conta e dados temporários após essa validação.
-- [ ] Abrir PR sem merge e aguardar feedback manual.
+- [x] Abrir PR em draft sem merge.
+- [ ] Receber feedback manual antes de o considerar aprovado para merge.
 
 ## Validação manual pendente
 
