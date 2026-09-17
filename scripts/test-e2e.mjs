@@ -3,9 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  assertNoStrandedFinancialTestUsers,
   assertNoStrandedAdminTestOwners,
   cleanupAdminTestOwner,
   cleanupAuthTestUser,
+  cleanupFinancialTestUser,
   cleanupStrandedAdminTestOwners,
   prepareAdminTestOwner,
   prepareAuthTestUser,
@@ -15,6 +17,7 @@ const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(currentDirectory, '..');
 let testUser;
 let testOwner;
+let financialUser;
 let testError;
 const cleanupErrors = [];
 
@@ -30,6 +33,11 @@ try {
   await cleanupStrandedAdminTestOwners();
   testUser = await prepareAuthTestUser();
   testOwner = await prepareAdminTestOwner();
+  financialUser = await prepareAuthTestUser({
+    usernamePrefix: 'financial.test',
+    displayName: 'Tesoureiro E2E',
+    mustChangePassword: false,
+  });
   const environment = {
     VITE_SUPABASE_URL: testUser.configuration.url,
     VITE_SUPABASE_PUBLISHABLE_KEY: testUser.configuration.publishableKey,
@@ -37,6 +45,8 @@ try {
     E2E_AUTH_PASSWORD: testUser.password,
     E2E_ADMIN_USERNAME: testOwner.username,
     E2E_ADMIN_PASSWORD: testOwner.password,
+    E2E_FINANCIAL_USERNAME: financialUser.username,
+    E2E_FINANCIAL_PASSWORD: financialUser.password,
   };
 
   const build = runNode(
@@ -59,8 +69,10 @@ try {
 } finally {
   for (const cleanup of [
     () => cleanupAdminTestOwner(testOwner),
+    () => cleanupFinancialTestUser(financialUser),
     () => cleanupAuthTestUser(testUser),
     () => assertNoStrandedAdminTestOwners(),
+    () => assertNoStrandedFinancialTestUsers(),
   ]) {
     try {
       await cleanup();

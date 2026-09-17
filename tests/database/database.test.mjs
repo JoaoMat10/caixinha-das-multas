@@ -941,6 +941,180 @@ test('RPCs aplicam multiplicadores, transicoes, idempotencia e autorizacao', asy
   }
 });
 
+test('tesouraria liquida duas multas sem duplicar, preserva snapshots e reconcilia totais', async () => {
+  const database = await createSeededDatabase();
+  try {
+    await asRole(database, 'authenticated', ids.owner, async () => {
+      await assert.rejects(
+        database.query(
+          `select * from public.save_fine_category($1, null, 'Sem permissao', null, 100, true, 1)`,
+          [ids.seasonA],
+        ),
+        /Sem permissao/,
+      );
+      await assert.rejects(
+        database.query(
+          `select * from public.apply_fine($1, $2, now(), null, '81000000-0000-4000-8000-000000000088')`,
+          [ids.playerMemberA, ids.categoryA],
+        ),
+        /Sem permissao de tesoureiro/,
+      );
+      await assert.rejects(
+        database.query(
+          `select * from public.record_payment_batch($1, array['60000000-0000-4000-8000-000000000001']::uuid[], 'paid', '91000000-0000-4000-8000-000000000087')`,
+          [ids.playerMemberA],
+        ),
+        /Sem permissao de tesoureiro/,
+      );
+      await assert.rejects(
+        database.query(
+          `select public.delete_pending_fine('60000000-0000-4000-8000-000000000001')`,
+        ),
+        /Sem permissao de tesoureiro/,
+      );
+    });
+
+    await asRole(database, 'authenticated', ids.treasurerA, async () => {
+      const totals = async () =>
+        (
+          await rows(
+            database,
+            `select * from public.treasury_season_totals where season_id = $1`,
+            [ids.seasonA],
+          )
+        )[0];
+      const before = await totals();
+      const firstSql = `select * from public.apply_fine($1, $2, '2026-09-11 12:00:00+00', 'Lote', '81000000-0000-4000-8000-000000000089')`;
+      const [firstCall, repeatedCall] = await Promise.all([
+        database.query(firstSql, [ids.playerMemberA, ids.categoryA]),
+        database.query(firstSql, [ids.playerMemberA, ids.categoryA]),
+      ]);
+      const first = firstCall.rows[0];
+      assert.equal(repeatedCall.rows[0].id, first.id);
+      const second = (
+        await rows(
+          database,
+          `select * from public.apply_fine($1, $2, '2026-09-11 12:05:00+00', null, '81000000-0000-4000-8000-000000000090')`,
+          [ids.playerMemberA, ids.categoryA],
+        )
+      )[0];
+      assert.equal(first.multiplier, 1);
+      assert.equal(second.multiplier, 1);
+
+      await rows(
+        database,
+        `select * from public.save_fine_category($1, $2, 'Novo nome', null, 900, true, 8)`,
+        [ids.seasonA, ids.categoryA],
+      );
+      const snapshot = (
+        await rows(
+          database,
+          `select category_name_snapshot, base_amount_cents_snapshot, final_amount_cents from public.fines where id = $1`,
+          [first.id],
+        )
+      )[0];
+      assert.equal(snapshot.base_amount_cents_snapshot, 500);
+      assert.equal(snapshot.final_amount_cents, 500);
+      assert.notEqual(snapshot.category_name_snapshot, 'Novo nome');
+
+      const selected = [first.id, second.id];
+      const batchSql = `select * from public.record_payment_batch($1, $2::uuid[], 'paid', '91000000-0000-4000-8000-000000000088')`;
+      const [batchCall, repeatedBatchCall] = await Promise.all([
+        database.query(batchSql, [ids.playerMemberA, selected]),
+        database.query(batchSql, [ids.playerMemberA, selected]),
+      ]);
+      const batch = batchCall.rows[0];
+      assert.equal(repeatedBatchCall.rows[0].id, batch.id);
+      assert.equal(batch.calculated_total_cents, 1000);
+      assert.equal(
+        (
+          await rows(
+            database,
+            `select count(*)::integer as count from public.payment_logs where payment_batch_id = $1`,
+            [batch.id],
+          )
+        )[0].count,
+        2,
+      );
+      const afterPaid = await totals();
+      assert.equal(
+        Number(afterPaid.total_fined_cents),
+        Number(before.total_fined_cents) + 1000,
+      );
+      assert.equal(
+        Number(afterPaid.total_received_cents),
+        Number(before.total_received_cents) + 1000,
+      );
+      assert.equal(
+        Number(afterPaid.total_debt_cents),
+        Number(before.total_debt_cents),
+      );
+
+      await assert.rejects(
+        database.query(
+          `select * from public.record_payment_batch($1, $2::uuid[], 'paid', '91000000-0000-4000-8000-000000000089')`,
+          [ids.playerMemberA, selected],
+        ),
+        /nao permitem a transicao/,
+      );
+      await assert.rejects(
+        database.query(
+          `select * from public.record_payment_batch($1, $2::uuid[], 'reopened', '91000000-0000-4000-8000-000000000090')`,
+          [
+            ids.playerMemberA,
+            [first.id, '60000000-0000-4000-8000-000000000099'],
+          ],
+        ),
+        /Todas as multas devem pertencer/,
+      );
+      assert.equal(
+        (
+          await rows(
+            database,
+            `select count(*)::integer as count from public.payment_logs where payment_batch_id = $1`,
+            [batch.id],
+          )
+        )[0].count,
+        2,
+      );
+
+      const reopened = (
+        await rows(
+          database,
+          `select * from public.record_payment_batch($1, $2::uuid[], 'reopened', '91000000-0000-4000-8000-000000000091')`,
+          [ids.playerMemberA, [first.id]],
+        )
+      )[0];
+      assert.equal(reopened.calculated_total_cents, 500);
+      const afterReopen = await totals();
+      assert.equal(
+        Number(afterReopen.total_received_cents),
+        Number(before.total_received_cents) + 500,
+      );
+      assert.equal(
+        Number(afterReopen.total_debt_cents),
+        Number(before.total_debt_cents) + 500,
+      );
+      await assert.rejects(
+        database.query('select public.delete_pending_fine($1)', [first.id]),
+        /nunca foram pagas/,
+      );
+      assert.equal(
+        (
+          await rows(
+            database,
+            `select count(*)::integer as count from public.payment_logs where fine_id = $1`,
+            [first.id],
+          )
+        )[0].count,
+        2,
+      );
+    });
+  } finally {
+    await database.close();
+  }
+});
+
 test('contratos administrativos validam Owner, idempotencia, plantel e auditoria', async () => {
   const database = await createSeededDatabase();
   const newUserId = '00000000-0000-4000-8000-000000000099';

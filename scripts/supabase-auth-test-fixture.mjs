@@ -39,6 +39,10 @@ function encodeBase32(value) {
   return encoded;
 }
 
+export function technicalEmailForUsername(username) {
+  return `u-${encodeBase32(username)}@auth.caixinha.invalid`;
+}
+
 function sqlLiteral(value) {
   return `'${value.replaceAll("'", "''")}'`;
 }
@@ -116,12 +120,18 @@ export async function getLinkedPublicConfiguration() {
   return { url, publishableKey };
 }
 
-export async function prepareAuthTestUser() {
+export async function prepareAuthTestUser({
+  usernamePrefix = 'auth.test',
+  displayName = 'Utilizador de teste Auth',
+  mustChangePassword = true,
+} = {}) {
+  if (!/^[a-z0-9._-]{3,20}$/.test(usernamePrefix))
+    throw new Error('O prefixo da conta temporária é inválido.');
   const configuration = await getLinkedConfiguration();
   const suffix = randomBytes(5).toString('hex');
-  const username = `auth.test.${suffix}`;
+  const username = `${usernamePrefix}.${suffix}`;
   const password = `Aa1${randomBytes(18).toString('base64url')}`;
-  const technicalEmail = `u-${encodeBase32(username)}@auth.caixinha.invalid`;
+  const technicalEmail = technicalEmailForUsername(username);
   const administrator = createClient(
     configuration.url,
     configuration.serviceRoleKey,
@@ -146,6 +156,7 @@ export async function prepareAuthTestUser() {
 
   try {
     await runLinkedSql(`
+      begin;
       insert into public.users (
         id,
         username,
@@ -158,8 +169,8 @@ export async function prepareAuthTestUser() {
         ${sqlLiteral(testUser.id)}::uuid,
         ${sqlLiteral(username)},
         ${sqlLiteral(username)},
-        'Utilizador de teste Auth',
-        true,
+        ${sqlLiteral(displayName)},
+        ${mustChangePassword ? 'true' : 'false'},
         '00000000-0000-4000-8000-000000000001'::uuid
       );
 
@@ -195,6 +206,7 @@ export async function prepareAuthTestUser() {
       from inserted_member
       cross join public.roles
       where roles.code = 'treasurer';
+      commit;
     `);
   } catch (error) {
     await administrator.auth.admin.deleteUser(testUser.id);
@@ -270,6 +282,71 @@ export async function cleanupAuthTestUser(testUser) {
   );
 }
 
+export async function cleanupFinancialTestUser(testUser) {
+  if (!testUser) return;
+  if (
+    !/^(financial\.test|manual\.finance)\.[a-f0-9]{10}$/.test(testUser.username)
+  )
+    throw new Error('A conta não pertence à validação financeira.');
+  const administrator = createClient(
+    testUser.configuration.url,
+    testUser.configuration.serviceRoleKey,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const userId = sqlLiteral(testUser.id);
+  await runCleanupWithAuthFinally(
+    () =>
+      runLinkedSql(`
+      begin;
+      alter table public.payment_logs disable trigger payment_logs_are_immutable;
+      alter table public.payment_batches disable trigger payment_batches_are_immutable;
+      alter table public.audit_events disable trigger audit_events_are_immutable;
+      delete from public.payment_logs
+      where payment_batch_id in (select id from public.payment_batches where recorded_by = ${userId}::uuid)
+         or fine_id in (select id from public.fines where applied_by = ${userId}::uuid);
+      delete from public.payment_batches where recorded_by = ${userId}::uuid;
+      delete from public.fines where applied_by = ${userId}::uuid;
+      delete from public.audit_events where actor_user_id = ${userId}::uuid;
+      delete from public.fine_categories where created_by = ${userId}::uuid;
+      delete from public.member_roles where season_member_id in
+        (select id from public.season_members where user_id = ${userId}::uuid);
+      delete from public.season_members where user_id = ${userId}::uuid;
+      delete from public.users where id = ${userId}::uuid;
+      alter table public.audit_events enable trigger audit_events_are_immutable;
+      alter table public.payment_batches enable trigger payment_batches_are_immutable;
+      alter table public.payment_logs enable trigger payment_logs_are_immutable;
+      commit;
+    `),
+    async () => {
+      const deleted = await administrator.auth.admin.deleteUser(testUser.id);
+      if (deleted.error)
+        throw new Error(
+          'Não foi possível eliminar a identidade Auth da tesouraria.',
+          { cause: deleted.error },
+        );
+    },
+  );
+}
+
+export async function assertNoStrandedFinancialTestUsers() {
+  const configuration = await getLinkedConfiguration();
+  const administrator = createClient(
+    configuration.url,
+    configuration.serviceRoleKey,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const { count, error } = await administrator
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .like('username_normalized', 'financial.test.%');
+  if (error)
+    throw new Error(
+      'Não foi possível verificar a limpeza das contas financeiras.',
+    );
+  if (count !== 0)
+    throw new Error('Existem contas financeiras E2E temporárias por limpar.');
+}
+
 export async function prepareAdminTestOwner({
   usernamePrefix = 'admin.test',
   displayName = 'Owner temporário Fase 04',
@@ -281,7 +358,7 @@ export async function prepareAdminTestOwner({
   const suffix = randomBytes(5).toString('hex');
   const username = `${usernamePrefix}.${suffix}`;
   const password = `Aa1${randomBytes(18).toString('base64url')}`;
-  const technicalEmail = `u-${encodeBase32(username)}@auth.caixinha.invalid`;
+  const technicalEmail = technicalEmailForUsername(username);
   const administrator = createClient(
     configuration.url,
     configuration.serviceRoleKey,

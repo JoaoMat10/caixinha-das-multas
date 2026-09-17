@@ -25,9 +25,9 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 04 concluida e pronta para merge**
-- Fase atual: **Fase 04 — Painel Super Admin; PR #4 aberto e merge ainda nao autorizado**
-- Proxima fase: **Fase 05 — Catalogo e Tesouraria**
+- Implementacao: **Fase 05 em curso**
+- Fase atual: **Fase 05 — Catalogo e Tesouraria**
+- Proxima fase: **Fase 06 — Dashboard e Mural, dependente da validacao da Fase 05**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao

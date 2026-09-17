@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import type {
@@ -11,6 +11,7 @@ import type {
   UpdateAdminUser,
 } from '@/domains/admin/contracts/admin';
 import type { SupabasePublicConfiguration } from '@/shared/config/env';
+import { getSupabasePublicClient } from '@/shared/infrastructure/supabasePublicClient';
 
 const overviewSchema = z.object({
   users: z.array(
@@ -232,13 +233,5 @@ export class SupabaseAdminGateway implements AdminGateway {
 export function createSupabaseAdminGateway(
   configuration: SupabasePublicConfiguration,
 ) {
-  const client = createClient(configuration.url, configuration.publishableKey, {
-    auth: {
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      persistSession: true,
-      storageKey: 'caixinha-das-multas.auth',
-    },
-  });
-  return new SupabaseAdminGateway(client);
+  return new SupabaseAdminGateway(getSupabasePublicClient(configuration));
 }

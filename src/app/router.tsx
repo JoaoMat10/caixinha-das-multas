@@ -15,9 +15,9 @@ import {
   ProtectedRoute,
 } from '@/domains/auth';
 import { DashboardPlaceholderPage } from '@/domains/dashboard';
-import { FinesPlaceholderPage } from '@/domains/fines';
+import { FinesPage } from '@/app/financial/FinesPage';
 import { LeaderboardPlaceholderPage } from '@/domains/leaderboard';
-import { TreasuryPlaceholderPage } from '@/domains/treasury';
+import { TreasuryPage } from '@/app/financial/TreasuryPage';
 
 export const appRoutes = [
   {
@@ -51,8 +51,8 @@ export const appRoutes = [
           {
             element: <AuthorizedRoute capability="treasurer" />,
             children: [
-              { path: 'multas', element: <FinesPlaceholderPage /> },
-              { path: 'tesouraria', element: <TreasuryPlaceholderPage /> },
+              { path: 'multas', element: <FinesPage /> },
+              { path: 'tesouraria', element: <TreasuryPage /> },
             ],
           },
           {
