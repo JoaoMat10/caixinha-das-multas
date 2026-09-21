@@ -1,6 +1,8 @@
 import { createBrowserRouter, createMemoryRouter } from 'react-router-dom';
 
 import { AppShell } from '@/app/layout/AppShell';
+import { DashboardPage } from '@/app/member/DashboardPage';
+import { LeaderboardPage } from '@/app/member/LeaderboardPage';
 import { NotFoundPage } from '@/shared/pages/NotFoundPage';
 import { AdminPage } from '@/domains/admin';
 import {
@@ -14,9 +16,7 @@ import {
   PasswordSettingsPage,
   ProtectedRoute,
 } from '@/domains/auth';
-import { DashboardPlaceholderPage } from '@/domains/dashboard';
 import { FinesPage } from '@/app/financial/FinesPage';
-import { LeaderboardPlaceholderPage } from '@/domains/leaderboard';
 import { TreasuryPage } from '@/app/financial/TreasuryPage';
 
 export const appRoutes = [
@@ -44,8 +44,8 @@ export const appRoutes = [
           {
             element: <AuthorizedRoute capability="member" />,
             children: [
-              { path: 'painel', element: <DashboardPlaceholderPage /> },
-              { path: 'mural', element: <LeaderboardPlaceholderPage /> },
+              { path: 'painel', element: <DashboardPage /> },
+              { path: 'mural', element: <LeaderboardPage /> },
             ],
           },
           {

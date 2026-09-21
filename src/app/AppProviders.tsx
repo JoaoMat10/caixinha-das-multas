@@ -11,6 +11,9 @@ import type { AuthService } from '@/domains/auth/services/AuthService';
 import { FinancialProvider } from '@/app/financial/FinancialProvider';
 import type { FinesService } from '@/domains/fines/services/FinesService';
 import type { TreasuryService } from '@/domains/treasury/services/TreasuryService';
+import { MemberProvider } from '@/app/member/MemberProvider';
+import type { DashboardService } from '@/domains/dashboard/services/DashboardService';
+import type { LeaderboardService } from '@/domains/leaderboard/services/LeaderboardService';
 
 type AppProvidersProps = PropsWithChildren<{
   queryClient?: QueryClient;
@@ -18,6 +21,8 @@ type AppProvidersProps = PropsWithChildren<{
   adminService?: AdminService;
   finesService?: FinesService;
   treasuryService?: TreasuryService;
+  dashboardService?: DashboardService;
+  leaderboardService?: LeaderboardService;
 }>;
 
 export function AppProviders({
@@ -27,6 +32,8 @@ export function AppProviders({
   adminService,
   finesService,
   treasuryService,
+  dashboardService,
+  leaderboardService,
 }: AppProvidersProps) {
   const [client] = useState(() => queryClient ?? createAppQueryClient());
   const [authentication] = useState(() => authService ?? createAuthService());
@@ -40,7 +47,12 @@ export function AppProviders({
             finesService={finesService}
             treasuryService={treasuryService}
           >
-            {children}
+            <MemberProvider
+              dashboardService={dashboardService}
+              leaderboardService={leaderboardService}
+            >
+              {children}
+            </MemberProvider>
           </FinancialProvider>
         </AdminProvider>
       </AuthProvider>

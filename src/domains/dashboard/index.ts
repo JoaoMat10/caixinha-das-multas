@@ -1,1 +1,8 @@
-export { DashboardPlaceholderPage } from './pages/DashboardPlaceholderPage';
+export type {
+  DashboardData,
+  DashboardGateway,
+  DashboardMember,
+  DashboardSnapshot,
+  PersonalBalance,
+  PersonalFine,
+} from './contracts/dashboard';
