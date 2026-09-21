@@ -4,7 +4,7 @@ Aplicação web mobile-first para gerir as multas internas de uma equipa de fute
 
 ## Estado atual
 
-O PR #4 da Fase 04 foi integrado. A Fase 05 — Catálogo e Tesouraria — está em implementação na branch `feature/catalogo-e-tesouraria`, com catálogo por época, aplicação de multas e operações protegidas de tesouraria em validação.
+O PR #4 da Fase 04 foi integrado. A Fase 05 — Catálogo e Tesouraria — está concluída na branch `feature/catalogo-e-tesouraria`, com validação automática, manual e independente aprovada. O PR #5 aguarda revisão e não foi fundido; a Fase 06 ainda não foi iniciada.
 
 O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

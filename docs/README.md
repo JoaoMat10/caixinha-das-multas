@@ -25,9 +25,9 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 05 em curso**
-- Fase atual: **Fase 05 — Catalogo e Tesouraria**
-- Proxima fase: **Fase 06 — Dashboard e Mural, dependente da validacao da Fase 05**
+- Implementacao: **Fase 05 concluida e pronta para revisao**
+- Fase atual: **Fase 05 — Catalogo e Tesouraria; PR #5 sem merge**
+- Proxima fase: **Fase 06 — Dashboard e Mural, ainda nao iniciada**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao
