@@ -4,7 +4,7 @@ Aplicação web mobile-first para gerir as multas internas de uma equipa de fute
 
 ## Estado atual
 
-A Fase 04 foi concluída, passou a validação manual e está pronta para merge no PR #4, que permanece aberto até autorização explícita. Acrescenta o painel protegido do Super Admin para gerir contas, equipas, épocas, plantéis, roles, fotografias privadas e auditoria. A Fase 05 — Catálogo e Tesouraria — é a próxima e ainda não foi iniciada.
+O PR #4 da Fase 04 foi integrado. A Fase 05 — Catálogo e Tesouraria — está concluída na branch `feature/catalogo-e-tesouraria`, com validação automática, manual e independente aprovada. O PR #5 aguarda revisão e não foi fundido; a Fase 06 ainda não foi iniciada.
 
 O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

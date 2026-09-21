@@ -1,1 +1,1 @@
-export { TreasuryPlaceholderPage } from './pages/TreasuryPlaceholderPage';
+export type { TreasuryTotals } from './contracts/treasury';

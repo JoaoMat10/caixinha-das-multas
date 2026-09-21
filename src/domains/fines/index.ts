@@ -1,1 +1,1 @@
-export { FinesPlaceholderPage } from './pages/FinesPlaceholderPage';
+export type { Fine, FineCategory, FineMember } from './contracts/fines';

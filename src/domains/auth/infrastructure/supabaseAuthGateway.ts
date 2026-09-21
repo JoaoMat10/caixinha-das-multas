@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import type {
@@ -8,6 +8,7 @@ import type {
   PasswordChange,
 } from '@/domains/auth/contracts/auth';
 import type { SupabasePublicConfiguration } from '@/shared/config/env';
+import { getSupabasePublicClient } from '@/shared/infrastructure/supabasePublicClient';
 
 const authorizationContextSchema = z.object({
   profile: z.object({
@@ -120,14 +121,5 @@ export class SupabaseAuthGateway implements AuthGateway {
 export function createSupabaseAuthGateway(
   configuration: SupabasePublicConfiguration,
 ) {
-  const client = createClient(configuration.url, configuration.publishableKey, {
-    auth: {
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      persistSession: true,
-      storageKey: 'caixinha-das-multas.auth',
-    },
-  });
-
-  return new SupabaseAuthGateway(client);
+  return new SupabaseAuthGateway(getSupabasePublicClient(configuration));
 }
