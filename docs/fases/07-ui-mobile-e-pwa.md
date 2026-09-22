@@ -124,6 +124,7 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 | `src/domains/admin/services/AdminService.ts`                                               | alterado          | Bloqueio de mutações administrativas offline.                              |
 | `src/domains/fines/services/FinesService.ts`                                               | alterado          | Bloqueio de mutações de multas offline.                                    |
 | `src/domains/treasury/services/TreasuryService.ts`                                         | alterado          | Bloqueio de mutações de tesouraria offline.                                |
+| `scripts/prepare-manual-*.mjs`                                                             | alterados         | Identificar credenciais temporárias com a fase de validação atual.         |
 | `src/**/*.test.ts(x)`, `tests/scripts/pwa.test.mjs`, `tests/scripts/ui-contracts.test.mjs` | criados/alterados | Cobertura de navegação, temas, offline, diálogos, PWA e contratos visuais. |
 
 ## Base de dados, contratos e migrações
