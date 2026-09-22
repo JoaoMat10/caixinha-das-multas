@@ -4,7 +4,7 @@ Aplicação web mobile-first para gerir as multas internas de uma equipa de fute
 
 ## Estado atual
 
-A Fase 06 — Dashboard e Mural — está integrada em `main`. A Fase 07 — UI Mobile e PWA — encontra-se em implementação na branch `feature/ui-mobile-e-pwa`, com a direção visual “Balneário Premium” aprovada e uma arquitetura de temas extensível preparada para famílias futuras.
+A Fase 06 — Dashboard e Mural — está integrada em `main`. A Fase 07 — UI Mobile e PWA — está concluída e validada na branch `feature/ui-mobile-e-pwa`; o PR Draft #7 aguarda revisão e integração. A direção visual “Balneário Premium” é o tema disponível e a arquitetura permanece preparada para famílias futuras.
 
 O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

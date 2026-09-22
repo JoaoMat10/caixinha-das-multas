@@ -27,7 +27,7 @@ if (
       !/^manual\.(player|captain|staff)\.[a-f0-9]{10}$/.test(account.username),
   )
 )
-  throw new Error('As contas não pertencem à validação manual da Fase 06.');
+  throw new Error('As contas não pertencem à validação manual da Fase 07.');
 
 const configuration = await getLinkedConfiguration();
 const administrator = createClient(
@@ -78,5 +78,5 @@ await runCleanupWithAuthFinally(
 );
 await rm(credentialsPath);
 process.stdout.write(
-  'Contas, dados e credenciais da validação manual da Fase 06 removidos.\n',
+  'Contas, dados e credenciais da validação manual da Fase 07 removidos.\n',
 );

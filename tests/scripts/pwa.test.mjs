@@ -36,6 +36,8 @@ describe('PWA', () => {
     const config = fs.readFileSync(path.join(root, 'vite.config.ts'), 'utf8');
     const app = fs.readFileSync(path.join(root, 'src/app/App.tsx'), 'utf8');
     expect(status).toContain('service-worker.js?v=${__APP_BUILD_ID__}');
+    expect(status).not.toContain('beforeinstallprompt');
+    expect(status).not.toContain('Instala a Caixinha');
     expect(config).toContain('__APP_BUILD_ID__');
     expect(app).toContain('<PwaStatus />');
   });

@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — implementação e validação automatizada concluídas; validação manual disponibilizada
+- Estado: concluída — implementação, validação automatizada e validação manual aprovadas
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-22
@@ -29,6 +29,7 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 | 2026-09-22 | Aprovar “Balneário Premium” como única direção visual a implementar nesta fase.                                 | Mantém identidade forte e limita o custo inicial; “Clube Minimalista” e outras famílias poderão ser adicionadas depois. | Os componentes usam tokens semânticos e um registo extensível de temas, sem apresentar opções ainda não implementadas. |
 | 2026-09-22 | Manter a aplicação online-first e limitar o cache persistente ao shell e a recursos estáticos da mesma origem.  | Dados pessoais, financeiros, de autenticação e respostas Supabase não devem persistir no service worker.                | Navegação com fallback offline; escritas financeiras e administrativas são recusadas sem ligação.                      |
 | 2026-09-22 | Carregar rotas e providers funcionais sob procura.                                                              | O bundle inicial excedia 750 kB e incluía integrações não necessárias no primeiro ecrã.                                 | O chunk principal desceu para cerca de 390 kB e o cliente Supabase ficou separado.                                     |
+| 2026-09-22 | Remover o aviso interno de instalação após a validação manual.                                                  | A instalação deve ficar ao critério do utilizador através da interface nativa do browser.                               | A PWA continua instalável, mas a aplicação não interceta `beforeinstallprompt` nem apresenta o botão “Instalar”.       |
 
 ## Trabalho realizado
 
@@ -96,7 +97,7 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 - Expandido o manifesto com identidade, cores, ícones PNG/SVG, categorias e atalhos.
 - Implementado service worker online-first para navegação, cache-first com atualização para recursos estáticos e fallback offline explícito.
 - Excluídos de cache todos os pedidos cross-origin e caminhos de Auth, REST, RPC e Storage.
-- Adicionados avisos de instalação, indisponibilidade de rede e nova versão; a atualização só é ativada após ação explícita.
+- Adicionados avisos de indisponibilidade de rede e nova versão; a atualização só é ativada após ação explícita.
 - O registo PWA foi colocado na raiz da aplicação, incluindo o login, e recebe um identificador distinto por build para que novas publicações sejam detetadas mesmo quando o ficheiro base do service worker não muda.
 - Introduzida uma guarda partilhada que bloqueia escritas administrativas, de multas e tesouraria antes do gateway quando não existe ligação.
 
@@ -111,8 +112,11 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 - Executados os fluxos E2E contra o projeto Supabase descartável autorizado `showcasetestref00001`; as contas da suite foram removidas automaticamente no final.
 - A primeira passagem expôs seletores antigos para a navegação móvel e para as confirmações nativas substituídas por diálogos acessíveis. Os testes foram alinhados com os novos nomes acessíveis e com a confirmação explícita dentro do diálogo.
 - A repetição passou os 10 cenários em Chromium desktop e móvel, cobrindo autenticação, Owner/Admin, catálogo, aplicação, liquidação, reabertura, eliminação, Painel, Mural e manifesto.
-- Criadas contas temporárias independentes para jogador, capitão, equipa técnica, tesoureiro e Owner. Todas foram confirmadas por login e permanecem ativas para validação manual.
-- A pré-visualização de produção está disponível em `http://127.0.0.1:4173`; as credenciais estão apenas em `.manual-validation/*.local.json`, pasta ignorada pelo Git.
+- Criadas contas temporárias independentes para jogador, capitão, equipa técnica, tesoureiro e Owner. Todas foram confirmadas por login durante a validação manual.
+- A pré-visualização de produção foi disponibilizada em `http://127.0.0.1:4173`; as credenciais ficaram apenas em `.manual-validation/*.local.json`, pasta ignorada pelo Git.
+- A validação manual foi aprovada pelo utilizador. O aviso interno de instalação foi removido, preservando a instalação através da interface dos browsers compatíveis.
+- Inventariados e removidos o Owner, o membro, a fotografia, os eventos, os restantes perfis e os dados financeiros temporários. As verificações pós-limpeza devolveram zero registos, ficheiros, ponteiros e identidades Auth.
+- Removidas as credenciais e os artefactos locais de validação e encerradas todas as pré-visualizações locais da fase.
 
 ## Ficheiros criados ou alterados
 
@@ -133,6 +137,7 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 | `src/domains/fines/services/FinesService.ts`                                               | alterado          | Bloqueio de mutações de multas offline.                                    |
 | `src/domains/treasury/services/TreasuryService.ts`                                         | alterado          | Bloqueio de mutações de tesouraria offline.                                |
 | `scripts/prepare-manual-*.mjs`                                                             | alterados         | Identificar credenciais temporárias com a fase de validação atual.         |
+| `scripts/cleanup-manual-member.mjs`                                                        | alterado          | Identificar e confirmar a limpeza de contas temporárias da Fase 07.        |
 | `e2e/admin.spec.ts`, `e2e/financial.spec.ts`, `e2e/member.spec.ts`                         | alterados         | Validar nomes responsivos e confirmações acessíveis no redesign.           |
 | `src/**/*.test.ts(x)`, `tests/scripts/pwa.test.mjs`, `tests/scripts/ui-contracts.test.mjs` | criados/alterados | Cobertura de navegação, temas, offline, diálogos, PWA e contratos visuais. |
 
@@ -161,12 +166,15 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 | `npm run typecheck`                                | passou    | Contratos TypeScript válidos.                                                        |
 | `npm test`                                         | passou    | 25 ficheiros e 82 testes aprovados após o redesign.                                  |
 | `npm run test:db`                                  | passou    | 8 testes de migrações, constraints, RLS, RPCs e reporting.                           |
-| `npm run build`                                    | passou    | Build sem chunks acima de 500 kB; chunk principal ~390,01 kB.                        |
+| `npm run build`                                    | passou    | Build sem chunks acima de 500 kB; chunk principal 389,52 kB.                         |
 | Inspeção visual local                              | passou    | Login revisto a 320 × 720, 390 × 844 e 1280 × 900 px.                                |
 | Auditoria responsiva em Chromium                   | passou    | 320, 360, 390, 430, 768 e 1280 px sem overflow horizontal; alvo principal com 48 px. |
 | Service worker e offline em Chromium               | passou    | Registo versionado no login e navegação offline servida pelo shell em cache.         |
 | `npm run test:e2e`                                 | passou    | 10/10 cenários em Chromium desktop e móvel contra o projeto descartável autorizado.  |
 | Login das contas de validação manual               | passou    | Jogador, capitão, equipa técnica, tesoureiro e Owner confirmados.                    |
+| Ausência do aviso interno de instalação            | passou    | Texto e tratamento de `beforeinstallprompt` ausentes do código e do build final.     |
+| Limpeza remota e local                             | passou    | Contagens pós-limpeza a zero; credenciais, fotografia, logs e identidades removidos. |
+| Integridade de `supabase/seed.sql`                 | passou    | Ficheiro inalterado relativamente a `main`.                                          |
 
 ## Desvios ao planeamento
 
@@ -174,8 +182,7 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 
 ## Riscos e limitações
 
-- As contas e os dados temporários de validação manual permanecem no projeto descartável até à aprovação do utilizador; devem ser removidos no encerramento da fase.
-- A instalação PWA depende dos critérios e da apresentação próprios de cada browser; o aviso interno só aparece quando `beforeinstallprompt` é disponibilizado.
+- A instalação PWA permanece disponível através da interface própria dos browsers compatíveis; por decisão de produto, a aplicação não apresenta um aviso interno de instalação.
 - O tema “Clube Minimalista” não está implementado nem é apresentado; a arquitetura está apenas preparada para o receber.
 
 ## Trabalho pendente
@@ -186,7 +193,7 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 - [x] Obter confirmação final antes da implementação quando existirem alterações relevantes.
 - [x] Implementar o redesign, temas, navegação, acessibilidade, responsividade, PWA e code splitting.
 - [x] Executar a bateria de testes, auditorias e E2E desktop/móvel.
-- [ ] Recolher a validação manual final do utilizador e remover os dados temporários após aprovação.
+- [x] Recolher a validação manual final do utilizador e remover os dados temporários após aprovação.
 - [x] Publicar a branch e abrir um PR Draft, sem merge.
 
 ## Handoff para a fase seguinte
@@ -196,4 +203,4 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 - Adicionar novos temas apenas através do registo tipado e do contrato de tokens semânticos; não duplicar componentes ou regras de domínio.
 - Manter o service worker afastado de Auth, REST, RPC, Storage e de qualquer resposta com dados pessoais ou financeiros.
 - Não converter falhas offline em filas de escrita: operações financeiras e administrativas continuam a exigir confirmação do servidor.
-- Depois da aprovação manual, executar os scripts de limpeza de membro, tesoureiro e Owner, confirmar a ausência de contas temporárias e atualizar este diário antes de concluir a fase.
+- A Fase 07 está concluída e pronta para integração; manter o PR sem merge até decisão explícita.

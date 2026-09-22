@@ -2,28 +2,15 @@ import { useEffect, useState } from 'react';
 
 import { AppIcon } from '@/shared/components/AppIcon';
 
-type InstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-};
-
 export function PwaStatus() {
   const [online, setOnline] = useState(() => navigator.onLine);
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null);
-  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(
-    null,
-  );
 
   useEffect(() => {
     const onOnline = () => setOnline(true);
     const onOffline = () => setOnline(false);
-    const onInstall = (event: Event) => {
-      event.preventDefault();
-      setInstallPrompt(event as InstallPromptEvent);
-    };
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
-    window.addEventListener('beforeinstallprompt', onInstall);
 
     if ('serviceWorker' in navigator && import.meta.env.PROD) {
       void navigator.serviceWorker
@@ -46,7 +33,6 @@ export function PwaStatus() {
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
-      window.removeEventListener('beforeinstallprompt', onInstall);
     };
   }, []);
 
@@ -56,13 +42,6 @@ export function PwaStatus() {
     return () =>
       navigator.serviceWorker?.removeEventListener('controllerchange', reload);
   }, []);
-
-  async function install() {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    await installPrompt.userChoice;
-    setInstallPrompt(null);
-  }
 
   if (!online)
     return (
@@ -84,17 +63,6 @@ export function PwaStatus() {
           type="button"
         >
           Atualizar agora
-        </button>
-      </div>
-    );
-
-  if (installPrompt)
-    return (
-      <div className="system-banner install" role="status">
-        <AppIcon name="download" />
-        <span>Instala a Caixinha neste dispositivo.</span>
-        <button onClick={() => void install()} type="button">
-          Instalar
         </button>
       </div>
     );
