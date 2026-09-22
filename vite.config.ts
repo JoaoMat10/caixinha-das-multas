@@ -6,8 +6,12 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));
+const buildId = Date.now().toString(36);
 
 export default defineConfig({
+  define: {
+    __APP_BUILD_ID__: JSON.stringify(buildId),
+  },
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

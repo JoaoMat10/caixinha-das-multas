@@ -100,13 +100,27 @@ Um duplo toque ou repeticao de pedido nao pode duplicar multas ou registos de li
 ## 7. Estrategia online e PWA
 
 - A app e online-first.
-- O shell e recursos estaticos podem ser colocados em cache.
-- Dados de leitura podem usar cache de curta duracao.
+- O service worker guarda apenas o shell, a pagina de indisponibilidade e recursos estaticos da mesma origem.
+- Pedidos ao Supabase, Auth, REST, RPC e Storage nunca sao colocados no cache persistente do service worker.
+- A navegacao usa a rede como primeira opcao e recorre ao shell ou a pagina de indisponibilidade quando nao existe ligacao.
+- Os recursos estaticos usam cache como primeira opcao, com atualizacao em segundo plano.
+- Dados de leitura podem usar apenas o cache em memoria e de curta duracao do TanStack Query.
 - Aplicar, liquidar, reabrir ou eliminar multas exige ligacao ao servidor.
+- Operacoes administrativas e de tesouraria sao recusadas antes de contactar o gateway quando o browser esta offline.
 - Nao se enfileiram escritas financeiras offline no MVP.
-- O service worker deve ter uma estrategia de atualizacao clara para evitar clientes presos em versoes antigas.
+- Uma nova versao instalada aguarda confirmacao do utilizador antes de ativar `skipWaiting`; apos a troca de controlador, a aplicacao e recarregada.
+- O registo do service worker ocorre apenas em builds de producao.
 
-## 8. Fotografias
+## 8. Interface, temas e navegacao
+
+- A interface e mobile-first e usa tokens semanticos para cor, espacamento, tipografia, raios, sombras, foco e areas seguras.
+- `balneario-premium` e a familia visual inicial. Novas familias, incluindo uma futura `clube-minimalista`, devem implementar o mesmo contrato de tokens e ser registadas sem duplicar componentes de dominio.
+- Apenas temas efetivamente implementados podem ser apresentados nas definicoes; a preferencia local usa uma chave versionada e tem fallback seguro para o tema predefinido.
+- A navegacao principal e filtrada pelas permissoes da sessao: bottom navigation e folha "Mais" em mobile, barra lateral em desktop.
+- A apresentacao pode esconder destinos sem permissao, mas a autorizacao continua a ser validada no servidor/base de dados.
+- Rotas funcionais e respetivos providers sao carregados sob procura para limitar o JavaScript inicial.
+
+## 9. Fotografias
 
 - Bucket privado no Supabase Storage.
 - Apenas Super Admin tem permissao de escrita e remocao.
@@ -114,7 +128,7 @@ Um duplo toque ou repeticao de pedido nao pode duplicar multas ou registos de li
 - Imagens sao redimensionadas/comprimidas antes do upload.
 - Nao dependemos de transformacoes de imagem pagas.
 
-## 9. Custos e limites
+## 10. Custos e limites
 
 A arquitetura deve funcionar no nivel gratuito:
 
@@ -127,7 +141,7 @@ A arquitetura deve funcionar no nivel gratuito:
 
 O nivel gratuito pode impor pausa por inatividade e nao oferece SLA. Se o uso real ultrapassar os limites ou exigir disponibilidade garantida, a mudanca de plano sera uma decisao futura explicita.
 
-## 10. Seguranca minima
+## 11. Seguranca minima
 
 - HTTPS em todos os ambientes remotos.
 - Chaves publicaveis no frontend apenas com RLS ativa.

@@ -1,80 +1,226 @@
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 
-import { getAuthorizedNavigationItems } from '@/app/navigation';
+import {
+  getPrimaryNavigationItems,
+  getSecondaryNavigationItems,
+} from '@/app/navigation';
 import { useAuth } from '@/domains/auth';
+import { AppIcon } from '@/shared/components/AppIcon';
 import { appEnv } from '@/shared/config/env';
+import { themes } from '@/shared/theme/theme';
 
 function getNavigationClassName({ isActive }: { isActive: boolean }) {
-  const baseClasses =
-    'shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-400';
-
-  return isActive
-    ? `${baseClasses} bg-gold-400 text-pitch-950`
-    : `${baseClasses} text-white hover:bg-white/10`;
+  return isActive ? 'app-nav-link active' : 'app-nav-link';
 }
 
 export function AppShell() {
   const { user, logout, isBusy } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const sheetRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const controls = () =>
+      Array.from(
+        sheetRef.current?.querySelectorAll<HTMLElement>(
+          'button:not(:disabled), a[href]',
+        ) ?? [],
+      );
+    controls()[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoreOpen(false);
+      if (event.key !== 'Tab') return;
+      const available = controls();
+      const first = available[0];
+      const last = available.at(-1);
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previous?.focus();
+    };
+  }, [moreOpen]);
 
   if (!user) return null;
 
-  const navigationItems = getAuthorizedNavigationItems(user);
+  const primaryItems = getPrimaryNavigationItems(user);
+  const secondaryItems = getSecondaryNavigationItems(user);
+  const theme = themes[0]!;
 
   return (
-    <div className="bg-pitch-50 text-pitch-950 min-h-dvh">
-      <header className="bg-pitch-950 shadow-pitch-950/10 text-white shadow-lg">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-4 sm:px-6">
-          <div
-            aria-hidden="true"
-            className="bg-gold-400 text-pitch-950 grid size-11 shrink-0 place-items-center rounded-2xl text-xl font-black"
-          >
+    <div className="app-frame">
+      <aside className="desktop-sidebar">
+        <div className="app-brand">
+          <span className="app-crest" aria-hidden="true">
             €
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-extrabold tracking-tight sm:text-lg">
-              {appEnv.VITE_APP_NAME}
-            </p>
-            <p className="text-pitch-200 truncate text-xs">
-              {user.displayName}
-            </p>
-          </div>
+          </span>
+          <span>
+            <strong>{appEnv.VITE_APP_NAME}</strong>
+            <small>Balneário Premium</small>
+          </span>
+        </div>
+        <nav aria-label="Estrutura da aplicação" className="desktop-navigation">
+          {primaryItems.map((item) => (
+            <NavLink
+              className={getNavigationClassName}
+              end
+              key={item.to}
+              to={item.to}
+            >
+              <AppIcon name={item.icon} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+          <span className="nav-divider" />
+          {secondaryItems.map((item) => (
+            <NavLink
+              className={getNavigationClassName}
+              end
+              key={item.to}
+              to={item.to}
+            >
+              <AppIcon name={item.icon} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <div className="sidebar-account">
+          <span className="account-avatar" aria-hidden="true">
+            {user.displayName.slice(0, 2).toLocaleUpperCase('pt-PT')}
+          </span>
+          <span className="account-copy">
+            <strong>{user.displayName}</strong>
+            <small>{theme.name}</small>
+          </span>
           <button
-            className="focus-visible:outline-gold-400 min-h-10 shrink-0 rounded-xl px-3 text-sm font-bold hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"
+            aria-label="Sair"
             disabled={isBusy}
             onClick={() => void logout()}
             type="button"
           >
-            Sair
+            <AppIcon name="logout" />
           </button>
         </div>
+      </aside>
 
-        <nav
-          aria-label="Estrutura da aplicação"
-          className="border-t border-white/10"
+      <div className="app-content-column">
+        <header className="mobile-header">
+          <div className="app-brand">
+            <span className="app-crest" aria-hidden="true">
+              €
+            </span>
+            <span>
+              <strong>Caixinha</strong>
+              <small>{user.displayName}</small>
+            </span>
+          </div>
+          <button
+            aria-expanded={moreOpen}
+            aria-label="Abrir definições"
+            className="header-action"
+            onClick={() => setMoreOpen(true)}
+            type="button"
+          >
+            <AppIcon name="more" />
+          </button>
+        </header>
+
+        <main className="app-main">
+          <Outlet />
+        </main>
+      </div>
+
+      <nav
+        aria-label="Navegação principal"
+        className="mobile-bottom-navigation"
+      >
+        {primaryItems.map((item) => (
+          <NavLink
+            aria-label={`${item.shortLabel ?? item.label} — navegação móvel`}
+            className={getNavigationClassName}
+            end
+            key={item.to}
+            to={item.to}
+          >
+            <AppIcon name={item.icon} />
+            <span>{item.shortLabel ?? item.label}</span>
+          </NavLink>
+        ))}
+        <button
+          aria-expanded={moreOpen}
+          className={moreOpen ? 'app-nav-link active' : 'app-nav-link'}
+          onClick={() => setMoreOpen(true)}
+          type="button"
         >
-          <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 py-2 sm:px-5">
-            {navigationItems.map((item) => (
+          <AppIcon name="more" />
+          <span>Mais</span>
+        </button>
+      </nav>
+
+      {moreOpen ? (
+        <div
+          className="more-backdrop"
+          role="presentation"
+          onMouseDown={() => setMoreOpen(false)}
+        >
+          <section
+            aria-label="Definições e sessão"
+            aria-modal="true"
+            className="more-sheet"
+            onMouseDown={(event) => event.stopPropagation()}
+            ref={sheetRef}
+            role="dialog"
+          >
+            <span className="sheet-handle" />
+            <div className="sheet-account">
+              <span className="account-avatar" aria-hidden="true">
+                {user.displayName.slice(0, 2).toLocaleUpperCase('pt-PT')}
+              </span>
+              <span>
+                <strong>{user.displayName}</strong>
+                <small>{theme.name}</small>
+              </span>
+            </div>
+            {secondaryItems.map((item) => (
               <NavLink
-                className={getNavigationClassName}
-                end
+                className="sheet-link"
                 key={item.to}
+                onClick={() => setMoreOpen(false)}
                 to={item.to}
               >
-                {item.label}
+                <AppIcon name={item.icon} />
+                <span>{item.label}</span>
               </NavLink>
             ))}
-          </div>
-        </nav>
-      </header>
-
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-        <Outlet />
-      </main>
-
-      <footer className="text-pitch-600 mx-auto max-w-6xl px-4 pb-8 text-center text-xs sm:px-6">
-        O acesso visível respeita o contexto autorizado; a autorização efetiva
-        permanece protegida na base de dados.
-      </footer>
+            <button
+              className="sheet-link danger"
+              disabled={isBusy}
+              onClick={() => void logout()}
+              type="button"
+            >
+              <AppIcon name="logout" />
+              <span>Terminar sessão</span>
+            </button>
+            <button
+              className="sheet-close"
+              onClick={() => setMoreOpen(false)}
+              type="button"
+            >
+              Fechar
+            </button>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

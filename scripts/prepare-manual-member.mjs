@@ -236,7 +236,7 @@ try {
           }),
         ),
         season: 'época ativa selecionada no projeto de testes',
-        expiresAfter: 'validação manual da Fase 06',
+        expiresAfter: 'validação manual da Fase 07',
       },
       null,
       2,

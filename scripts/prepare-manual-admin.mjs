@@ -61,7 +61,7 @@ try {
       {
         username: owner.username,
         password: owner.password,
-        expiresAfter: 'validação manual da Fase 04',
+        expiresAfter: 'validação manual da Fase 07',
       },
       null,
       2,

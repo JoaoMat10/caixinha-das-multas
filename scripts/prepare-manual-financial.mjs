@@ -39,7 +39,7 @@ try {
         username: testUser.username,
         password: testUser.password,
         season: 'época ativa atribuída no projeto de testes',
-        expiresAfter: 'validação manual da Fase 05',
+        expiresAfter: 'validação manual da Fase 07',
       },
       null,
       2,

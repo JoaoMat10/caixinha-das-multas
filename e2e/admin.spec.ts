@@ -15,8 +15,11 @@ test('Owner abre a Administração e cria uma conta temporária', async ({
   await page.getByLabel('Username').fill(username!);
   await page.getByLabel('Password').fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page.getByRole('link', { name: 'Administração' })).toBeVisible();
-  await page.getByRole('link', { name: 'Administração' }).click();
+  const administrationLink = page.getByRole('link', {
+    name: /^(Administração|Admin — navegação móvel)$/,
+  });
+  await expect(administrationLink).toBeVisible();
+  await administrationLink.click();
   await expect(
     page.getByRole('heading', { name: 'Administração' }),
   ).toBeVisible();

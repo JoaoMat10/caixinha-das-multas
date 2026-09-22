@@ -2,7 +2,7 @@ import type { SeasonMembership } from '@/domains/auth/contracts/auth';
 import { memberDescription } from '@/domains/dashboard/rules/dashboardRules';
 
 export const memberCardClass =
-  'rounded-2xl border border-pitch-200 bg-white p-4 shadow-sm sm:p-6';
+  'member-card rounded-2xl border border-pitch-200 bg-white p-4 shadow-sm sm:p-6';
 
 export function MemberSeasonSelect({
   memberships,
@@ -84,7 +84,7 @@ export function MemberIdentity({
         size={compact ? 'small' : 'large'}
         url={member.avatarUrl}
       />
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <strong className={compact ? 'truncate' : 'text-xl'}>
             {member.displayName}

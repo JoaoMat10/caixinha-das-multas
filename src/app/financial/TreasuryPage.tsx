@@ -13,6 +13,7 @@ import {
 } from '@/app/financial/FinancialUi';
 import { formatEuros, memberLabel } from '@/domains/fines/rules/fineRules';
 import { useFinancialServices } from '@/app/financial/financialContext';
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 
 function TreasurySeason({
   seasonId,
@@ -31,6 +32,10 @@ function TreasurySeason({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<{
+    action: 'reopen' | 'remove';
+    fine: Fine;
+  } | null>(null);
   const membersQuery = useQuery({
     queryKey: ['fine-members', seasonId],
     queryFn: () => fines.loadMembers(seasonId),
@@ -123,13 +128,7 @@ function TreasurySeason({
   }
 
   async function reopen(fine: Fine) {
-    if (
-      busy ||
-      !window.confirm(
-        `Reabrir a multa «${fine.categoryNameSnapshot}» de ${formatEuros(fine.finalAmountCents)}?`,
-      )
-    )
-      return;
+    if (busy) return;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -141,6 +140,7 @@ function TreasurySeason({
         idempotencyKey: crypto.randomUUID(),
       });
       await refresh();
+      setConfirmation(null);
       setNotice(
         `Multa reaberta. Valor retirado do recebido: ${formatEuros(batch.calculatedTotalCents)}.`,
       );
@@ -156,19 +156,14 @@ function TreasurySeason({
   }
 
   async function remove(fine: Fine) {
-    if (
-      busy ||
-      !window.confirm(
-        `Eliminar definitivamente a multa «${fine.categoryNameSnapshot}» de ${formatEuros(fine.finalAmountCents)}? Esta ação não pode ser anulada.`,
-      )
-    )
-      return;
+    if (busy) return;
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
       await treasury.deletePendingFine(fine.id);
       await refresh();
+      setConfirmation(null);
       setNotice('Multa pendente eliminada.');
     } catch (cause) {
       setError(
@@ -311,7 +306,9 @@ function TreasurySeason({
                     <button
                       className={secondaryButtonClass}
                       disabled={busy}
-                      onClick={() => void reopen(fine)}
+                      onClick={() =>
+                        setConfirmation({ action: 'reopen', fine })
+                      }
                       type="button"
                     >
                       Reabrir
@@ -321,7 +318,9 @@ function TreasurySeason({
                     <button
                       className={secondaryButtonClass}
                       disabled={busy}
-                      onClick={() => void remove(fine)}
+                      onClick={() =>
+                        setConfirmation({ action: 'remove', fine })
+                      }
                       type="button"
                     >
                       Eliminar
@@ -369,6 +368,33 @@ function TreasurySeason({
           </div>
         ) : null}
       </section>
+      <ConfirmDialog
+        busy={busy}
+        confirmLabel={
+          confirmation?.action === 'remove' ? 'Eliminar multa' : 'Reabrir multa'
+        }
+        description={
+          confirmation
+            ? confirmation.action === 'remove'
+              ? `«${confirmation.fine.categoryNameSnapshot}» de ${formatEuros(confirmation.fine.finalAmountCents)} será eliminada definitivamente. Esta ação não pode ser anulada.`
+              : `«${confirmation.fine.categoryNameSnapshot}» de ${formatEuros(confirmation.fine.finalAmountCents)} volta a ficar pendente e o recebido será corrigido.`
+            : ''
+        }
+        destructive={confirmation?.action === 'remove'}
+        onCancel={() => setConfirmation(null)}
+        onConfirm={() => {
+          if (!confirmation) return;
+          void (confirmation.action === 'remove'
+            ? remove(confirmation.fine)
+            : reopen(confirmation.fine));
+        }}
+        open={Boolean(confirmation)}
+        title={
+          confirmation?.action === 'remove'
+            ? 'Eliminar multa?'
+            : 'Reabrir multa?'
+        }
+      />
     </div>
   );
 }

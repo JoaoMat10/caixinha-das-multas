@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
   <title id="title">Caixinha das Multas</title>
-  <rect width="512" height="512" rx="112" fill="#081c15" />
-  <path d="M112 154h288v236a42 42 0 0 1-42 42H154a42 42 0 0 1-42-42V154Z" fill="#f5b82e" />
-  <path d="M91 133a43 43 0 0 1 43-43h244a43 43 0 0 1 43 43v57H91v-57Z" fill="#f8faf9" />
-  <path d="M174 262h164M174 324h164" fill="none" stroke="#081c15" stroke-linecap="round" stroke-width="30" />
+  <rect width="512" height="512" rx="112" fill="#06130e" />
+  <path d="M112 154h288v236a42 42 0 0 1-42 42H154a42 42 0 0 1-42-42V154Z" fill="#dfb34f" />
+  <path d="M91 133a43 43 0 0 1 43-43h244a43 43 0 0 1 43 43v57H91v-57Z" fill="#f7f4e9" />
+  <path d="M174 262h164M174 324h164" fill="none" stroke="#06130e" stroke-linecap="round" stroke-width="30" />
 </svg>

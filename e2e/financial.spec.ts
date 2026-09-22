@@ -16,7 +16,10 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
   await page.getByLabel('Username').fill(username!);
   await page.getByLabel('Password').fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page.getByRole('link', { name: 'Tesouraria' })).toBeVisible();
+  const treasuryLink = page.getByRole('link', {
+    name: /^(Tesouraria|Caixa — navegação móvel)$/,
+  });
+  await expect(treasuryLink).toBeVisible();
   await page.getByRole('link', { name: 'Multas' }).click();
   await expect(
     page.getByRole('heading', { name: 'Catálogo da época' }),
@@ -57,7 +60,7 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
     await expect(page.getByText(/Multa aplicada: 0,20/)).toBeVisible();
   }
 
-  await page.getByRole('link', { name: 'Tesouraria' }).click();
+  await treasuryLink.click();
   await page.getByLabel('Membro').selectOption(ownOption);
   const ownFines = page.getByRole('listitem').filter({ hasText: categoryName });
   await expect(ownFines).toHaveCount(3);
@@ -74,16 +77,20 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
   await expect(
     page.getByText(/Total calculado pelo servidor: 0,40/),
   ).toBeVisible();
-  page.once('dialog', (dialog) => void dialog.accept());
   await ownFines.getByRole('button', { name: 'Reabrir' }).first().click();
+  const reopenDialog = page.getByRole('dialog', { name: 'Reabrir multa?' });
+  await expect(reopenDialog).toBeVisible();
+  await reopenDialog.getByRole('button', { name: 'Reabrir multa' }).click();
   await expect(
     page.getByText(/Valor retirado do recebido: 0,20/),
   ).toBeVisible();
   await expect(ownFines.getByRole('button', { name: 'Eliminar' })).toHaveCount(
     1,
   );
-  page.once('dialog', (dialog) => void dialog.accept());
   await ownFines.getByRole('button', { name: 'Eliminar' }).click();
+  const removeDialog = page.getByRole('dialog', { name: 'Eliminar multa?' });
+  await expect(removeDialog).toBeVisible();
+  await removeDialog.getByRole('button', { name: 'Eliminar multa' }).click();
   await expect(page.getByText('Multa pendente eliminada.')).toBeVisible();
   await expect(
     ownFines.getByRole('checkbox', { name: /Selecionar multa/ }),

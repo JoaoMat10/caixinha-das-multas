@@ -13,17 +13,16 @@ export function AuthCard({
   description: ReactNode;
 }>) {
   return (
-    <main className="bg-pitch-50 grid min-h-dvh place-items-center px-4 py-10">
-      <section className="w-full max-w-md" aria-labelledby="auth-title">
-        <div className="mb-7 flex items-center justify-center gap-3">
-          <span className="bg-gold-400 text-pitch-950 grid size-12 place-items-center rounded-2xl text-xl font-black">
-            €
+    <main className="auth-shell">
+      <section className="auth-container" aria-labelledby="auth-title">
+        <div className="auth-brand">
+          <span className="app-crest auth-crest">€</span>
+          <span>
+            <strong>{appEnv.VITE_APP_NAME}</strong>
+            <small>Acesso reservado ao plantel</small>
           </span>
-          <p className="text-pitch-950 text-lg font-extrabold">
-            {appEnv.VITE_APP_NAME}
-          </p>
         </div>
-        <div className="rounded-panel border-pitch-200 shadow-panel border bg-white p-6 sm:p-8">
+        <div className="auth-card">
           <p className="text-pitch-700 text-xs font-bold tracking-[0.18em] uppercase">
             {eyebrow}
           </p>
