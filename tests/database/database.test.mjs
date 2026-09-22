@@ -1115,6 +1115,160 @@ test('tesouraria liquida duas multas sem duplicar, preserva snapshots e reconcil
   }
 });
 
+test('reporting do membro preserva detalhe pessoal, rankings e exclusao de multas eliminadas', async () => {
+  const database = await createSeededDatabase();
+  try {
+    await asRole(database, 'authenticated', ids.playerA, async () => {
+      assert.deepEqual(
+        (
+          await rows(
+            database,
+            `select fine_count, total_fined_cents, total_paid_cents, total_debt_cents
+             from public.my_season_balances where season_id = $1`,
+            [ids.seasonA],
+          )
+        )[0],
+        {
+          fine_count: 1,
+          total_fined_cents: 500,
+          total_paid_cents: 0,
+          total_debt_cents: 500,
+        },
+      );
+      assert.deepEqual(
+        await rows(
+          database,
+          `select category_name_snapshot, base_amount_cents_snapshot,
+                  multiplier, final_amount_cents, status, notes
+           from public.fines where season_id = $1 order by occurred_at desc`,
+          [ids.seasonA],
+        ),
+        [
+          {
+            category_name_snapshot: 'Atraso',
+            base_amount_cents_snapshot: 500,
+            multiplier: 1,
+            final_amount_cents: 500,
+            status: 'pending',
+            notes: null,
+          },
+        ],
+      );
+      assert.equal(
+        (
+          await rows(
+            database,
+            `select count(*)::integer as count from public.fines
+             where season_member_id = $1`,
+            [ids.captainMemberA],
+          )
+        )[0].count,
+        0,
+      );
+
+      const ranking = await rows(
+        database,
+        `select season_member_id::text, display_name, member_type,
+                shirt_number, staff_function, is_captain,
+                fine_count, total_fined_cents, total_debt_cents
+         from public.get_season_leaderboard($1)`,
+        [ids.seasonA],
+      );
+      assert.deepEqual(
+        ranking.find((entry) => entry.season_member_id === ids.captainMemberA),
+        {
+          season_member_id: ids.captainMemberA,
+          display_name: 'Carlos Capitao',
+          member_type: 'player',
+          shirt_number: 10,
+          staff_function: null,
+          is_captain: true,
+          fine_count: 1,
+          total_fined_cents: 200,
+          total_debt_cents: 0,
+        },
+      );
+      assert.deepEqual(
+        ranking.find((entry) => entry.season_member_id === ids.staffMemberA),
+        {
+          season_member_id: ids.staffMemberA,
+          display_name: 'Teresa Treinadora',
+          member_type: 'staff',
+          shirt_number: null,
+          staff_function: 'Treinadora',
+          is_captain: false,
+          fine_count: 1,
+          total_fined_cents: 1000,
+          total_debt_cents: 1000,
+        },
+      );
+      assert.equal(
+        Object.keys(ranking[0]).some((key) =>
+          /username|email|auth|admin|owner|treasurer/i.test(key),
+        ),
+        false,
+      );
+      await assert.rejects(
+        database.query('select * from public.get_season_leaderboard($1)', [
+          ids.seasonB,
+        ]),
+        /Sem acesso ao ranking/,
+      );
+    });
+
+    await asRole(database, 'authenticated', ids.treasurerA, async () => {
+      const before = (
+        await rows(
+          database,
+          `select fine_count, total_fined_cents, total_debt_cents
+           from public.get_season_leaderboard($1)
+           where season_member_id = $2`,
+          [ids.seasonA, ids.playerMemberA],
+        )
+      )[0];
+      const created = (
+        await rows(
+          database,
+          `select * from public.apply_fine(
+             $1, $2, '2026-09-21 12:00:00+00', 'Eliminavel',
+             '81000000-0000-4000-8000-000000000096'
+           )`,
+          [ids.playerMemberA, ids.categoryA],
+        )
+      )[0];
+      const during = (
+        await rows(
+          database,
+          `select fine_count, total_fined_cents, total_debt_cents
+           from public.get_season_leaderboard($1)
+           where season_member_id = $2`,
+          [ids.seasonA, ids.playerMemberA],
+        )
+      )[0];
+      assert.deepEqual(during, {
+        fine_count: Number(before.fine_count) + 1,
+        total_fined_cents: Number(before.total_fined_cents) + 500,
+        total_debt_cents: Number(before.total_debt_cents) + 500,
+      });
+      await rows(database, 'select public.delete_pending_fine($1)', [
+        created.id,
+      ]);
+      const after = (
+        await rows(
+          database,
+          `select fine_count, total_fined_cents, total_debt_cents
+           from public.get_season_leaderboard($1)
+           where season_member_id = $2`,
+          [ids.seasonA, ids.playerMemberA],
+        )
+      )[0];
+      assert.deepEqual(after, before);
+    });
+  } finally {
+    await database.close();
+  }
+});
+
 test('contratos administrativos validam Owner, idempotencia, plantel e auditoria', async () => {
   const database = await createSeededDatabase();
   const newUserId = '00000000-0000-4000-8000-000000000099';

@@ -93,7 +93,7 @@ describe('autenticação e rotas da aplicação', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Painel preparado, sem dados simulados',
+        name: 'O meu painel',
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Painel' })).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('autenticação e rotas da aplicação', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Painel preparado, sem dados simulados',
+        name: 'O meu painel',
       }),
     ).toBeInTheDocument();
   });

@@ -4,7 +4,7 @@ Aplicação web mobile-first para gerir as multas internas de uma equipa de fute
 
 ## Estado atual
 
-O PR #4 da Fase 04 foi integrado. A Fase 05 — Catálogo e Tesouraria — está concluída na branch `feature/catalogo-e-tesouraria`, com validação automática, manual e independente aprovada. O PR #5 aguarda revisão e não foi fundido; a Fase 06 ainda não foi iniciada.
+O PR #5 da Fase 05 foi integrado. A Fase 06 — Dashboard e Mural — está concluída na branch `feature/dashboard-e-mural`, com validações local, remota, E2E e manual aprovadas; o PR Draft #6 aguarda revisão e integração. Os dados temporários foram removidos e a Fase 07 ainda não foi iniciada.
 
 O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 

@@ -35,7 +35,7 @@ export function AppShell() {
               {appEnv.VITE_APP_NAME}
             </p>
             <p className="text-pitch-200 truncate text-xs">
-              {user.displayName} · @{user.username}
+              {user.displayName}
             </p>
           </div>
           <button

@@ -1,13 +1,5 @@
 import type { FineCategory, FineMember } from '@/domains/fines/contracts/fines';
-
-export function formatEuros(cents: number) {
-  return new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
-}
+export { formatEuros } from '@/shared/formatters/money';
 
 export function parseEuros(value: string) {
   const normalized = value.trim().replace(',', '.');
