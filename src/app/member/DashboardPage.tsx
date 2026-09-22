@@ -138,33 +138,34 @@ export function DashboardPage() {
       ) : null}
       {query.data ? (
         <>
-          <section className={memberCardClass}>
-            <MemberIdentity member={query.data.member} />
-          </section>
-          <section
-            aria-label="Resumo pessoal"
-            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
-          >
-            <BalanceCard
-              label="Dívida atual"
-              value={formatEuros(query.data.balance.totalDebtCents)}
-            />
-            <BalanceCard
-              label="Total histórico"
-              value={formatEuros(query.data.balance.totalFinedCents)}
-            />
-            <BalanceCard
-              label="Total liquidado"
-              value={formatEuros(query.data.balance.totalPaidCents)}
-            />
-            <BalanceCard
-              label="Multas pendentes"
-              value={String(query.data.balance.pendingCount)}
-            />
-            <BalanceCard
-              label="Multas pagas"
-              value={String(query.data.balance.paidCount)}
-            />
+          <section aria-label="Resumo pessoal" className="space-y-3">
+            <div className={`${memberCardClass} member-hero-card`}>
+              <MemberIdentity member={query.data.member} />
+              <div className="member-hero-balance">
+                <span>Dívida atual</span>
+                <strong>
+                  {formatEuros(query.data.balance.totalDebtCents)}
+                </strong>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <BalanceCard
+                label="Total histórico"
+                value={formatEuros(query.data.balance.totalFinedCents)}
+              />
+              <BalanceCard
+                label="Total liquidado"
+                value={formatEuros(query.data.balance.totalPaidCents)}
+              />
+              <BalanceCard
+                label="Multas pendentes"
+                value={String(query.data.balance.pendingCount)}
+              />
+              <BalanceCard
+                label="Multas pagas"
+                value={String(query.data.balance.paidCount)}
+              />
+            </div>
           </section>
           {query.data.balance.fineCount === 0 ? (
             <p className={memberCardClass} role="status">

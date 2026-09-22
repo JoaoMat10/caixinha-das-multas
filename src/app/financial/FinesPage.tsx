@@ -483,16 +483,18 @@ export function FinesPage() {
         seasonId={seasonId}
         onChange={setSeasonId}
       />
-      <CatalogSection
-        key={`catalog-${seasonId}`}
-        seasonId={seasonId}
-        writable={selected.seasonStatus !== 'archived'}
-      />
-      <ApplySection
-        key={`apply-${seasonId}`}
-        seasonId={seasonId}
-        writable={selected.seasonStatus === 'active'}
-      />
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <CatalogSection
+          key={`catalog-${seasonId}`}
+          seasonId={seasonId}
+          writable={selected.seasonStatus !== 'archived'}
+        />
+        <ApplySection
+          key={`apply-${seasonId}`}
+          seasonId={seasonId}
+          writable={selected.seasonStatus === 'active'}
+        />
+      </div>
     </div>
   );
 }

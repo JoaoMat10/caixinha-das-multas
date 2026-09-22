@@ -1,13 +1,13 @@
 import type { SeasonMembership } from '@/domains/auth/contracts/auth';
 
 export const inputClass =
-  'w-full min-h-11 rounded-xl border border-pitch-200 bg-white px-3 py-2 text-pitch-950';
+  'mt-2 w-full min-h-12 rounded-xl border border-pitch-200 bg-white px-3 py-2 text-pitch-950';
 export const primaryButtonClass =
-  'min-h-11 rounded-xl bg-pitch-900 px-4 py-2 font-bold text-white disabled:opacity-50';
+  'min-h-12 rounded-xl bg-pitch-900 px-4 py-2 font-black text-white disabled:opacity-50';
 export const secondaryButtonClass =
-  'min-h-11 rounded-xl border border-pitch-300 bg-white px-4 py-2 font-bold disabled:opacity-50';
+  'min-h-12 rounded-xl border border-pitch-300 bg-white px-4 py-2 font-bold disabled:opacity-50';
 export const cardClass =
-  'rounded-2xl border border-pitch-200 bg-white p-4 shadow-sm sm:p-6';
+  'domain-card rounded-2xl border border-pitch-200 bg-white p-4 shadow-sm sm:p-6';
 
 export function TreasurerSeasonSelect({
   memberships,

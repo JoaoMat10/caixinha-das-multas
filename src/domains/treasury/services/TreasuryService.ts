@@ -2,6 +2,7 @@ import type {
   RecordPayment,
   TreasuryGateway,
 } from '@/domains/treasury/contracts/treasury';
+import { requireOnline } from '@/shared/network/requireOnline';
 
 export class TreasuryService {
   constructor(private readonly gateway: TreasuryGateway) {}
@@ -11,6 +12,7 @@ export class TreasuryService {
   }
 
   recordPayment(input: RecordPayment) {
+    requireOnline();
     if (
       !input.memberId ||
       !input.idempotencyKey ||
@@ -22,6 +24,7 @@ export class TreasuryService {
   }
 
   deletePendingFine(fineId: string) {
+    requireOnline();
     if (!fineId) throw new Error('Multa inválida.');
     return this.gateway.deletePendingFine(fineId);
   }

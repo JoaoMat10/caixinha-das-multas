@@ -25,9 +25,9 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 06 concluida; PR Draft #6 aguarda revisao e integracao**
-- Fase atual: **Fase 06 — Dashboard e Mural; validacao manual aprovada e dados temporarios removidos**
-- Proxima fase: **Fase 07 — UI Mobile e PWA, nao iniciada**
+- Implementacao: **Fase 06 integrada; Fase 07 em implementacao**
+- Fase atual: **Fase 07 — UI Mobile e PWA; “Balneario Premium” aprovado e aplicado**
+- Proxima fase: **Fase 08 — testes finais e preparacao do piloto, ainda nao iniciada**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao

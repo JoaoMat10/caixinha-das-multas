@@ -256,8 +256,11 @@ describe('interface de multas e tesouraria', () => {
     expect(
       screen.getByText('Recebido · saldo disponível').parentElement,
     ).toHaveTextContent('10,00');
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     await user.click(await screen.findByRole('button', { name: 'Reabrir' }));
+    expect(
+      screen.getByRole('dialog', { name: 'Reabrir multa?' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reabrir multa' }));
     expect(
       await screen.findByText(/Valor retirado do recebido/),
     ).toBeInTheDocument();
@@ -274,6 +277,10 @@ describe('interface de multas e tesouraria', () => {
       within(list!).getAllByRole('button', { name: 'Eliminar' }),
     ).toHaveLength(1);
     await user.click(within(list!).getByRole('button', { name: 'Eliminar' }));
+    expect(
+      screen.getByRole('dialog', { name: 'Eliminar multa?' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Eliminar multa' }));
     expect(
       await screen.findByText('Multa pendente eliminada.'),
     ).toBeInTheDocument();

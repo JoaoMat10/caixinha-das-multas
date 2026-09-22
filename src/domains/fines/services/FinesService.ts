@@ -4,6 +4,7 @@ import type {
   FinesGateway,
   SaveFineCategory,
 } from '@/domains/fines/contracts/fines';
+import { requireOnline } from '@/shared/network/requireOnline';
 
 export class FinesService {
   constructor(private readonly gateway: FinesGateway) {}
@@ -21,6 +22,7 @@ export class FinesService {
   }
 
   saveCategory(input: SaveFineCategory) {
+    requireOnline();
     if (
       !input.name.trim() ||
       input.baseAmountCents < 10 ||
@@ -36,6 +38,7 @@ export class FinesService {
   }
 
   applyFine(input: ApplyFine) {
+    requireOnline();
     if (
       !input.memberId ||
       !input.categoryId ||
