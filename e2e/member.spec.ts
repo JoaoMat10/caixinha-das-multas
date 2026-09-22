@@ -72,7 +72,9 @@ test('membro consulta o painel pessoal e os rankings da equipa', async ({
   await expect(
     page.getByRole('heading', { name: 'Maior dívida atual' }),
   ).toBeVisible();
-  await expect(page.getByText('Tesoureiro E2E').first()).toBeVisible();
+  await expect(
+    page.getByRole('main').getByText('Tesoureiro E2E').first(),
+  ).toBeVisible();
   await expect(page.locator('body')).not.toContainText(username!);
   await expect(page.locator('body')).not.toContainText('Super Admin');
 });

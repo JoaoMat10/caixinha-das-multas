@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — implementação concluída; validação final em execução
+- Estado: em curso — implementação e validação automatizada concluídas; validação manual disponibilizada
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-22
@@ -106,6 +106,14 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 - O gateway de autenticação carrega a integração Supabase apenas quando necessária, preservando a interface síncrona de eventos de sessão.
 - O build deixou de emitir o aviso de chunks acima de 500 kB: o chunk principal passou de 755,66 kB (216,56 kB gzip) para cerca de 389,99 kB (122,51 kB gzip), com Supabase num chunk de 203,33 kB (52,10 kB gzip).
 
+### Validação remota e manual
+
+- Executados os fluxos E2E contra o projeto Supabase descartável autorizado `showcasetestref00001`; as contas da suite foram removidas automaticamente no final.
+- A primeira passagem expôs seletores antigos para a navegação móvel e para as confirmações nativas substituídas por diálogos acessíveis. Os testes foram alinhados com os novos nomes acessíveis e com a confirmação explícita dentro do diálogo.
+- A repetição passou os 10 cenários em Chromium desktop e móvel, cobrindo autenticação, Owner/Admin, catálogo, aplicação, liquidação, reabertura, eliminação, Painel, Mural e manifesto.
+- Criadas contas temporárias independentes para jogador, capitão, equipa técnica, tesoureiro e Owner. Todas foram confirmadas por login e permanecem ativas para validação manual.
+- A pré-visualização de produção está disponível em `http://127.0.0.1:4173`; as credenciais estão apenas em `.manual-validation/*.local.json`, pasta ignorada pelo Git.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro ou área                                                                           | Tipo de alteração | Motivo                                                                     |
@@ -125,6 +133,7 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 | `src/domains/fines/services/FinesService.ts`                                               | alterado          | Bloqueio de mutações de multas offline.                                    |
 | `src/domains/treasury/services/TreasuryService.ts`                                         | alterado          | Bloqueio de mutações de tesouraria offline.                                |
 | `scripts/prepare-manual-*.mjs`                                                             | alterados         | Identificar credenciais temporárias com a fase de validação atual.         |
+| `e2e/admin.spec.ts`, `e2e/financial.spec.ts`, `e2e/member.spec.ts`                         | alterados         | Validar nomes responsivos e confirmações acessíveis no redesign.           |
 | `src/**/*.test.ts(x)`, `tests/scripts/pwa.test.mjs`, `tests/scripts/ui-contracts.test.mjs` | criados/alterados | Cobertura de navegação, temas, offline, diálogos, PWA e contratos visuais. |
 
 ## Base de dados, contratos e migrações
@@ -156,6 +165,8 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 | Inspeção visual local                              | passou    | Login revisto a 320 × 720, 390 × 844 e 1280 × 900 px.                                |
 | Auditoria responsiva em Chromium                   | passou    | 320, 360, 390, 430, 768 e 1280 px sem overflow horizontal; alvo principal com 48 px. |
 | Service worker e offline em Chromium               | passou    | Registo versionado no login e navegação offline servida pelo shell em cache.         |
+| `npm run test:e2e`                                 | passou    | 10/10 cenários em Chromium desktop e móvel contra o projeto descartável autorizado.  |
+| Login das contas de validação manual               | passou    | Jogador, capitão, equipa técnica, tesoureiro e Owner confirmados.                    |
 
 ## Desvios ao planeamento
 
@@ -163,7 +174,7 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 
 ## Riscos e limitações
 
-- A validação autenticada contra o projeto Supabase descartável ainda depende de autorização explícita para criar e remover contas e dados temporários.
+- As contas e os dados temporários de validação manual permanecem no projeto descartável até à aprovação do utilizador; devem ser removidos no encerramento da fase.
 - A instalação PWA depende dos critérios e da apresentação próprios de cada browser; o aviso interno só aparece quando `beforeinstallprompt` é disponibilizado.
 - O tema “Clube Minimalista” não está implementado nem é apresentado; a arquitetura está apenas preparada para o receber.
 
@@ -174,8 +185,9 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 - [x] Consolidar tokens e ecrãs adicionais da direção aprovada.
 - [x] Obter confirmação final antes da implementação quando existirem alterações relevantes.
 - [x] Implementar o redesign, temas, navegação, acessibilidade, responsividade, PWA e code splitting.
-- [ ] Executar a bateria de testes, auditorias e validação manual final.
-- [ ] Publicar a branch e abrir um PR Draft, sem merge.
+- [x] Executar a bateria de testes, auditorias e E2E desktop/móvel.
+- [ ] Recolher a validação manual final do utilizador e remover os dados temporários após aprovação.
+- [x] Publicar a branch e abrir um PR Draft, sem merge.
 
 ## Handoff para a fase seguinte
 
@@ -184,3 +196,4 @@ Redesenhar integralmente a interface com uma experiência mobile-first coerente,
 - Adicionar novos temas apenas através do registo tipado e do contrato de tokens semânticos; não duplicar componentes ou regras de domínio.
 - Manter o service worker afastado de Auth, REST, RPC, Storage e de qualquer resposta com dados pessoais ou financeiros.
 - Não converter falhas offline em filas de escrita: operações financeiras e administrativas continuam a exigir confirmação do servidor.
+- Depois da aprovação manual, executar os scripts de limpeza de membro, tesoureiro e Owner, confirmar a ausência de contas temporárias e atualizar este diário antes de concluir a fase.
