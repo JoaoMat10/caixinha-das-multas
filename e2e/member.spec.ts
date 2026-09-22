@@ -45,6 +45,10 @@ test('membro consulta o painel pessoal e os rankings da equipa', async ({
   await expect(
     page.getByRole('heading', { name: 'O meu painel' }),
   ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'O meu painel' }),
+  ).toBeVisible();
   await expect(page.getByText('Equipa técnica · Teste Auth')).toBeVisible();
   const personalFine = page.getByRole('listitem').filter({
     hasText: categoryName,

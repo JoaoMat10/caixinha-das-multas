@@ -25,8 +25,8 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 06 em curso; implementacao e validacao local concluidas**
-- Fase atual: **Fase 06 — Dashboard e Mural; validacao remota e manual pendentes**
+- Implementacao: **Fase 06 em curso; validacoes automatizadas concluidas**
+- Fase atual: **Fase 06 — Dashboard e Mural; pronta para validacao manual**
 - Proxima fase: **Fase 07 — UI Mobile e PWA, nao iniciada**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
