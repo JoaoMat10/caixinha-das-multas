@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — PR em Draft, aguarda validação manual
+- Estado: concluída — validação manual aprovada; PR Draft aguarda revisão e integração
 - Responsável: equipa de engenharia
 - Início: 2026-09-21
 - Última atualização: 2026-09-22
@@ -30,6 +30,7 @@ Entregar a experiência de consulta do membro, com dashboard financeiro pessoal 
 | 2026-09-21 | Resolver empates por métrica descendente, nome apresentado em `pt-PT` e ID da associação como último critério técnico. | Produz ordem determinística mesmo quando existem nomes repetidos, sem apresentar o ID na interface.              | Os três rankings mantêm uma ordem previsível.                   |
 | 2026-09-21 | Não criar migração na fase.                                                                                            | Os contratos existentes cobrem saldo pessoal, detalhe protegido por RLS, diretório mínimo e agregados coletivos. | Mantém a superfície SQL e de autorização inalterada.            |
 | 2026-09-22 | Publicar a implementação para revisão no PR #6, mantendo as contas manuais até ao parecer do utilizador.               | Permite validar os três perfis na aplicação antes da limpeza definitiva dos dados temporários.                   | A fase permanece aberta e o PR não deve ser integrado ainda.    |
+| 2026-09-22 | Encerrar a fase após aprovação manual e limpeza confirmada no projeto remoto.                                          | Todos os critérios funcionais, de segurança e validação ficaram satisfeitos.                                     | O PR permanece em Draft e a Fase 07 não é iniciada.             |
 
 ## Trabalho realizado
 
@@ -72,6 +73,8 @@ Entregar a experiência de consulta do membro, com dashboard financeiro pessoal 
 - Criados jogador, capitão e elemento da equipa técnica manuais, cada um com uma multa pendente e uma paga. Login, totais pessoais, isolamento do detalhe, apresentação e rankings foram verificados pelos contratos públicos.
 - Build local disponível em `http://127.0.0.1:4174/`; credenciais guardadas exclusivamente em `.manual-validation/members.local.json`, ignorado pelo Git.
 - Branch `feature/dashboard-e-mural` publicada e PR Draft #6 aberto para revisão: <https://github.com/JoaoMat10/caixinha-das-multas/pull/6>.
+- Validação manual aprovada. As três identidades Auth, utilizadores públicos, associações, funções, multas, lotes e logs temporários foram removidos; o ficheiro local de credenciais também foi eliminado.
+- A verificação pós-limpeza confirmou zero contas manuais no Auth e em `public.users`, além da permanência dos 7 utilizadores, 8 associações e 6 multas do seed original.
 
 ## Ficheiros criados ou alterados
 
@@ -96,38 +99,42 @@ Entregar a experiência de consulta do membro, com dashboard financeiro pessoal 
 
 ## Testes e verificações
 
-| Comando/cenário                                    | Resultado | Observações                                                                                         |
-| -------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------- |
-| Confirmação do PR #5                               | passou    | PR integrado em 2026-09-21; base `main`.                                                            |
-| `git pull --ff-only origin main`                   | passou    | Fast-forward até `1b03ad3`.                                                                         |
-| `git status --short --branch` antes da nova branch | passou    | Árvore limpa.                                                                                       |
-| Typecheck focado com Node 24                       | passou    | Contratos e composição dos novos domínios compilam.                                                 |
-| Testes focados de regras e serviço                 | passou    | Regras de apresentação, totais e desempates.                                                        |
-| `npm run format:check`                             | passou    | Todos os ficheiros seguem Prettier.                                                                 |
-| `npm run lint`                                     | passou    | Sem erros ou avisos.                                                                                |
-| `npm run typecheck`                                | passou    | TypeScript sem erros.                                                                               |
-| `npm test`                                         | passou    | 66/66 testes em 18 ficheiros.                                                                       |
-| `npm run test:db`                                  | passou    | 8/8 cenários PGlite, incluindo reporting da Fase 06.                                                |
-| `npm run build`                                    | passou    | Build concluído; aviso não bloqueante de chunk inicial de 755,66 kB.                                |
-| Comparação da referência ligada                    | passou    | `supabase/.temp/project-ref` contém exatamente `showcasetestref00001`.                              |
-| `supabase db push --linked --dry-run`              | passou    | Base atualizada; zero migrações, seeds ou roles pendentes.                                          |
-| `npm run test:db:supabase`                         | passou    | 81/81 asserções pgTAP remotas.                                                                      |
-| Primeira execução de `npm run test:e2e`            | falhou    | O novo cenário leu o estado anterior imediatamente após aplicar a multa; contas temporárias limpas. |
-| Segunda execução acompanhada de `npm run test:e2e` | passou    | 10/10 testes: cinco em Chromium desktop e cinco em viewport móvel.                                  |
-| Verificação de limpeza E2E                         | passou    | Zero contas financeiras ou administrativas temporárias residuais.                                   |
-| `scripts/prepare-manual-member.mjs`                | passou    | Três perfis e dados temporários criados no projeto autorizado.                                      |
-| `scripts/verify-manual-member.mjs`                 | passou    | Login, saldos, RLS, diretório e rankings confirmados nos três perfis.                               |
-| Pré-visualização local                             | passou    | `http://127.0.0.1:4174/` respondeu HTTP 200.                                                        |
-| Publicação da branch e criação do PR Draft #6      | passou    | Branch remota criada; PR apontado a `main`, sem integração.                                         |
+| Comando/cenário                                    | Resultado | Observações                                                                                           |
+| -------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------- |
+| Confirmação do PR #5                               | passou    | PR integrado em 2026-09-21; base `main`.                                                              |
+| `git pull --ff-only origin main`                   | passou    | Fast-forward até `1b03ad3`.                                                                           |
+| `git status --short --branch` antes da nova branch | passou    | Árvore limpa.                                                                                         |
+| Typecheck focado com Node 24                       | passou    | Contratos e composição dos novos domínios compilam.                                                   |
+| Testes focados de regras e serviço                 | passou    | Regras de apresentação, totais e desempates.                                                          |
+| `npm run format:check`                             | passou    | Todos os ficheiros seguem Prettier.                                                                   |
+| `npm run lint`                                     | passou    | Sem erros ou avisos.                                                                                  |
+| `npm run typecheck`                                | passou    | TypeScript sem erros.                                                                                 |
+| `npm test`                                         | passou    | 66/66 testes em 18 ficheiros.                                                                         |
+| `npm run test:db`                                  | passou    | 8/8 cenários PGlite, incluindo reporting da Fase 06.                                                  |
+| `npm run build`                                    | passou    | Build concluído; aviso não bloqueante de chunk inicial de 755,66 kB.                                  |
+| Comparação da referência ligada                    | passou    | `supabase/.temp/project-ref` contém exatamente `showcasetestref00001`.                                |
+| `supabase db push --linked --dry-run`              | passou    | Base atualizada; zero migrações, seeds ou roles pendentes.                                            |
+| `npm run test:db:supabase`                         | passou    | 81/81 asserções pgTAP remotas.                                                                        |
+| Primeira execução de `npm run test:e2e`            | falhou    | O novo cenário leu o estado anterior imediatamente após aplicar a multa; contas temporárias limpas.   |
+| Segunda execução acompanhada de `npm run test:e2e` | passou    | 10/10 testes: cinco em Chromium desktop e cinco em viewport móvel.                                    |
+| Verificação de limpeza E2E                         | passou    | Zero contas financeiras ou administrativas temporárias residuais.                                     |
+| `scripts/prepare-manual-member.mjs`                | passou    | Três perfis e dados temporários criados no projeto autorizado.                                        |
+| `scripts/verify-manual-member.mjs`                 | passou    | Login, saldos, RLS, diretório e rankings confirmados nos três perfis.                                 |
+| Pré-visualização local                             | passou    | `http://127.0.0.1:4174/` respondeu HTTP 200.                                                          |
+| Publicação da branch e criação do PR Draft #6      | passou    | Branch remota criada; PR apontado a `main`, sem integração.                                           |
+| Primeira execução da limpeza manual                | bloqueada | A proteção exigiu a referência explícita do projeto; nenhum dado foi alterado.                        |
+| Limpeza com referência `showcasetestref00001`      | passou    | Contas Auth, dados públicos e credenciais locais temporários removidos.                               |
+| Verificação REST pós-limpeza                       | parcial   | Confirmou zero contas manuais; a leitura financeira direta foi corretamente recusada ao service role. |
+| Verificação SQL administrativa pós-limpeza         | passou    | Zero utilizadores manuais e seed intacto: 7 utilizadores, 8 associações e 6 multas.                   |
 
 ## Desvios ao planeamento
 
 - O E2E do membro recarrega o Painel depois da escrita para validar dados atuais e recuperação da sessão; não altera o comportamento funcional da aplicação.
+- A confirmação do seed passou da API REST para a ligação SQL administrativa porque o `service_role` não tem `SELECT` direto em `season_members`; esta restrição foi preservada.
 
 ## Riscos e limitações
 
 - O chunk inicial de 755,66 kB mantém o aviso não bloqueante já conhecido; code splitting e refinamento final da navegação pertencem à Fase 07.
-- As três contas manuais e os respetivos dados são deliberadamente temporários e têm de ser removidos depois da aprovação manual.
 
 ## Trabalho pendente
 
@@ -140,9 +147,12 @@ Entregar a experiência de consulta do membro, com dashboard financeiro pessoal 
 - [x] Preparar scripts isolados para a validação manual.
 - [x] Criar as contas manuais e iniciar a app depois da autorização remota.
 - [x] Abrir PR em Draft.
-- [ ] Recolher feedback manual.
-- [ ] Após aprovação, remover contas, dados e credenciais temporários e confirmar o seed original.
+- [x] Recolher feedback manual.
+- [x] Após aprovação, remover contas, dados e credenciais temporários e confirmar o seed original.
 
 ## Handoff para a fase seguinte
 
-- A preencher quando a fase estiver pronta para validação e encerramento.
+- O PR Draft #6 contém a Fase 06 completa e não foi integrado por decisão explícita; rever e integrar antes de iniciar a Fase 07.
+- O Painel consome apenas `my_season_balances` e o detalhe protegido por RLS do próprio membro; o Mural consome agregados de `get_season_leaderboard` e identidade mínima de `get_season_member_directory`.
+- Não foram criadas migrações nem alterados contratos SQL, políticas RLS ou dados seed.
+- A Fase 07 pode tratar o aviso do chunk inicial, navegação móvel, dark mode e PWA sem mover regras financeiras para componentes de interface.
