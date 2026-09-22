@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — pronta para validação manual
+- Estado: em curso — PR em Draft, aguarda validação manual
 - Responsável: equipa de engenharia
 - Início: 2026-09-21
 - Última atualização: 2026-09-22
@@ -29,6 +29,7 @@ Entregar a experiência de consulta do membro, com dashboard financeiro pessoal 
 | 2026-09-21 | Reutilizar primeiro `my_season_balances`, RLS de `fines` e as RPCs públicas de diretório e ranking.                    | Estes contratos limitam o detalhe pessoal e omitem identidade técnica e permissão global.                        | Evita alargar a superfície de dados sem necessidade comprovada. |
 | 2026-09-21 | Resolver empates por métrica descendente, nome apresentado em `pt-PT` e ID da associação como último critério técnico. | Produz ordem determinística mesmo quando existem nomes repetidos, sem apresentar o ID na interface.              | Os três rankings mantêm uma ordem previsível.                   |
 | 2026-09-21 | Não criar migração na fase.                                                                                            | Os contratos existentes cobrem saldo pessoal, detalhe protegido por RLS, diretório mínimo e agregados coletivos. | Mantém a superfície SQL e de autorização inalterada.            |
+| 2026-09-22 | Publicar a implementação para revisão no PR #6, mantendo as contas manuais até ao parecer do utilizador.               | Permite validar os três perfis na aplicação antes da limpeza definitiva dos dados temporários.                   | A fase permanece aberta e o PR não deve ser integrado ainda.    |
 
 ## Trabalho realizado
 
@@ -70,6 +71,7 @@ Entregar a experiência de consulta do membro, com dashboard financeiro pessoal 
 - A primeira execução do novo E2E detetou que a leitura imediata do Painel podia conservar o estado anterior da sessão de teste. O percurso passou a recarregar a página depois da mutação, validando também a recuperação da sessão; a repetição passou 10/10 em desktop e móvel.
 - Criados jogador, capitão e elemento da equipa técnica manuais, cada um com uma multa pendente e uma paga. Login, totais pessoais, isolamento do detalhe, apresentação e rankings foram verificados pelos contratos públicos.
 - Build local disponível em `http://127.0.0.1:4174/`; credenciais guardadas exclusivamente em `.manual-validation/members.local.json`, ignorado pelo Git.
+- Branch `feature/dashboard-e-mural` publicada e PR Draft #6 aberto para revisão: <https://github.com/JoaoMat10/caixinha-das-multas/pull/6>.
 
 ## Ficheiros criados ou alterados
 
@@ -116,6 +118,7 @@ Entregar a experiência de consulta do membro, com dashboard financeiro pessoal 
 | `scripts/prepare-manual-member.mjs`                | passou    | Três perfis e dados temporários criados no projeto autorizado.                                      |
 | `scripts/verify-manual-member.mjs`                 | passou    | Login, saldos, RLS, diretório e rankings confirmados nos três perfis.                               |
 | Pré-visualização local                             | passou    | `http://127.0.0.1:4174/` respondeu HTTP 200.                                                        |
+| Publicação da branch e criação do PR Draft #6      | passou    | Branch remota criada; PR apontado a `main`, sem integração.                                         |
 
 ## Desvios ao planeamento
 
@@ -136,7 +139,8 @@ Entregar a experiência de consulta do membro, com dashboard financeiro pessoal 
 - [x] Obter autorização explícita para a validação remota da fase.
 - [x] Preparar scripts isolados para a validação manual.
 - [x] Criar as contas manuais e iniciar a app depois da autorização remota.
-- [ ] Abrir PR em Draft e recolher feedback manual.
+- [x] Abrir PR em Draft.
+- [ ] Recolher feedback manual.
 - [ ] Após aprovação, remover contas, dados e credenciais temporários e confirmar o seed original.
 
 ## Handoff para a fase seguinte
