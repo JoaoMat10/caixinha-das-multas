@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — checkpoint local concluído; testes e operações remotas aguardam nova confirmação explícita
+- Estado: em curso — testes locais e remotos autorizados concluídos; operações externas permanecem pendentes
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-23
@@ -24,14 +24,16 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Decisões tomadas
 
-| Data       | Decisão                                                                                     | Justificação                                                                                 | Impacto                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                   | Nenhuma alteração é feita diretamente em `main`.                                                              |
-| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                  | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                           |
-| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.  | `.node-version` passa a definir o runtime esperado.                                                           |
-| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy. | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                    |
-| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS. | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                                |
-| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas neste checkpoint.                          | A autorização recebida limita-se a preparação, auditoria e testes locais.                    | Não foram criados recursos, dados, ligações de alojamento, deployments ou alterações remotas nesses serviços. |
+| Data       | Decisão                                                                                     | Justificação                                                                                   | Impacto                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                     | Nenhuma alteração é feita diretamente em `main`.                                                            |
+| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                    | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                         |
+| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.    | `.node-version` passa a definir o runtime esperado.                                                         |
+| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.   | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                  |
+| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.   | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                              |
+| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                     | O checkpoint local foi revisto antes de qualquer teste remoto.                                              |
+| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                             | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base. |
+| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis. | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.            |
 
 ## Trabalho realizado
 
@@ -41,7 +43,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Confirmado o merge da Fase 07 por fast-forward de `main` entre `c3d8bd1` e `9c1d4db`.
 - Criada a branch `feature/qualidade-seguranca-deploy` a partir da árvore limpa.
 - Consolidado o checkpoint local no commit `4b0a7a3` e aberto o PR Draft #8 para revisão, sem merge.
-- Nenhum recurso Cloudflare/Supabase, integração de alojamento, deployment, migração, segredo ou dado remoto foi criado ou alterado.
+- Nenhum recurso Cloudflare, integração de alojamento, deployment ou migração remota foi criado. Os dados Supabase temporários dos testes foram integralmente removidos.
 
 ### Estabilização e pipeline local
 
@@ -66,7 +68,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - A pesquisa no estado atual e em 35 commits não encontrou chaves privadas, JWTs completos nem tokens GitHub, AWS ou Supabase de alto privilégio.
 - O frontend usa apenas URL e chave publicável Supabase; o teste estático rejeita nomes de segredos com prefixo `VITE_` e referências a `service_role` em `src` ou `public`.
 - O teste estático rejeita `dangerouslySetInnerHTML`, `eval`, `new Function` e logging informativo no frontend.
-- Todas as funções `security definer` inventariadas mantêm `search_path` vazio e os privilégios de escrita financeira continuam limitados a RPCs.
+- Todas as funções `security definer` pertencentes à aplicação mantêm `search_path` vazio e os privilégios de escrita financeira continuam limitados a RPCs.
 - As tabelas administrativas internas foram incluídas na verificação de RLS e de ausência de `SELECT` para `authenticated`.
 - O service worker mantém apenas pedidos `GET` da mesma origem em cache e exclui Supabase, Auth, REST, RPC e Storage.
 - A sessão Auth continua persistida pelo SDK no browser; a CSP reduz a superfície de injeção, mas a validação efetiva dos headers depende de um futuro preview autorizado.
@@ -83,6 +85,26 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Dois pedidos locais concorrentes com chaves diferentes para liquidar a mesma multa resultam num sucesso, uma rejeição, um batch e um log.
 - `payment_batches`, `payment_logs` e `audit_events` recusam `UPDATE` e `DELETE`, incluindo quando a tentativa é feita fora do papel aplicacional.
 
+### Execução remota de 2026-09-23
+
+- Confirmada correspondência exata entre `SUPABASE_TEST_PROJECT_REF`, `supabase/.temp/project-ref` e o destino efetivo: `showcasetestref00001`.
+- O dry-run remoto confirmou base atualizada e zero migrações, seeds ou roles pendentes.
+- O inventário inicial registou 7 identidades Auth, 7 perfis, 8 memberships, 4 atribuições de roles, 6 multas, 2 batches, 2 logs, 0 objetos Storage e 0 perfis temporários.
+- As 14 tabelas públicas tinham RLS ativo; as políticas e os triggers relevantes estavam ativos. A única função `SECURITY DEFINER` sem `search_path` vazio era `public.rls_auto_enable()`, gerida pela plataforma e ausente das migrações da aplicação.
+- pgTAP passou 81/81 asserções em transações terminadas por `ROLLBACK`.
+- O teste Auth funcional passou 9/9 cenários.
+- A limpeza Auth falhou antes de eliminar a conta, ao inventariar o membership temporário através da API administrativa. Por instrução operacional, todos os testes seguintes foram interrompidos e não foi tentada uma segunda mutação.
+- A auditoria read-only pós-falha registou 1 perfil `auth.test.217dfa2fa0`, 8 identidades Auth, 8 perfis, 9 memberships, 5 atribuições de roles, 6 multas, 2 batches, 2 logs e 0 objetos Storage. RLS permaneceu ativo em todas as tabelas.
+- O diagnóstico confirmou que `service_role` tem `SELECT` em `public.users`, mas não nas tabelas protegidas; a rotina foi corrigida para validar essas tabelas pela ligação PostgreSQL sem alterar grants ou políticas.
+- Após nova confirmação dos três refs e novo dry-run, a identidade/perfil/membership/role `auth.test.217dfa2fa0` foi eliminada de forma dirigida.
+- A auditoria pós-limpeza regressou exatamente aos counts e fingerprints iniciais, com 7 identidades Auth, 7 perfis, 8 memberships, 4 roles, zero Storage e zero prefixos temporários; RLS, políticas, triggers e funções de segurança mantiveram o inventário original.
+- A repetição Auth passou 9/9 e regressou imediatamente à linha de base.
+- Admin/Auth/Storage/Edge Function passou 34 verificações, incluindo autorização Owner, negações, idempotência, auditoria, upload, leitura e remoção de fotografia; a limpeza regressou a `baseline_exact`.
+- A prova financeira abriu duas sessões PostgreSQL independentes com uma role/função temporárias restritas: 1 pagamento passou, 1 foi rejeitado, e ficaram exatamente 1 batch e 1 log antes da limpeza.
+- A primeira execução E2E passou 8/10; dois logins desktop frios excederam o timeout de 5 segundos, enquanto os mesmos cenários móveis passaram. O timeout de expectativas remotas foi fixado em 15 segundos.
+- A repetição E2E passou 10/10: cinco cenários desktop e cinco Pixel 7, incluindo Auth, PWA, Admin, Storage, tesouraria e painel do membro.
+- A auditoria final confirmou zero identidades/perfis temporários, zero memberships/roles/dados financeiros temporários, zero objetos Storage e zero roles/funções PostgreSQL de teste. Counts e fingerprints do seed, 14 tabelas RLS, 33 políticas, 18 triggers e 33 funções de segurança coincidem com o inventário inicial; `pgtap` e `dblink` não ficaram instaladas.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                     | Tipo de alteração | Motivo                                                                       |
@@ -92,9 +114,14 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `package.json`                               | alterado          | Adicionar `npm run verify`.                                                  |
 | `vite.config.ts`                             | alterado          | Executar ficheiros Vitest sem paralelismo.                                   |
 | `src/test/setup.ts`                          | alterado          | Estabilizar esperas assíncronas de rotas lazy.                               |
+| `playwright.config.ts`                       | alterado          | Acomodar a latência real de autenticação nos E2E remotos.                    |
 | `public/_headers`                            | criado            | Definir CSP, headers de segurança e cache.                                   |
 | `tests/scripts/deployment-security.test.mjs` | criado            | Validar configuração do Pages e garantias estáticas do frontend.             |
 | `tests/database/database.test.mjs`           | alterado          | Completar matriz RLS/RBAC, imutabilidade, idempotência e concorrência local. |
+| `scripts/supabase-auth-test-fixture.mjs`     | alterado          | Garantir limpeza e validação SQL das tabelas protegidas.                     |
+| `scripts/test-concurrency-supabase.mjs`      | criado            | Provar concorrência em duas sessões PostgreSQL independentes.                |
+| `scripts/verify-supabase-test-cleanup.mjs`   | criado            | Auditar identidades e perfis temporários após cada bloco.                    |
+| `scripts/sql/`                               | criado            | Inventariar e comparar exatamente a linha de base remota.                    |
 | `docs/operacao/deploy-cloudflare-pages.md`   | criado            | Documentar configuração, separação de ambientes, promoção e rollback.        |
 | `docs/fases/08-testes-seguranca-e-deploy.md` | criado            | Manter o diário único e contínuo da Fase 08.                                 |
 
@@ -105,7 +132,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Funções/RPCs/Edge Functions: nenhuma alteração.
 - Políticas RLS: nenhuma alteração; os testes existentes foram alargados.
 - Contratos públicos: adicionado apenas o comando de engenharia `npm run verify`.
-- Compatibilidade e dados existentes: não foram executadas operações remotas nem tocados dados.
+- Compatibilidade e dados existentes: todas as mutações, roles, funções, extensões e ficheiros temporários foram removidos; o inventário remoto regressou exatamente à linha de base.
 
 ## Testes e verificações
 
@@ -118,15 +145,21 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Testes PostgreSQL embebidos                          | passou    | 10/10; anteriormente 8 cenários.                                                             |
 | `npm run verify` com Node 24.19.0                    | passou    | Formatação, ESLint, TypeScript, 88 Vitest, 10 PostgreSQL e build passaram numa única cadeia. |
 | Inspeção de `dist`                                   | passou    | `_headers` copiado sem diferenças; 0 source maps.                                            |
+| pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                    |
+| Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                |
+| Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                             |
+| Concorrência PostgreSQL com duas sessões             | passou    | 1 sucesso, 1 rejeição, 1 batch e 1 log; role/função temporárias removidas.                   |
+| E2E Chromium desktop e Pixel 7                       | passou    | 10/10 após estabilizar o timeout de autenticação remota em 15 segundos.                      |
+| Auditoria final remota                               | passou    | Zero temporários e `baseline_exact` para dados, Storage, RLS, políticas, triggers e funções. |
 
 ## Desvios ao planeamento
 
 - A regra `_redirects` inicialmente preparada foi removida antes do fecho do checkpoint. A documentação atual do Cloudflare confirma que o Pages fornece fallback SPA nativo na ausência de `404.html` e que regras globais podem sobrepor assets existentes.
-- A concorrência local usa chamadas intercaladas sobre PGlite. A prova com sessões PostgreSQL verdadeiramente independentes continua reservada aos testes remotos autorizados.
+- A concorrência local usa chamadas intercaladas sobre PGlite; a prova remota complementar usou duas sessões PostgreSQL verdadeiramente independentes.
+- A via passwordless da CLI não pode ser iniciada em paralelo porque cada processo roda a password da role interna `cli_login_postgres`. A prova passou a usar uma role e função de teste exclusivas, com validade curta, privilégios mínimos e remoção verificada.
 
 ## Riscos e limitações
 
-- Elevado: concorrência real entre ligações PostgreSQL, pgTAP, Auth, Storage e Edge Function ainda não foi revalidada no projeto descartável.
 - Elevado: não existe projeto Supabase de produção e o projeto descartável nunca pode ser promovido.
 - Médio: os headers, o fallback SPA, o cache e a instalação PWA ainda não foram observados numa resposta HTTPS real do Pages.
 - Médio: a CSP permite temporariamente qualquer subdomínio Supabase; deve ser restringida às referências exatas de preview e produção quando ambas existirem.
@@ -140,9 +173,12 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Estabilizar a suite web e criar um comando local único de verificação.
 - [x] Completar localmente a matriz RLS/RBAC, financeira, de idempotência e concorrência intercalada.
 - [x] Preparar localmente Cloudflare Pages, fallback SPA, cache e headers de segurança.
-- [ ] Reconfirmar, antes de qualquer teste remoto, que o alvo exclusivo é `showcasetestref00001` e apresentar operações, dados temporários e limpeza.
-- [ ] Executar pgTAP, Auth, Admin/Storage/Edge Function e concorrência com sessões independentes apenas após nova autorização explícita.
-- [ ] Executar E2E e smoke tests desktop, móvel e PWA num preview HTTPS autorizado.
+- [x] Reconfirmar, antes de qualquer teste remoto, que o alvo exclusivo é `showcasetestref00001` e apresentar operações, dados temporários e limpeza.
+- [x] Retomar Auth e executar Admin/Storage/Edge Function e concorrência com sessões independentes após resolver a limpeza falhada.
+- [x] Executar pgTAP remoto: 81/81 asserções com `ROLLBACK`.
+- [x] Diagnosticar e limpar a identidade/perfil/membership/role `auth.test.217dfa2fa0`; confirmado regresso exato ao inventário inicial antes de retomar.
+- [x] Executar E2E desktop, móvel e PWA num preview local de produção: 10/10.
+- [ ] Executar smoke tests dos headers, fallback, cache e PWA num preview HTTPS do Pages após autorização de deployment.
 - [ ] Rever e reforçar o workflow apenas se GitHub Actions estiver operacional; caso contrário, manter o pipeline local documentado.
 - [ ] Produzir procedimentos de backup/restauro, privacidade e resposta a incidente.
 - [ ] Receber autorização separada para criar o projeto Supabase de produção e confirmar nome, região e referência.
