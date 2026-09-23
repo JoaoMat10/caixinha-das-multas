@@ -2,7 +2,7 @@
 
 ## Estado e alvo
 
-- Estado: preparado, não executado.
+- Estado: executado e validado em 2026-09-23.
 - Projeto: `caixinha-showcase-producao`.
 - Project ref: `showcaseprodref00001`.
 - Região: `eu-central-1` (Frankfurt).
@@ -162,3 +162,12 @@ Não configurar Auth, secrets, Edge Functions, Owner, Cloudflare ou deployment n
 7. se for exigido regressar à base vazia, preparar separadamente um teardown revisto ou recriar o projeto, ambos destrutivos e sujeitos a autorização explícita própria.
 
 Não existe promessa de rollback global automático. A estratégia segura é transação por migração, negação por omissão via RLS, paragem imediata, recolha de evidências e correção forward.
+
+## Resultado da execução
+
+- As oito migrações foram aplicadas numa única invocação de `db push`, por referência explícita de produção, com `--include-all` e `--skip-vault`.
+- A CLI confirmou `seeds: []` e `roles: []`; não foram usados `--linked`, `--include-seed`, `--include-roles` ou `db reset`.
+- A auditoria pós-migração devolveu todos os checks a `true`: oito migrações, 14 tabelas exatas com RLS, 29 políticas públicas, quatro políticas Storage, bucket privado, funções seguras, triggers ativos e ausência de dados de utilização.
+- Produção ficou com zero identidades Auth, zero objetos Storage, apenas `captain` e `treasurer` em `public.roles` e zero linhas nas restantes tabelas da aplicação.
+- O dry-run final devolveu `upToDate: true`, `migrations: []`, `seeds: []` e `roles: []`.
+- O checkout principal permaneceu ligado ao projeto de testes e o worktree de produção permaneceu sem vínculo Supabase.

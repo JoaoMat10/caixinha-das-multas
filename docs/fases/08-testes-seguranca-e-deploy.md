@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — testes concluídos e projeto de produção criado e inventariado; migrações e restantes operações externas aguardam autorizações separadas
+- Estado: em curso — testes e migrações de produção concluídos; Auth, secrets, Edge Function, Owner e deploy aguardam autorizações separadas
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-23
@@ -134,6 +134,17 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Preparada uma verificação SQL pós-migração estritamente read-only e documentado que o rollback é transacional por ficheiro, não global ao lote.
 - Nenhuma migração, seed, role, secret, configuração Auth, bucket, política, função remota, utilizador ou dado foi criado neste preflight.
 
+### Migrações de produção de 2026-09-23
+
+- Imediatamente antes da execução, reconfirmado que `showcaseprodref00001` correspondia unicamente a `caixinha-showcase-producao`, em `eu-central-1`, com estado `ACTIVE_HEALTHY`.
+- O worktree isolado estava limpo no commit `[COMMIT_SHOWCASE]`, sem vínculo Supabase; o checkout principal permaneceu ligado a `showcasetestref00001`.
+- Os oito checksums SHA-256 coincidiram exatamente com o manifesto aprovado e o dry-run final prévio indicou oito migrações, `seeds: []` e `roles: []`.
+- Uma única invocação `db push --project-ref showcaseprodref00001 --include-all --skip-vault` aplicou, por ordem, as oito migrações aprovadas.
+- Não foram usados `--linked`, `db reset`, `--include-seed` ou `--include-roles`; não foram configurados Vault, Auth, secrets, Edge Functions, Owner, Cloudflare ou deployments.
+- A auditoria read-only pós-migração devolveu todos os checks a `true`: oito migrações registadas, 14/14 tabelas com RLS, 29 políticas públicas, quatro políticas Storage, bucket `private-photos` privado e funções de segurança com `search_path` restrito.
+- Confirmados zero identidades Auth, zero objetos Storage, apenas `captain` e `treasurer` em `public.roles` e zero linhas nas restantes tabelas da aplicação.
+- O dry-run final devolveu `upToDate: true`, `migrations: []`, `seeds: []` e `roles: []`.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -166,30 +177,33 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Políticas RLS: nenhuma alteração; os testes existentes foram alargados.
 - Contratos públicos: adicionado apenas o comando de engenharia `npm run verify`.
 - Compatibilidade e dados existentes: todas as mutações, roles, funções, extensões e ficheiros temporários foram removidos; o inventário remoto regressou exatamente à linha de base.
-- Produção: oito migrações permanecem pendentes em `showcaseprodref00001`; o dry-run não incluiu `supabase/seed.sql`, fixtures ou roles de configuração e não alterou a base.
+- Produção: as oito migrações foram aplicadas e verificadas em `showcaseprodref00001`; não foram executados seed, fixtures, roles de configuração ou criação de utilizadores.
 
 ## Testes e verificações
 
-| Comando/cenário                                      | Resultado | Observações                                                                                   |
-| ---------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- |
-| Pesquisa de segredos no estado atual e em 35 commits | passou    | Zero literais de alto risco encontrados; ficheiros locais ignorados não foram expostos.       |
-| `npm audit --json`                                   | passou    | 0 vulnerabilidades conhecidas em 338 dependências.                                            |
-| Suite Vitest integral, três repetições               | passou    | 88/88 em cada repetição; 26 ficheiros por execução.                                           |
-| Testes de configuração e segurança estática          | passou    | 6/6, incluídos nas 88 verificações Vitest.                                                    |
-| Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                  |
-| `npm run verify` com Node 24.19.0                    | passou    | Formatação, ESLint, TypeScript, 88 Vitest, 10 PostgreSQL e build passaram numa única cadeia.  |
-| Inspeção de `dist`                                   | passou    | `_headers` copiado sem diferenças; 0 source maps.                                             |
-| pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                     |
-| Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                 |
-| Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                              |
-| Concorrência PostgreSQL com duas sessões             | passou    | 1 sucesso, 1 rejeição, 1 batch e 1 log; role/função temporárias removidas.                    |
-| E2E Chromium desktop e Pixel 7                       | passou    | 10/10 após estabilizar o timeout de autenticação remota em 15 segundos.                       |
-| Auditoria final remota                               | passou    | Zero temporários e `baseline_exact` para dados, Storage, RLS, políticas, triggers e funções.  |
-| Inventário inicial de produção                       | passou    | Zero tabelas públicas, Auth, buckets, objetos e políticas da aplicação.                       |
-| Dry-run de migrações de produção                     | passou    | Oito migrações pendentes; zero seeds e roles de configuração; nenhuma alteração aplicada.     |
-| Auditoria estática das oito migrações                | passou    | 14/14 tabelas com RLS, 29+4 políticas e 33/33 funções efetivas com `search_path` seguro.      |
-| Dry-run isolado com `--skip-vault`                   | passou    | Alvo explícito de produção; oito migrações, zero seeds, zero roles e nenhum vínculo alterado. |
-| Pipeline equivalente a `npm run verify`, Node 24     | passou    | Prettier, ESLint, TypeScript, 88/88 Vitest, 11/11 PostgreSQL e build passaram.                |
+| Comando/cenário                                      | Resultado | Observações                                                                                    |
+| ---------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------- |
+| Pesquisa de segredos no estado atual e em 35 commits | passou    | Zero literais de alto risco encontrados; ficheiros locais ignorados não foram expostos.        |
+| `npm audit --json`                                   | passou    | 0 vulnerabilidades conhecidas em 338 dependências.                                             |
+| Suite Vitest integral, três repetições               | passou    | 88/88 em cada repetição; 26 ficheiros por execução.                                            |
+| Testes de configuração e segurança estática          | passou    | 6/6, incluídos nas 88 verificações Vitest.                                                     |
+| Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                   |
+| `npm run verify` com Node 24.19.0                    | passou    | Formatação, ESLint, TypeScript, 88 Vitest, 10 PostgreSQL e build passaram numa única cadeia.   |
+| Inspeção de `dist`                                   | passou    | `_headers` copiado sem diferenças; 0 source maps.                                              |
+| pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                      |
+| Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                  |
+| Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                               |
+| Concorrência PostgreSQL com duas sessões             | passou    | 1 sucesso, 1 rejeição, 1 batch e 1 log; role/função temporárias removidas.                     |
+| E2E Chromium desktop e Pixel 7                       | passou    | 10/10 após estabilizar o timeout de autenticação remota em 15 segundos.                        |
+| Auditoria final remota                               | passou    | Zero temporários e `baseline_exact` para dados, Storage, RLS, políticas, triggers e funções.   |
+| Inventário inicial de produção                       | passou    | Zero tabelas públicas, Auth, buckets, objetos e políticas da aplicação.                        |
+| Dry-run de migrações de produção                     | passou    | Oito migrações pendentes; zero seeds e roles de configuração; nenhuma alteração aplicada.      |
+| Auditoria estática das oito migrações                | passou    | 14/14 tabelas com RLS, 29+4 políticas e 33/33 funções efetivas com `search_path` seguro.       |
+| Dry-run isolado com `--skip-vault`                   | passou    | Alvo explícito de produção; oito migrações, zero seeds, zero roles e nenhum vínculo alterado.  |
+| Pipeline equivalente a `npm run verify`, Node 24     | passou    | Prettier, ESLint, TypeScript, 88/88 Vitest, 11/11 PostgreSQL e build passaram.                 |
+| Migrações de produção                                | passou    | Oito migrações aplicadas numa única invocação; zero seeds, roles, Auth ou dados de utilização. |
+| Auditoria read-only pós-migração                     | passou    | Todos os checks verdadeiros; 14/14 RLS, 29+4 políticas, bucket privado e base vazia.           |
+| Dry-run final de produção                            | passou    | `upToDate: true`; zero migrações, seeds ou roles pendentes.                                    |
 
 ## Desvios ao planeamento
 
@@ -199,7 +213,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Riscos e limitações
 
-- Elevado: o projeto Supabase de produção existe, mas ainda não recebeu schema, políticas ou configuração aplicacional; o projeto descartável nunca pode ser promovido.
+- Elevado: o projeto Supabase de produção recebeu schema e políticas, mas ainda não tem Auth, secrets, Edge Function ou Owner; o projeto descartável nunca pode ser promovido.
 - Médio: os headers, o fallback SPA, o cache e a instalação PWA ainda não foram observados numa resposta HTTPS real do Pages.
 - Médio: a CSP permite temporariamente qualquer subdomínio Supabase; deve ser restringida às referências exatas de preview e produção quando ambas existirem.
 - Médio: a Edge Function mantém CORS permissivo; o token JWT e a verificação Owner no servidor preservam a autorização, mas a origem deve ser restringida quando existirem hostnames definitivos.
@@ -221,9 +235,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [ ] Rever e reforçar o workflow apenas se GitHub Actions estiver operacional; caso contrário, manter o pipeline local documentado.
 - [ ] Produzir procedimentos de backup/restauro, privacidade e resposta a incidente.
 - [x] Criar o projeto Supabase de produção e confirmar nome, região, referência, inventário inicial e dry-run.
-- [ ] Aplicar apenas migrações versionadas em produção, sem `supabase/seed.sql`, após dry-run e autorização.
+- [x] Aplicar apenas migrações versionadas em produção, sem `supabase/seed.sql`, após dry-run e autorização.
 - [x] Apresentar o preflight das 29 políticas públicas, bucket privado, quatro políticas Storage, privilégios, funções de segurança e checksums.
-- [ ] Receber autorização final única para executar o lote coerente das oito migrações, incluindo RLS e Storage.
+- [x] Receber autorização final única e executar o lote coerente das oito migrações, incluindo RLS e Storage.
 - [ ] Publicar Edge Function, configurar segredos, URLs Auth e primeiro Owner apenas após autorizações específicas.
 - [ ] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment após autorização.
 - [ ] Executar backup/restauro apenas entre ambientes autorizados e nunca sobre produção.
