@@ -7,6 +7,7 @@
 - Início: 2026-09-22
 - Última atualização: 2026-09-23
 - Dependências recebidas: Fase 07 integrada em `main` no commit `9c1d4db`; interface “Balneário Premium”, PWA online-first e contratos funcionais existentes.
+- Revisão: PR #8 aberto e Ready for review; `eba69ad` é o checkpoint técnico final das gates, correspondente a sete commits de implementação sobre `main`. O único commit posterior é esta correção documental; sem merge ou deployment.
 
 ## Objetivo
 
@@ -49,7 +50,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Lidos integralmente `AGENTS.md`, as seis fontes obrigatórias, `docs/rls-rbac.md`, os diários das Fases 02 a 07 e o template de fase.
 - Confirmado o merge da Fase 07 por fast-forward de `main` entre `c3d8bd1` e `9c1d4db`.
 - Criada a branch `feature/qualidade-seguranca-deploy` a partir da árvore limpa.
-- Consolidado o checkpoint local no commit `4b0a7a3` e aberto o PR Draft #8 para revisão, sem merge.
+- Consolidado o checkpoint local no commit `4b0a7a3` e aberto o PR #8 inicialmente em Draft, sem merge.
+- Depois de concluir as gates locais de CSP, cache e documentação, publicado o commit `eba69ad` e colocado o PR #8 como Ready for review; nesse checkpoint, a branch ficou sete commits de implementação à frente de `main` e sincronizada com o remoto.
 - Nenhum recurso Cloudflare, integração de alojamento, deployment ou migração remota foi criado. Os dados Supabase temporários dos testes foram integralmente removidos.
 
 ### Estabilização e pipeline local
@@ -154,7 +156,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 - A leitura `config pull --dry-run` apontou explicitamente para `showcaseprodref00001` e devolveu `dry_run=true`, `wrote=false`; nenhum valor confidencial foi impresso.
 - Auth mantém no estado atual `Site URL=http://localhost:3000`, redirects vazios, signup global e por email ativos, confirmação de email ativa, password mínima de 6 caracteres e alteração segura por email desativada.
-- O PR #8 continua aberto em Draft, com merge state limpo; `main` está seis commits atrás da branch da Fase 08 e não pode ser usado num primeiro deployment antes da revisão e autorização de merge.
+- O PR #8 está aberto e Ready for review, com merge state limpo. `eba69ad` fecha os sete commits de implementação da Fase 08 sobre `main`; o commit posterior corrige apenas documentação. `main` não pode ser usado num primeiro deployment antes da revisão e autorização de merge.
 - A configuração Cloudflare foi fixada para o projeto proposto `caixinha-das-multas`, repositório `JoaoMat10/caixinha-das-multas`, branch `main`, Node 24.19.0, `npm run verify` e output `dist`; previews começam desativados.
 - O estado local da Edge Function foi inventariado com checksums. O código atual continua com CORS `*` e ficou explicitamente reprovado para publicação até existir allowlist exata e novo checksum.
 - Definido bootstrap sem mecanismo persistente: uma identidade criada manualmente, uma transação com lock e precondição de zero Owners, auditoria `owner.bootstrap` e mudança obrigatória de password.
@@ -171,7 +173,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - A inspeção de `dist` confirmou `_headers` copiado byte a byte, zero wildcards Supabase, a origem HTTPS de produção, 22 assets com hash, dois documentos HTML, manifest e service worker, sem source maps.
 - A password mínima permanece inalterada em seis caracteres e a decisão foi adiada para o checkpoint Auth.
 - O trabalho posterior fica definido numa branch `feature/ativacao-producao`, criada apenas após o merge autorizado do PR #8, com um novo PR Draft e continuação deste diário; secrets e dados pessoais ficam excluídos.
-- Não foram alterados Cloudflare, GitHub remoto, Auth, secrets, Edge Functions ou Owner; o PR #8 continua Draft e sem merge.
+- As gates locais estão concluídas no checkpoint técnico `eba69ad`, sete commits de implementação sobre `main`; o PR #8 está Ready for review e recebe depois apenas esta correção documental, sem merge ou deployment. Não foram alterados Cloudflare, Auth, secrets, Edge Functions ou Owner.
 
 ## Ficheiros criados ou alterados
 
@@ -246,7 +248,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Médio: os headers, o fallback SPA, o cache e a instalação PWA ainda não foram observados numa resposta HTTPS real do Pages.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
 - Médio: a Edge Function mantém CORS permissivo; o token JWT e a verificação Owner no servidor preservam a autorização, mas a origem deve ser restringida quando existirem hostnames definitivos.
-- Elevado: `main` ainda não contém os seis commits do PR Draft #8; ligar o Pages antes do merge publicaria uma versão anterior à configuração revista.
+- Elevado: `main` ainda não contém os sete commits de implementação até `eba69ad` nem a correção documental posterior do PR #8, atualmente Ready for review; ligar o Pages antes do merge publicaria uma versão anterior à configuração revista.
 - Elevado: produção ainda permite signup Auth global e por email; esta superfície deve ser fechada antes de expor a chave publicável no primeiro frontend funcional.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
 - Médio: o workflow GitHub Actions existente é parcial e o bloqueio histórico de faturação não foi reconfirmado nesta sessão.
@@ -276,7 +278,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [ ] Remover CORS `*`, separar o segredo HMAC da service role e recalcular o checksum do bundle antes de autorizar a Edge Function.
 - [ ] Alinhar a validação do frontend com a política final de password antes de alterar Auth.
 - [ ] Executar backup/restauro apenas entre ambientes autorizados e nunca sobre produção.
-- [x] Abrir pull request Draft para revisão do checkpoint local, sem merge.
+- [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
 ## Handoff para a fase seguinte
 

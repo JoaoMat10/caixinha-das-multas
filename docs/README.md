@@ -25,9 +25,10 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 07 concluida e validada; PR Draft #7 aguarda revisao e integracao**
-- Fase atual: **Fase 07 — UI Mobile e PWA; “Balneario Premium” aplicado, validado e dados temporarios removidos**
-- Proxima fase: **Fase 08 — testes finais e preparacao do piloto, ainda nao iniciada**
+- Implementacao: **Fase 07 concluida e integrada em `main`; Fase 08 em curso no PR #8**
+- Fase atual: **Fase 08 — qualidade, seguranca e deploy**
+- Progresso da Fase 08: **testes locais e remotos concluidos; oito migracoes iniciais aplicadas e verificadas no Supabase de producao, sem seed ou dados de utilizacao**
+- Pendente na Fase 08: **ativacao de Auth, secrets, Edge Function `admin-users`, primeiro Owner e Cloudflare Pages, sempre mediante autorizacoes separadas**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao
