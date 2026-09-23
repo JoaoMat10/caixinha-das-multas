@@ -109,17 +109,17 @@ valores públicos sem os colar no chat e confirmar o primeiro deployment.
 
 Leitura dry-run de `showcaseprodref00001`, sem escrita:
 
-| Campo                      | Atual                          | Pretendido                                                    |
-| -------------------------- | ------------------------------ | ------------------------------------------------------------- |
-| Site URL                   | `http://localhost:3000`        | URL HTTPS canónica do Pages                                   |
-| Redirects                  | vazio                          | apenas a URL/rotas HTTPS estritamente necessárias             |
-| Signup global              | ativo                          | desativado                                                    |
-| Signup por email           | ativo                          | desativado                                                    |
-| Confirmação de email       | ativa                          | mantida; contas administrativas são confirmadas pelo servidor |
-| Password mínima            | 6                              | decisão pendente do checkpoint Auth; sem alteração autorizada |
-| Caracteres                 | sem requisito remoto explícito | decisão pendente do checkpoint Auth                           |
-| Alteração segura por email | desativada                     | desativada enquanto os emails técnicos forem `.invalid`       |
-| TOTP                       | ativo na plataforma            | desativado até existir fluxo testado na aplicação             |
+| Campo                      | Atual                          | Checkpoint atual                         |
+| -------------------------- | ------------------------------ | ---------------------------------------- |
+| Site URL                   | `http://localhost:3000`        | sem alteração                            |
+| Redirects                  | vazio                          | sem alteração                            |
+| Signup global              | ativo                          | desativar                                |
+| Signup por email           | ativo                          | desativar                                |
+| Confirmação de email       | ativa                          | sem alteração                            |
+| Password mínima            | 6                              | sem alteração; decisão continua pendente |
+| Caracteres                 | sem requisito remoto explícito | sem alteração; decisão continua pendente |
+| Alteração segura por email | desativada                     | sem alteração                            |
+| TOTP                       | ativo na plataforma            | sem alteração                            |
 
 O frontend envia sempre `current_password` na mudança. Ativar um fluxo que
 envie nonce por email bloquearia utilizadores porque os emails técnicos não são
@@ -142,9 +142,68 @@ para `u-<base32>@auth.caixinha.invalid`. Consequências: não existe recuperaç�
 por email; criação e reposição são exclusivamente administrativas e server-side;
 o email técnico nunca é mostrado na UI nem escrito em auditoria.
 
-Rollback Auth: restaurar apenas os valores previamente inventariados. Desativar
-signup é uma alteração conservadora e não deve ser revertida durante um
-incidente. Alterações de sessão só são observadas no refresh seguinte.
+### Checkpoint isolado — bloqueio do signup público
+
+O alvo foi confirmado em três fontes independentes:
+
+1. o registo versionado de produção identifica `showcaseprodref00001` em
+   `docs/operacao/supabase-production-preflight.md`;
+2. `projects list` devolveu exatamente essa referência para
+   `caixinha-showcase-producao`, em `eu-central-1`, com estado
+   `ACTIVE_HEALTHY`;
+3. `config pull --project-ref showcaseprodref00001 --dry-run` devolveu a mesma
+   referência em `target.project_ref`, com `dry_run=true` e `wrote=false`.
+
+Como controlo negativo, `supabase/.temp/project-ref` continua a apontar para o
+projeto descartável `showcasetestref00001`; não existe vínculo local implícito a
+produção.
+
+O inventário read-only confirmou ainda:
+
+- signup global e signup por email ativos;
+- confirmação de email ativa;
+- `Site URL` em `http://localhost:3000` e lista de redirects vazia;
+- password mínima de 6 caracteres e nenhum requisito remoto explícito de
+  composição;
+- alteração segura por email desativada;
+- TOTP ativo para inscrição e verificação;
+- frequência de email de 1 minuto e OTP de email com 8 algarismos;
+- JWT de 3600 segundos, rotação de refresh token ativa e intervalo de
+  reutilização de 10 segundos, conforme o inventário anterior desta fase.
+
+A alteração proposta usa um único `PATCH` da Management API para o alvo
+explícito e contém exclusivamente:
+
+```json
+{
+  "disable_signup": true,
+  "external_email_enabled": false
+}
+```
+
+Não será usado `config push`, porque a configuração local contém diferenças de
+Site URL, redirects, confirmação de email, alteração segura de password e TOTP
+que não estão autorizadas neste checkpoint. A credencial de gestão será obtida
+apenas de uma sessão local segura, nunca incluída no comando, Git, documentação
+ou logs.
+
+Verificação prevista após autorização:
+
+1. repetir imediatamente as três confirmações do alvo;
+2. ler e guardar apenas em memória os dois valores atuais;
+3. enviar o `PATCH` único;
+4. reler a configuração e exigir `disable_signup=true` e
+   `external_email_enabled=false`;
+5. confirmar que os restantes campos inventariados não mudaram;
+6. repetir `config pull --dry-run`, esperando que apenas as duas divergências de
+   signup desapareçam, sem escrever ficheiros;
+7. confirmar que não foram criadas identidades Auth nem outros dados.
+
+Reversão, apenas mediante autorização explícita: enviar um `PATCH` para o mesmo
+alvo com os valores anteriores observados, `disable_signup=false` e
+`external_email_enabled=true`, e repetir a mesma verificação read-only. Nenhum
+rollback altera Site URL, redirects, password, confirmação de email, TOTP ou
+sessões.
 
 ## Edge Function `admin-users`
 
