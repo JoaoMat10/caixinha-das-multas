@@ -1,0 +1,54 @@
+/*
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'sha256-4XWLpcp62nQvq4j6sLpjgB1rvzXOsT00H0oVWRKYK8k='; img-src 'self' https://showcaseprodref00001.supabase.co; font-src 'self'; connect-src 'self' https://showcaseprodref00001.supabase.co; manifest-src 'self'; worker-src 'self'; media-src 'none'; upgrade-insecure-requests
+  Cross-Origin-Opener-Policy: same-origin
+  Permissions-Policy: camera=(), geolocation=(), microphone=(), payment=(), usb=()
+  Referrer-Policy: no-referrer
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-Permitted-Cross-Domain-Policies: none
+
+/
+  Cache-Control: no-cache, must-revalidate
+
+/*.html
+  Cache-Control: no-cache, must-revalidate
+
+/entrar
+  Cache-Control: no-cache, must-revalidate
+
+/alterar-password-obrigatoria
+  Cache-Control: no-cache, must-revalidate
+
+/painel
+  Cache-Control: no-cache, must-revalidate
+
+/mural
+  Cache-Control: no-cache, must-revalidate
+
+/multas
+  Cache-Control: no-cache, must-revalidate
+
+/tesouraria
+  Cache-Control: no-cache, must-revalidate
+
+/administracao
+  Cache-Control: no-cache, must-revalidate
+
+/definicoes/*
+  Cache-Control: no-cache, must-revalidate
+
+/sem-acesso
+  Cache-Control: no-cache, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/icons/*
+  Cache-Control: public, max-age=86400
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/service-worker.js
+  Cache-Control: no-cache, no-store, must-revalidate

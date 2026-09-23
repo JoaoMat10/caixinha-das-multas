@@ -29,9 +29,13 @@ const ids = {
   playerMemberA: '40000000-0000-4000-8000-000000000002',
   captainMemberA: '40000000-0000-4000-8000-000000000003',
   staffMemberA: '40000000-0000-4000-8000-000000000004',
+  playerMemberAOld: '40000000-0000-4000-8000-000000000005',
+  treasurerMemberAOld: '40000000-0000-4000-8000-000000000008',
   playerMemberB: '40000000-0000-4000-8000-000000000007',
   categoryA: '50000000-0000-4000-8000-000000000001',
+  categoryAOld: '50000000-0000-4000-8000-000000000003',
   categoryB: '50000000-0000-4000-8000-000000000004',
+  fineAOld: '60000000-0000-4000-8000-000000000006',
 };
 
 const authBootstrap = `
@@ -228,7 +232,8 @@ test('RLS isola equipas, epocas, perfis privados e detalhe financeiro', async ()
            and c.relname in (
              'users', 'app_admins', 'teams', 'seasons', 'season_members',
              'roles', 'member_roles', 'fine_categories', 'fines',
-             'payment_batches', 'payment_logs', 'audit_events'
+             'payment_batches', 'payment_logs', 'audit_events',
+             'admin_user_requests', 'admin_password_reset_requests'
            )
            and not c.relrowsecurity`,
       ),
@@ -243,7 +248,9 @@ test('RLS isola equipas, epocas, perfis privados e detalhe financeiro', async ()
              has_table_privilege('anon', 'public.teams', 'select') as anon_select,
              has_table_privilege('authenticated', 'public.fines', 'insert') as fine_insert,
              has_table_privilege('authenticated', 'public.fines', 'update') as fine_update,
-             has_table_privilege('authenticated', 'public.fines', 'delete') as fine_delete`,
+             has_table_privilege('authenticated', 'public.fines', 'delete') as fine_delete,
+             has_table_privilege('authenticated', 'public.admin_user_requests', 'select') as user_request_select,
+             has_table_privilege('authenticated', 'public.admin_password_reset_requests', 'select') as reset_request_select`,
         )
       )[0],
       {
@@ -251,6 +258,8 @@ test('RLS isola equipas, epocas, perfis privados e detalhe financeiro', async ()
         fine_insert: false,
         fine_update: false,
         fine_delete: false,
+        user_request_select: false,
+        reset_request_select: false,
       },
     );
 
@@ -1110,6 +1119,273 @@ test('tesouraria liquida duas multas sem duplicar, preserva snapshots e reconcil
         2,
       );
     });
+  } finally {
+    await database.close();
+  }
+});
+
+test('matriz RBAC cobre perfis, Owner membro, epoca arquivada e conta inativa', async () => {
+  const database = await createSeededDatabase();
+
+  try {
+    for (const [userId, label] of [
+      [ids.captainA, 'capitao'],
+      [ids.staffA, 'staff'],
+    ]) {
+      await asRole(database, 'authenticated', userId, async () => {
+        await assert.rejects(
+          database.query(
+            `select * from public.apply_fine(
+              $1, $2, '2026-09-12 18:00:00+00', $3,
+              '81000000-0000-4000-8000-000000000101'
+            )`,
+            [ids.playerMemberA, ids.categoryA, label],
+          ),
+          /Sem permissao de tesoureiro/,
+        );
+        await assert.rejects(
+          database.query('select public.get_admin_overview()'),
+          /Apenas o Owner/,
+        );
+      });
+    }
+
+    let ownerMemberId;
+    await asRole(database, 'authenticated', ids.owner, async () => {
+      ownerMemberId = (
+        await rows(
+          database,
+          `select id from public.save_admin_member(
+            null, $1, $2, 'player', 99, null, 'active', '{}'::text[]
+          )`,
+          [ids.seasonA, ids.owner],
+        )
+      )[0].id;
+      await rows(
+        database,
+        `select id from public.save_admin_member(
+          $1, $2, $3, 'staff', null, 'Treinadora', 'active', array['captain']::text[]
+        )`,
+        [ids.staffMemberA, ids.seasonA, ids.staffA],
+      );
+    });
+
+    await asRole(database, 'authenticated', ids.owner, async () => {
+      const ranking = await rows(
+        database,
+        'select * from public.get_season_leaderboard($1)',
+        [ids.seasonA],
+      );
+      const ownerEntry = ranking.find(
+        (entry) => entry.season_member_id === ownerMemberId,
+      );
+      assert.ok(ownerEntry);
+      assert.equal(
+        Object.keys(ownerEntry).some((key) =>
+          /username|email|auth|admin|owner|treasurer/i.test(key),
+        ),
+        false,
+      );
+      await assert.rejects(
+        database.query(
+          `select * from public.apply_fine(
+            $1, $2, now(), null,
+            '81000000-0000-4000-8000-000000000102'
+          )`,
+          [ids.playerMemberA, ids.categoryA],
+        ),
+        /Sem permissao de tesoureiro/,
+      );
+    });
+
+    await asRole(database, 'authenticated', ids.treasurerA, async () => {
+      const directory = await rows(
+        database,
+        'select * from public.get_season_member_directory($1)',
+        [ids.seasonA],
+      );
+      assert.equal(directory.length, 5);
+      assert.equal(
+        directory.some((entry) =>
+          Object.keys(entry).some((key) =>
+            /username|email|auth|admin|owner/i.test(key),
+          ),
+        ),
+        false,
+      );
+
+      const staffFine = (
+        await rows(
+          database,
+          `select * from public.apply_fine(
+            $1, $2, '2026-09-12 18:05:00+00', null,
+            '81000000-0000-4000-8000-000000000103'
+          )`,
+          [ids.staffMemberA, ids.categoryA],
+        )
+      )[0];
+      assert.equal(staffFine.multiplier, 2);
+      assert.equal(staffFine.final_amount_cents, 1000);
+
+      const treasurerFine = (
+        await rows(
+          database,
+          `select * from public.apply_fine(
+            $1, $2, '2026-09-12 18:10:00+00', null,
+            '81000000-0000-4000-8000-000000000104'
+          )`,
+          [ids.treasurerMemberA, ids.categoryA],
+        )
+      )[0];
+      assert.equal(treasurerFine.multiplier, 1);
+
+      assert.equal(
+        (
+          await rows(
+            database,
+            'select count(*)::integer as count from public.fines where season_id = $1',
+            [ids.seasonAOld],
+          )
+        )[0].count,
+        1,
+      );
+      await assert.rejects(
+        database.query(
+          `select * from public.apply_fine(
+            $1, $2, now(), null,
+            '81000000-0000-4000-8000-000000000105'
+          )`,
+          [ids.playerMemberAOld, ids.categoryAOld],
+        ),
+        /A epoca nao esta ativa/,
+      );
+      await assert.rejects(
+        database.query(
+          `select * from public.record_payment_batch(
+            $1, array[$2]::uuid[], 'reopened',
+            '91000000-0000-4000-8000-000000000101'
+          )`,
+          [ids.playerMemberAOld, ids.fineAOld],
+        ),
+        /A epoca nao esta ativa/,
+      );
+    });
+
+    await database.query(
+      'update public.users set is_active = false where id = $1',
+      [ids.playerA],
+    );
+    await asRole(database, 'authenticated', ids.playerA, async () => {
+      assert.equal(
+        (
+          await rows(
+            database,
+            'select count(*)::integer as count from public.teams',
+          )
+        )[0].count,
+        0,
+      );
+      assert.equal(
+        (
+          await rows(
+            database,
+            'select count(*)::integer as count from public.fines',
+          )
+        )[0].count,
+        0,
+      );
+      await assert.rejects(
+        database.query('select public.get_auth_context()'),
+        /Sessao invalida/,
+      );
+      await assert.rejects(
+        database.query('select * from public.get_season_leaderboard($1)', [
+          ids.seasonA,
+        ]),
+        /Sem acesso ao ranking/,
+      );
+    });
+  } finally {
+    await database.close();
+  }
+});
+
+test('concorrencia local impede dupla liquidacao e o ledger permanece imutavel', async () => {
+  const database = await createSeededDatabase();
+
+  try {
+    await asRole(database, 'authenticated', ids.treasurerA, async () => {
+      const fine = (
+        await rows(
+          database,
+          `select * from public.apply_fine(
+            $1, $2, '2026-09-13 18:00:00+00', null,
+            '81000000-0000-4000-8000-000000000106'
+          )`,
+          [ids.playerMemberA, ids.categoryA],
+        )
+      )[0];
+      const paymentSql = `select * from public.record_payment_batch(
+        $1, array[$2]::uuid[], 'paid', $3
+      )`;
+      const attempts = await Promise.allSettled([
+        database.query(paymentSql, [
+          ids.playerMemberA,
+          fine.id,
+          '91000000-0000-4000-8000-000000000102',
+        ]),
+        database.query(paymentSql, [
+          ids.playerMemberA,
+          fine.id,
+          '91000000-0000-4000-8000-000000000103',
+        ]),
+      ]);
+      assert.equal(
+        attempts.filter((attempt) => attempt.status === 'fulfilled').length,
+        1,
+      );
+      assert.equal(
+        attempts.filter((attempt) => attempt.status === 'rejected').length,
+        1,
+      );
+      assert.match(
+        attempts.find((attempt) => attempt.status === 'rejected').reason
+          .message,
+        /nao permitem a transicao/,
+      );
+      assert.deepEqual(
+        (
+          await rows(
+            database,
+            `select
+              (select count(*)::integer from public.payment_batches where idempotency_key in ($1, $2)) as batches,
+              (select count(*)::integer from public.payment_logs where fine_id = $3) as logs,
+              (select status from public.fines where id = $3) as fine_status`,
+            [
+              '91000000-0000-4000-8000-000000000102',
+              '91000000-0000-4000-8000-000000000103',
+              fine.id,
+            ],
+          )
+        )[0],
+        { batches: 1, logs: 1, fine_status: 'paid' },
+      );
+    });
+
+    const immutableMutations = [
+      `update public.payment_batches set calculated_total_cents = 999 where id = '70000000-0000-4000-8000-000000000001'`,
+      `delete from public.payment_batches where id = '70000000-0000-4000-8000-000000000001'`,
+      `update public.payment_logs set amount_cents_snapshot = 999 where id = '71000000-0000-4000-8000-000000000001'`,
+      `delete from public.payment_logs where id = '71000000-0000-4000-8000-000000000001'`,
+      `update public.audit_events set action = 'alterado' where id = '72000000-0000-4000-8000-000000000001'`,
+      `delete from public.audit_events where id = '72000000-0000-4000-8000-000000000001'`,
+    ];
+    for (const mutation of immutableMutations) {
+      await assert.rejects(
+        database.exec(mutation),
+        /registo contabilistico e imutavel/i,
+      );
+    }
   } finally {
     await database.close();
   }

@@ -250,6 +250,27 @@ export async function runCleanupWithAuthFinally(cleanupPublic, cleanupAuth) {
   if (publicCleanupError) throw publicCleanupError;
 }
 
+async function assertAuthIdentityRemoved(administrator, userId) {
+  const lookup = await administrator.auth.admin.getUserById(userId);
+  if (!lookup.error && lookup.data.user) {
+    throw new Error(
+      'Permaneceu uma identidade Auth temporária após a limpeza.',
+    );
+  }
+}
+
+async function assertStorageFolderEmpty(administrator, userId) {
+  const listed = await administrator.storage
+    .from('private-photos')
+    .list(`users/${userId}`, { limit: 1000 });
+  if (listed.error) {
+    throw new Error('Não foi possível verificar a limpeza do Storage.');
+  }
+  if ((listed.data ?? []).some((entry) => entry.id)) {
+    throw new Error('Permaneceram fotografias temporárias no Storage.');
+  }
+}
+
 export async function cleanupAuthTestUser(testUser) {
   if (!testUser) return;
 
@@ -261,15 +282,33 @@ export async function cleanupAuthTestUser(testUser) {
   await runCleanupWithAuthFinally(
     () =>
       runLinkedSql(`
+      begin;
+      create temporary table cleanup_member_ids on commit drop as
+      select id from public.season_members
+      where user_id = ${sqlLiteral(testUser.id)}::uuid;
       delete from public.member_roles
-      where season_member_id in (
-        select id from public.season_members
-        where user_id = ${sqlLiteral(testUser.id)}::uuid
-      );
+      where season_member_id in (select id from cleanup_member_ids);
       delete from public.season_members
       where user_id = ${sqlLiteral(testUser.id)}::uuid;
       delete from public.users
       where id = ${sqlLiteral(testUser.id)}::uuid;
+      do $cleanup$
+      begin
+        if exists (
+          select 1 from public.member_roles
+          where season_member_id in (select id from cleanup_member_ids)
+        ) or exists (
+          select 1 from public.season_members
+          where user_id = ${sqlLiteral(testUser.id)}::uuid
+        ) or exists (
+          select 1 from public.users
+          where id = ${sqlLiteral(testUser.id)}::uuid
+        ) then
+          raise exception 'auth cleanup verification failed';
+        end if;
+      end
+      $cleanup$;
+      commit;
     `),
     async () => {
       const deleted = await administrator.auth.admin.deleteUser(testUser.id);
@@ -280,6 +319,25 @@ export async function cleanupAuthTestUser(testUser) {
       }
     },
   );
+  await Promise.all([
+    assertAuthIdentityRemoved(administrator, testUser.id),
+    assertStorageFolderEmpty(administrator, testUser.id),
+    runLinkedSql(`
+      do $cleanup$
+      begin
+        if exists (
+          select 1 from public.users
+          where id = ${sqlLiteral(testUser.id)}::uuid
+        ) or exists (
+          select 1 from public.season_members
+          where user_id = ${sqlLiteral(testUser.id)}::uuid
+        ) then
+          raise exception 'auth cleanup post-commit verification failed';
+        end if;
+      end
+      $cleanup$;
+    `),
+  ]);
 }
 
 export async function cleanupFinancialTestUser(testUser) {
@@ -298,6 +356,8 @@ export async function cleanupFinancialTestUser(testUser) {
     () =>
       runLinkedSql(`
       begin;
+      create temporary table cleanup_member_ids on commit drop as
+      select id from public.season_members where user_id = ${userId}::uuid;
       alter table public.payment_logs disable trigger payment_logs_are_immutable;
       alter table public.payment_batches disable trigger payment_batches_are_immutable;
       alter table public.audit_events disable trigger audit_events_are_immutable;
@@ -308,10 +368,26 @@ export async function cleanupFinancialTestUser(testUser) {
       delete from public.fines where applied_by = ${userId}::uuid;
       delete from public.audit_events where actor_user_id = ${userId}::uuid;
       delete from public.fine_categories where created_by = ${userId}::uuid;
-      delete from public.member_roles where season_member_id in
-        (select id from public.season_members where user_id = ${userId}::uuid);
+      delete from public.member_roles
+      where season_member_id in (select id from cleanup_member_ids);
       delete from public.season_members where user_id = ${userId}::uuid;
       delete from public.users where id = ${userId}::uuid;
+      do $cleanup$
+      begin
+        if exists (
+          select 1 from public.member_roles
+          where season_member_id in (select id from cleanup_member_ids)
+        ) or exists (select 1 from public.season_members where user_id = ${userId}::uuid)
+          or exists (select 1 from public.users where id = ${userId}::uuid)
+          or exists (select 1 from public.fines where applied_by = ${userId}::uuid)
+          or exists (select 1 from public.payment_batches where recorded_by = ${userId}::uuid)
+          or exists (select 1 from public.audit_events where actor_user_id = ${userId}::uuid)
+          or exists (select 1 from public.fine_categories where created_by = ${userId}::uuid)
+        then
+          raise exception 'financial cleanup verification failed';
+        end if;
+      end
+      $cleanup$;
       alter table public.audit_events enable trigger audit_events_are_immutable;
       alter table public.payment_batches enable trigger payment_batches_are_immutable;
       alter table public.payment_logs enable trigger payment_logs_are_immutable;
@@ -326,6 +402,25 @@ export async function cleanupFinancialTestUser(testUser) {
         );
     },
   );
+  await Promise.all([
+    assertAuthIdentityRemoved(administrator, testUser.id),
+    assertStorageFolderEmpty(administrator, testUser.id),
+    runLinkedSql(`
+      do $cleanup$
+      begin
+        if exists (select 1 from public.users where id = ${userId}::uuid)
+          or exists (select 1 from public.season_members where user_id = ${userId}::uuid)
+          or exists (select 1 from public.fines where applied_by = ${userId}::uuid)
+          or exists (select 1 from public.payment_batches where recorded_by = ${userId}::uuid)
+          or exists (select 1 from public.audit_events where actor_user_id = ${userId}::uuid)
+          or exists (select 1 from public.fine_categories where created_by = ${userId}::uuid)
+        then
+          raise exception 'financial cleanup post-commit verification failed';
+        end if;
+      end
+      $cleanup$;
+    `),
+  ]);
 }
 
 export async function assertNoStrandedFinancialTestUsers() {
@@ -418,8 +513,8 @@ export async function cleanupAdminTestOwner(testOwner) {
   if (profilesError)
     throw new Error('Não foi possível identificar os perfis temporários.');
   const createdIds = (createdProfiles ?? []).map((profile) => profile.id);
-
-  const storageUserIds = [...createdIds, testOwner.id];
+  const allUserIds = [...createdIds, testOwner.id];
+  const storageUserIds = allUserIds;
   for (const userId of storageUserIds) {
     const listed = await administrator.storage
       .from('private-photos')
@@ -446,8 +541,11 @@ export async function cleanupAdminTestOwner(testOwner) {
     () =>
       runLinkedSql(`
         begin;
+        create temporary table cleanup_member_ids on commit drop as
+        select id from public.season_members
+        where user_id = any(array[${allUserIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',')}]);
         delete from public.member_roles where season_member_id in (
-          select id from public.season_members where user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}])
+          select id from cleanup_member_ids
         );
         delete from public.season_members where user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}]);
         delete from public.admin_user_requests
@@ -462,6 +560,36 @@ export async function cleanupAdminTestOwner(testOwner) {
         delete from public.app_admins where user_id = ${sqlLiteral(testOwner.id)}::uuid;
         delete from public.users where id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}]);
         delete from public.users where id = ${sqlLiteral(testOwner.id)}::uuid;
+        do $cleanup$
+        begin
+          if exists (
+            select 1 from public.member_roles
+            where season_member_id in (select id from cleanup_member_ids)
+          ) or exists (
+            select 1 from public.season_members
+            where user_id = any(array[${allUserIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',')}])
+          ) or exists (
+            select 1 from public.users
+            where id = any(array[${allUserIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',')}])
+          ) or exists (
+            select 1 from public.app_admins
+            where user_id = ${sqlLiteral(testOwner.id)}::uuid
+          ) or exists (
+            select 1 from public.admin_user_requests
+            where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
+               or user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}])
+          ) or exists (
+            select 1 from public.admin_password_reset_requests
+            where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
+               or user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}])
+          ) or exists (
+            select 1 from public.audit_events
+            where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
+          ) then
+            raise exception 'admin cleanup verification failed';
+          end if;
+        end
+        $cleanup$;
         commit;
       `),
     async () => {
@@ -479,6 +607,43 @@ export async function cleanupAdminTestOwner(testOwner) {
         throw new Error('Não foi possível eliminar o Owner temporário.');
     },
   );
+  await Promise.all([
+    ...allUserIds.map((userId) =>
+      assertAuthIdentityRemoved(administrator, userId),
+    ),
+    ...allUserIds.map((userId) =>
+      assertStorageFolderEmpty(administrator, userId),
+    ),
+    runLinkedSql(`
+      do $cleanup$
+      begin
+        if exists (
+          select 1 from public.users
+          where id = any(array[${allUserIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',')}])
+        ) or exists (
+          select 1 from public.season_members
+          where user_id = any(array[${allUserIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',')}])
+        ) or exists (
+          select 1 from public.app_admins
+          where user_id = ${sqlLiteral(testOwner.id)}::uuid
+        ) or exists (
+          select 1 from public.admin_user_requests
+          where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
+             or user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}])
+        ) or exists (
+          select 1 from public.admin_password_reset_requests
+          where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
+             or user_id = any(array[${createdIds.map((id) => `${sqlLiteral(id)}::uuid`).join(',') || 'null::uuid'}])
+        ) or exists (
+          select 1 from public.audit_events
+          where actor_user_id = ${sqlLiteral(testOwner.id)}::uuid
+        ) then
+          raise exception 'admin cleanup post-commit verification failed';
+        end if;
+      end
+      $cleanup$;
+    `),
+  ]);
 }
 
 export async function cleanupStrandedAdminTestOwners() {
