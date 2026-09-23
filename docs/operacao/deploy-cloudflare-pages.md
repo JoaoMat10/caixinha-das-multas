@@ -36,11 +36,11 @@ Nunca configurar `SUPABASE_SERVICE_ROLE_KEY`, passwords, tokens administrativos 
 - O Cloudflare Pages reconhece a aplicação como SPA porque o build contém `index.html` e não contém um `404.html` de topo. Nesse modo, as rotas sem asset correspondente são servidas pelo fallback nativo para `/`.
 - Não existe uma regra global em `_redirects`: no Pages, essa regra teria precedência mesmo sobre assets existentes e poderia encaminhar JavaScript ou CSS para `index.html`.
 - `public/_headers` aplica CSP, proteção contra framing e MIME sniffing, política de referência, política de permissões e HSTS.
-- A CSP permite scripts, estilos, manifest e worker apenas da própria origem. Ligações e fotografias são permitidas apenas na própria origem e em subdomínios Supabase HTTPS/WSS.
-- O wildcard Supabase é temporário enquanto a referência de produção não existe. Antes do deployment de produção, substituir por origens HTTPS/WSS explícitas dos projetos de preview e produção.
+- A CSP permite scripts, manifest e worker apenas da própria origem. Estilos permitem ainda o hash SHA-256 exato do CSS inline da página offline. Ligações HTTPS e fotografias permitem apenas a própria origem e `https://showcaseprodref00001.supabase.co`; não são autorizados WebSockets, `data:` ou `blob:`.
+- A build de produção não aceita wildcards Supabase nem a referência do projeto descartável. Previews permanecem desativados até existir uma política CSP própria que autorize exclusivamente o respetivo backend de testes.
 - Assets com hash em `/assets/` usam cache imutável de um ano.
 - `service-worker.js` usa `no-cache, no-store, must-revalidate`, evitando manter indefinidamente o ponto de atualização da PWA.
-- O manifest e a página offline têm revalidação curta.
+- O manifest usa uma hora com revalidação. `index.html`, `offline.html` e todas as rotas HTML conhecidas usam `no-cache, must-revalidate`.
 - O service worker continua a excluir Auth, REST, RPC, Storage e qualquer pedido cross-origin.
 
 ## Preview e produção

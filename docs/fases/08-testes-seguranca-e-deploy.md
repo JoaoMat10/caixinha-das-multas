@@ -36,6 +36,11 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.      | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.            |
 | 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado. | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.       |
 | 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.     | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                        |
+| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.            | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.        |
+| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.             | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                      |
+| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                           | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.       |
+| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                             | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                           |
+| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                      | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.              |
 
 ## Trabalho realizado
 
@@ -145,6 +150,29 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Confirmados zero identidades Auth, zero objetos Storage, apenas `captain` e `treasurer` em `public.roles` e zero linhas nas restantes tabelas da aplicação.
 - O dry-run final devolveu `upToDate: true`, `migrations: []`, `seeds: []` e `roles: []`.
 
+### Preflight conjunto de ativação de produção de 2026-09-23
+
+- A leitura `config pull --dry-run` apontou explicitamente para `showcaseprodref00001` e devolveu `dry_run=true`, `wrote=false`; nenhum valor confidencial foi impresso.
+- Auth mantém no estado atual `Site URL=http://localhost:3000`, redirects vazios, signup global e por email ativos, confirmação de email ativa, password mínima de 6 caracteres e alteração segura por email desativada.
+- O PR #8 continua aberto em Draft, com merge state limpo; `main` está seis commits atrás da branch da Fase 08 e não pode ser usado num primeiro deployment antes da revisão e autorização de merge.
+- A configuração Cloudflare foi fixada para o projeto proposto `caixinha-das-multas`, repositório `JoaoMat10/caixinha-das-multas`, branch `main`, Node 24.19.0, `npm run verify` e output `dist`; previews começam desativados.
+- O estado local da Edge Function foi inventariado com checksums. O código atual continua com CORS `*` e ficou explicitamente reprovado para publicação até existir allowlist exata e novo checksum.
+- Definido bootstrap sem mecanismo persistente: uma identidade criada manualmente, uma transação com lock e precondição de zero Owners, auditoria `owner.bootstrap` e mudança obrigatória de password.
+- Definidos inventários, smoke tests, rollback e limpeza. Não foram alterados Cloudflare, GitHub, Auth, secrets, funções, identidades, dados ou Storage.
+- O detalhe operacional está em `docs/operacao/preflight-producao-auth-edge-owner.md`.
+
+### Gates locais para Cloudflare Pages de 2026-09-23
+
+- A CSP deixou de aceitar `*.supabase.co` e passou a permitir exclusivamente `https://showcaseprodref00001.supabase.co` para imagens e ligações HTTPS; não existe funcionalidade Realtime que justifique WSS.
+- `data:` e `blob:` foram removidos de `img-src`. O único estilo inline necessário é o da página offline e fica autorizado pelo seu hash SHA-256 exato; `unsafe-inline`, `unsafe-eval`, o projeto descartável e origens adicionais continuam proibidos.
+- A política de cache ficou explícita para raiz, documentos HTML e rotas SPA conhecidas; assets com hash, ícones, manifest e service worker mantêm regras específicas.
+- Os testes estáticos passaram a analisar todas as diretivas CSP como uma matriz exata e a validar individualmente todas as regras de cache.
+- `npm run verify` passou integralmente com Node 24.19.0: Prettier, ESLint, TypeScript, 88/88 Vitest, 11/11 testes PostgreSQL embebidos e build Vite.
+- A inspeção de `dist` confirmou `_headers` copiado byte a byte, zero wildcards Supabase, a origem HTTPS de produção, 22 assets com hash, dois documentos HTML, manifest e service worker, sem source maps.
+- A password mínima permanece inalterada em seis caracteres e a decisão foi adiada para o checkpoint Auth.
+- O trabalho posterior fica definido numa branch `feature/ativacao-producao`, criada apenas após o merge autorizado do PR #8, com um novo PR Draft e continuação deste diário; secrets e dados pessoais ficam excluídos.
+- Não foram alterados Cloudflare, GitHub remoto, Auth, secrets, Edge Functions ou Owner; o PR #8 continua Draft e sem merge.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -167,6 +195,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `scripts/sql/supabase-production-post-migration-verification.sql` | criado            | Verificar read-only schema, RLS, políticas, Storage, privilégios e ausência de dados após o lote. |
 | `docs/operacao/deploy-cloudflare-pages.md`                        | criado            | Documentar configuração, separação de ambientes, promoção e rollback.                             |
 | `docs/operacao/supabase-production-preflight.md`                  | criado            | Registar alvo, checksums, políticas, privilégios, execução, verificação e rollback.               |
+| `docs/operacao/preflight-producao-auth-edge-owner.md`             | criado            | Registar o preflight conjunto de Pages, Auth, secrets, Edge Function, Owner e smoke test.         |
 | `docs/fases/08-testes-seguranca-e-deploy.md`                      | criado            | Manter o diário único e contínuo da Fase 08.                                                      |
 
 ## Base de dados, contratos e migrações
@@ -188,8 +217,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Suite Vitest integral, três repetições               | passou    | 88/88 em cada repetição; 26 ficheiros por execução.                                            |
 | Testes de configuração e segurança estática          | passou    | 6/6, incluídos nas 88 verificações Vitest.                                                     |
 | Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                   |
-| `npm run verify` com Node 24.19.0                    | passou    | Formatação, ESLint, TypeScript, 88 Vitest, 10 PostgreSQL e build passaram numa única cadeia.   |
-| Inspeção de `dist`                                   | passou    | `_headers` copiado sem diferenças; 0 source maps.                                              |
+| `npm run verify` com Node 24.19.0                    | passou    | Formatação, ESLint, TypeScript, 88 Vitest, 11 PostgreSQL e build passaram numa única cadeia.   |
+| Inspeção de `dist`                                   | passou    | `_headers` idêntico, 22 assets com hash, dois HTML, manifest, service worker e 0 source maps.  |
 | pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                      |
 | Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                  |
 | Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                               |
@@ -215,8 +244,11 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 - Elevado: o projeto Supabase de produção recebeu schema e políticas, mas ainda não tem Auth, secrets, Edge Function ou Owner; o projeto descartável nunca pode ser promovido.
 - Médio: os headers, o fallback SPA, o cache e a instalação PWA ainda não foram observados numa resposta HTTPS real do Pages.
-- Médio: a CSP permite temporariamente qualquer subdomínio Supabase; deve ser restringida às referências exatas de preview e produção quando ambas existirem.
+- Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
 - Médio: a Edge Function mantém CORS permissivo; o token JWT e a verificação Owner no servidor preservam a autorização, mas a origem deve ser restringida quando existirem hostnames definitivos.
+- Elevado: `main` ainda não contém os seis commits do PR Draft #8; ligar o Pages antes do merge publicaria uma versão anterior à configuração revista.
+- Elevado: produção ainda permite signup Auth global e por email; esta superfície deve ser fechada antes de expor a chave publicável no primeiro frontend funcional.
+- Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
 - Médio: o workflow GitHub Actions existente é parcial e o bloqueio histórico de faturação não foi reconfirmado nesta sessão.
 - Médio: o Node global desta máquina é 21.7.2; foi necessário forçar o runtime 24.19.0. O Pages deverá respeitar `.node-version`.
 - Baixo: o plano gratuito Supabase pode pausar por inatividade e não inclui backups automáticos nem SLA.
@@ -240,6 +272,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Receber autorização final única e executar o lote coerente das oito migrações, incluindo RLS e Storage.
 - [ ] Publicar Edge Function, configurar segredos, URLs Auth e primeiro Owner apenas após autorizações específicas.
 - [ ] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment após autorização.
+- [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
+- [ ] Remover CORS `*`, separar o segredo HMAC da service role e recalcular o checksum do bundle antes de autorizar a Edge Function.
+- [ ] Alinhar a validação do frontend com a política final de password antes de alterar Auth.
 - [ ] Executar backup/restauro apenas entre ambientes autorizados e nunca sobre produção.
 - [x] Abrir pull request Draft para revisão do checkpoint local, sem merge.
 
