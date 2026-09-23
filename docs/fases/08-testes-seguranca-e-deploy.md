@@ -24,14 +24,14 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Decisões tomadas
 
-| Data       | Decisão                                                                                     | Justificação                                                                                 | Impacto                                                                                    |
-| ---------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                   | Nenhuma alteração é feita diretamente em `main`.                                           |
-| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                  | A preparação local usa o formato de configuração e de headers suportado pelo Pages.        |
-| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.  | `.node-version` passa a definir o runtime esperado.                                        |
-| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy. | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes. |
-| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS. | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.             |
-| 2026-09-23 | Manter todas as operações externas suspensas neste checkpoint.                              | A autorização recebida limita-se a preparação, auditoria e testes locais.                    | Não foram criados recursos, dados, ligações, deployments ou alterações remotas.            |
+| Data       | Decisão                                                                                     | Justificação                                                                                 | Impacto                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                   | Nenhuma alteração é feita diretamente em `main`.                                                              |
+| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                  | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                           |
+| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.  | `.node-version` passa a definir o runtime esperado.                                                           |
+| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy. | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                    |
+| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS. | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                                |
+| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas neste checkpoint.                          | A autorização recebida limita-se a preparação, auditoria e testes locais.                    | Não foram criados recursos, dados, ligações de alojamento, deployments ou alterações remotas nesses serviços. |
 
 ## Trabalho realizado
 
@@ -40,7 +40,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Lidos integralmente `AGENTS.md`, as seis fontes obrigatórias, `docs/rls-rbac.md`, os diários das Fases 02 a 07 e o template de fase.
 - Confirmado o merge da Fase 07 por fast-forward de `main` entre `c3d8bd1` e `9c1d4db`.
 - Criada a branch `feature/qualidade-seguranca-deploy` a partir da árvore limpa.
-- Nenhum recurso externo, projeto, integração, deployment, migração, segredo ou dado remoto foi criado ou alterado.
+- Consolidado o checkpoint local no commit `4b0a7a3` e aberto o PR Draft #8 para revisão, sem merge.
+- Nenhum recurso Cloudflare/Supabase, integração de alojamento, deployment, migração, segredo ou dado remoto foi criado ou alterado.
 
 ### Estabilização e pipeline local
 
@@ -149,7 +150,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [ ] Publicar Edge Function, configurar segredos, URLs Auth e primeiro Owner apenas após autorizações específicas.
 - [ ] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment após autorização.
 - [ ] Executar backup/restauro apenas entre ambientes autorizados e nunca sobre produção.
-- [ ] Abrir pull request para revisão quando o checkpoint autorizado estiver consolidado.
+- [x] Abrir pull request Draft para revisão do checkpoint local, sem merge.
 
 ## Handoff para a fase seguinte
 
