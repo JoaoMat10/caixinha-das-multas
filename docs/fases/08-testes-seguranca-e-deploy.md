@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — testes locais e remotos autorizados concluídos; operações externas permanecem pendentes
+- Estado: em curso — testes concluídos e projeto de produção criado e inventariado; migrações e restantes operações externas aguardam autorizações separadas
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-23
@@ -24,16 +24,17 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Decisões tomadas
 
-| Data       | Decisão                                                                                     | Justificação                                                                                   | Impacto                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                     | Nenhuma alteração é feita diretamente em `main`.                                                            |
-| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                    | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                         |
-| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.    | `.node-version` passa a definir o runtime esperado.                                                         |
-| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.   | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                  |
-| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.   | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                              |
-| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                     | O checkpoint local foi revisto antes de qualquer teste remoto.                                              |
-| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                             | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base. |
-| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis. | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.            |
+| Data       | Decisão                                                                                     | Justificação                                                                                        | Impacto                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                          | Nenhuma alteração é feita diretamente em `main`.                                                            |
+| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                         | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                         |
+| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.         | `.node-version` passa a definir o runtime esperado.                                                         |
+| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.        | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                  |
+| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.        | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                              |
+| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                          | O checkpoint local foi revisto antes de qualquer teste remoto.                                              |
+| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                  | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base. |
+| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.      | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.            |
+| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado. | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.       |
 
 ## Trabalho realizado
 
@@ -105,25 +106,39 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - A repetição E2E passou 10/10: cinco cenários desktop e cinco Pixel 7, incluindo Auth, PWA, Admin, Storage, tesouraria e painel do membro.
 - A auditoria final confirmou zero identidades/perfis temporários, zero memberships/roles/dados financeiros temporários, zero objetos Storage e zero roles/funções PostgreSQL de teste. Counts e fingerprints do seed, 14 tabelas RLS, 33 políticas, 18 triggers e 33 funções de segurança coincidem com o inventário inicial; `pgtap` e `dblink` não ficaram instaladas.
 
+### Checkpoint inicial de produção de 2026-09-23
+
+- Confirmada de forma read-only a disponibilidade de uma segunda vaga ativa no plano Free: a organização tinha um projeto ativo e três projetos inativos.
+- O projeto `caixinha-showcase-producao` foi criado manualmente na organização `Organizacao Demo`, com referência `showcaseprodref00001`, região `eu-central-1` (Frankfurt), Postgres padrão e estado `ACTIVE_HEALTHY`.
+- A password da base de dados foi gerada e guardada pelo responsável num gestor de passwords; não foi transmitida, impressa ou guardada no repositório.
+- Data API ficou ativa, exposição automática de novas tabelas ficou desativada e RLS automático ficou ativo. GitHub não foi ligado.
+- O vínculo local `supabase/.temp/project-ref` permaneceu em `showcasetestref00001` antes e depois de cada leitura de produção.
+- O inventário inicial read-only encontrou zero tabelas públicas, zero identidades Auth, zero buckets, zero objetos e zero políticas em `public` ou `storage`.
+- A função de plataforma `public.rls_auto_enable()` estava ativa; os sete event triggers da plataforma e os sete triggers não internos de Storage inventariados estavam ativos. `pgtap` e `dblink` não estavam instaladas.
+- O dry-run explícito para produção indicou oito migrações pendentes, zero ficheiros seed e zero roles de configuração; nenhuma migração foi aplicada.
+- A inspeção local do lote confirmou que as migrações criam 14 tabelas, 29 políticas públicas, um bucket privado `private-photos`, quatro políticas de Storage e duas linhas de referência de domínio (`captain` e `treasurer`). Estas linhas pertencem à migração versionada e não a `supabase/seed.sql` nem a fixtures.
+- Não foram alterados schema, Auth, Storage, secrets, Edge Functions, utilizadores, dados financeiros, GitHub, Cloudflare ou deployments.
+
 ## Ficheiros criados ou alterados
 
-| Ficheiro                                     | Tipo de alteração | Motivo                                                                       |
-| -------------------------------------------- | ----------------- | ---------------------------------------------------------------------------- |
-| `.node-version`                              | criado            | Fixar Node 24.19.0.                                                          |
-| `wrangler.toml`                              | criado            | Declarar configuração local do Cloudflare Pages.                             |
-| `package.json`                               | alterado          | Adicionar `npm run verify`.                                                  |
-| `vite.config.ts`                             | alterado          | Executar ficheiros Vitest sem paralelismo.                                   |
-| `src/test/setup.ts`                          | alterado          | Estabilizar esperas assíncronas de rotas lazy.                               |
-| `playwright.config.ts`                       | alterado          | Acomodar a latência real de autenticação nos E2E remotos.                    |
-| `public/_headers`                            | criado            | Definir CSP, headers de segurança e cache.                                   |
-| `tests/scripts/deployment-security.test.mjs` | criado            | Validar configuração do Pages e garantias estáticas do frontend.             |
-| `tests/database/database.test.mjs`           | alterado          | Completar matriz RLS/RBAC, imutabilidade, idempotência e concorrência local. |
-| `scripts/supabase-auth-test-fixture.mjs`     | alterado          | Garantir limpeza e validação SQL das tabelas protegidas.                     |
-| `scripts/test-concurrency-supabase.mjs`      | criado            | Provar concorrência em duas sessões PostgreSQL independentes.                |
-| `scripts/verify-supabase-test-cleanup.mjs`   | criado            | Auditar identidades e perfis temporários após cada bloco.                    |
-| `scripts/sql/`                               | criado            | Inventariar e comparar exatamente a linha de base remota.                    |
-| `docs/operacao/deploy-cloudflare-pages.md`   | criado            | Documentar configuração, separação de ambientes, promoção e rollback.        |
-| `docs/fases/08-testes-seguranca-e-deploy.md` | criado            | Manter o diário único e contínuo da Fase 08.                                 |
+| Ficheiro                                                | Tipo de alteração | Motivo                                                                       |
+| ------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `.node-version`                                         | criado            | Fixar Node 24.19.0.                                                          |
+| `wrangler.toml`                                         | criado            | Declarar configuração local do Cloudflare Pages.                             |
+| `package.json`                                          | alterado          | Adicionar `npm run verify`.                                                  |
+| `vite.config.ts`                                        | alterado          | Executar ficheiros Vitest sem paralelismo.                                   |
+| `src/test/setup.ts`                                     | alterado          | Estabilizar esperas assíncronas de rotas lazy.                               |
+| `playwright.config.ts`                                  | alterado          | Acomodar a latência real de autenticação nos E2E remotos.                    |
+| `public/_headers`                                       | criado            | Definir CSP, headers de segurança e cache.                                   |
+| `tests/scripts/deployment-security.test.mjs`            | criado            | Validar configuração do Pages e garantias estáticas do frontend.             |
+| `tests/database/database.test.mjs`                      | alterado          | Completar matriz RLS/RBAC, imutabilidade, idempotência e concorrência local. |
+| `scripts/supabase-auth-test-fixture.mjs`                | alterado          | Garantir limpeza e validação SQL das tabelas protegidas.                     |
+| `scripts/test-concurrency-supabase.mjs`                 | criado            | Provar concorrência em duas sessões PostgreSQL independentes.                |
+| `scripts/verify-supabase-test-cleanup.mjs`              | criado            | Auditar identidades e perfis temporários após cada bloco.                    |
+| `scripts/sql/`                                          | criado            | Inventariar e comparar exatamente a linha de base remota.                    |
+| `scripts/sql/supabase-production-initial-inventory.sql` | criado            | Inventariar produção de forma read-only antes de qualquer migração.          |
+| `docs/operacao/deploy-cloudflare-pages.md`              | criado            | Documentar configuração, separação de ambientes, promoção e rollback.        |
+| `docs/fases/08-testes-seguranca-e-deploy.md`            | criado            | Manter o diário único e contínuo da Fase 08.                                 |
 
 ## Base de dados, contratos e migrações
 
@@ -133,6 +148,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Políticas RLS: nenhuma alteração; os testes existentes foram alargados.
 - Contratos públicos: adicionado apenas o comando de engenharia `npm run verify`.
 - Compatibilidade e dados existentes: todas as mutações, roles, funções, extensões e ficheiros temporários foram removidos; o inventário remoto regressou exatamente à linha de base.
+- Produção: oito migrações permanecem pendentes em `showcaseprodref00001`; o dry-run não incluiu `supabase/seed.sql`, fixtures ou roles de configuração e não alterou a base.
 
 ## Testes e verificações
 
@@ -151,6 +167,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Concorrência PostgreSQL com duas sessões             | passou    | 1 sucesso, 1 rejeição, 1 batch e 1 log; role/função temporárias removidas.                   |
 | E2E Chromium desktop e Pixel 7                       | passou    | 10/10 após estabilizar o timeout de autenticação remota em 15 segundos.                      |
 | Auditoria final remota                               | passou    | Zero temporários e `baseline_exact` para dados, Storage, RLS, políticas, triggers e funções. |
+| Inventário inicial de produção                       | passou    | Zero tabelas públicas, Auth, buckets, objetos e políticas da aplicação.                      |
+| Dry-run de migrações de produção                     | passou    | Oito migrações pendentes; zero seeds e roles de configuração; nenhuma alteração aplicada.    |
 
 ## Desvios ao planeamento
 
@@ -160,7 +178,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Riscos e limitações
 
-- Elevado: não existe projeto Supabase de produção e o projeto descartável nunca pode ser promovido.
+- Elevado: o projeto Supabase de produção existe, mas ainda não recebeu schema, políticas ou configuração aplicacional; o projeto descartável nunca pode ser promovido.
 - Médio: os headers, o fallback SPA, o cache e a instalação PWA ainda não foram observados numa resposta HTTPS real do Pages.
 - Médio: a CSP permite temporariamente qualquer subdomínio Supabase; deve ser restringida às referências exatas de preview e produção quando ambas existirem.
 - Médio: a Edge Function mantém CORS permissivo; o token JWT e a verificação Owner no servidor preservam a autorização, mas a origem deve ser restringida quando existirem hostnames definitivos.
@@ -181,8 +199,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [ ] Executar smoke tests dos headers, fallback, cache e PWA num preview HTTPS do Pages após autorização de deployment.
 - [ ] Rever e reforçar o workflow apenas se GitHub Actions estiver operacional; caso contrário, manter o pipeline local documentado.
 - [ ] Produzir procedimentos de backup/restauro, privacidade e resposta a incidente.
-- [ ] Receber autorização separada para criar o projeto Supabase de produção e confirmar nome, região e referência.
+- [x] Criar o projeto Supabase de produção e confirmar nome, região, referência, inventário inicial e dry-run.
 - [ ] Aplicar apenas migrações versionadas em produção, sem `supabase/seed.sql`, após dry-run e autorização.
+- [ ] Receber autorização separada para as 29 políticas públicas e para o bucket `private-photos` com quatro políticas de Storage, incluídos no lote de migrações.
 - [ ] Publicar Edge Function, configurar segredos, URLs Auth e primeiro Owner apenas após autorizações específicas.
 - [ ] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment após autorização.
 - [ ] Executar backup/restauro apenas entre ambientes autorizados e nunca sobre produção.
