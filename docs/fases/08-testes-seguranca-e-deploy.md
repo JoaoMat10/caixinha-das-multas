@@ -158,7 +158,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 ### Preflight conjunto de ativação de produção de 2026-09-23
 
 - A leitura `config pull --dry-run` apontou explicitamente para `showcaseprodref00001` e devolveu `dry_run=true`, `wrote=false`; nenhum valor confidencial foi impresso.
-- Auth mantém no estado atual `Site URL=http://localhost:3000`, redirects vazios, signup global e por email ativos, confirmação de email ativa, password mínima de 6 caracteres e alteração segura por email desativada.
+- À data deste preflight conjunto, Auth tinha `disable_signup=false` e `external_email_enabled=true`. O estado corrente, após o checkpoint de 2026-09-24, é `disable_signup=true` e `external_email_enabled=true`; Site URL, redirects, confirmação de email, password e restantes campos permaneceram inalterados.
 - O PR #8 está aberto e Ready for review, com merge state limpo. `eba69ad` fecha os sete commits de implementação da Fase 08 sobre `main`; o commit posterior corrige apenas documentação. `main` não pode ser usado num primeiro deployment antes da revisão e autorização de merge.
 - A configuração Cloudflare foi fixada para o projeto proposto `caixinha-das-multas`, repositório `JoaoMat10/caixinha-das-multas`, branch `main`, Node 24.19.0, `npm run verify` e output `dist`; previews começam desativados.
 - O estado local da Edge Function foi inventariado com checksums. O código atual continua com CORS `*` e ficou explicitamente reprovado para publicação até existir allowlist exata e novo checksum.
