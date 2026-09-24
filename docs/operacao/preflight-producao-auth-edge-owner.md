@@ -56,21 +56,21 @@ fica Draft durante as operações e só será integrado depois do fecho do rollo
 8. Com autorização própria, executar o smoke test, remover todos os artefactos
    temporários e comparar o inventário final.
 
-Esta ordem evita expor o endpoint de produção enquanto o signup público estiver
-ativo. A autorização Cloudflare pode ser recolhida primeiro, mas a execução fica
-condicionada ao fecho das gates e ao bloqueio Auth inicial.
+O signup público global já está bloqueado com `disable_signup=true`; o provider
+email/password permanece ativo. A autorização Cloudflare continua condicionada
+às gates locais e a um checkpoint próprio.
 
 ## Cloudflare Pages
 
-| Campo              | Valor proposto                                        |
-| ------------------ | ----------------------------------------------------- |
-| Projeto            | `caixinha-das-multas`, se o nome estiver disponível   |
-| Repositório        | `JoaoMat10/caixinha-das-multas`                            |
-| Branch de produção | `main`                                                |
-| Diretório raiz     | `/`                                                   |
-| Comando de build   | `npm run verify`                                      |
-| Output             | `dist`                                                |
-| Node               | `24.19.0`, fixado em `.node-version` e `NODE_VERSION` |
+| Campo              | Valor proposto                                      |
+| ------------------ | --------------------------------------------------- |
+| Projeto            | `caixinha-das-multas`, se o nome estiver disponível |
+| Repositório        | `JoaoMat10/caixinha-das-multas`                          |
+| Branch de produção | `main`                                              |
+| Diretório raiz     | `/`                                                 |
+| Comando de build   | `npm run verify`                                    |
+| Output             | `dist`                                              |
+| Node               | `24.19.0`, fixado em `.node-version`                |
 
 Variáveis públicas de produção:
 
@@ -83,8 +83,7 @@ Variáveis públicas de produção:
 chave publicável Supabase são públicas por definição; passwords, connection
 strings, tokens, chaves secretas e `service_role` nunca entram no Pages.
 
-Os previews começam desativados (`None`). Quando forem autorizados, usam apenas
-`showcasetestref00001` e a respetiva chave publicável, nunca produção. A branch
+Os previews começam desativados (`None`) e não recebem variáveis. A branch
 `main` é a única branch de produção.
 
 O fallback SPA é o mecanismo nativo do Pages: o build contém `index.html`, não
@@ -101,9 +100,11 @@ Rollback: selecionar no Pages o último deployment de produção aprovado. Um
 preview não é alvo de rollback de produção. O rollback do frontend não altera
 Supabase.
 
-Ações manuais: autenticar no Cloudflare, autorizar a aplicação GitHub apenas
-para o repositório indicado, confirmar a disponibilidade do nome, rever os
-valores públicos sem os colar no chat e confirmar o primeiro deployment.
+Ações manuais: autenticar no Cloudflare, autorizar a aplicação GitHub com
+`Only select repositories` apenas para o repositório indicado, confirmar a
+disponibilidade do nome, rever os valores públicos sem os colar no chat e
+confirmar o primeiro deployment. O detalhe atualizado de permissões, URL,
+verificações e rollback está em `docs/operacao/deploy-cloudflare-pages.md`.
 
 ## Supabase Auth
 

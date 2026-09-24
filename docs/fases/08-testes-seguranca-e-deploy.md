@@ -43,6 +43,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                             | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                           |
 | 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                      | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.              |
 | 2026-09-24 | Bloquear o signup apenas com `disable_signup=true`.                                         | `external_email_enabled` mantém o provider de email/password necessário ao login técnico.           | O provider permanece ativo; a reversão futura repõe apenas `disable_signup=false`, após nova autorização.   |
+| 2026-09-24 | Manter previews Pages desativados e limitar a GitHub App a um repositório.                  | Previews não podem usar produção e a instalação deve minimizar o alcance no GitHub.                 | Só `main` publica; a instalação seleciona exclusivamente `JoaoMat10/caixinha-das-multas`.                        |
 
 ## Trabalho realizado
 
@@ -194,6 +195,29 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Não foram alterados Cloudflare, secrets, Edge Functions, Owner ou outros recursos.
 - O procedimento detalhado foi acrescentado a `docs/operacao/preflight-producao-auth-edge-owner.md`.
 
+### Preflight Cloudflare Pages de 2026-09-24
+
+- Confirmados localmente `caixinha-das-multas`, `JoaoMat10/caixinha-das-multas`,
+  `main`, raiz `/`, `npm run verify`, output `dist` e Node 24.19.0 fixado em
+  `.node-version`.
+- Os previews ficam em `None`, sem variáveis; apenas `main` pode gerar produção.
+- As quatro variáveis públicas de produção foram delimitadas. Três valores estão
+  fixos; a chave publicável Supabase será lida diretamente do painel e a URL
+  `pages.dev` será confirmada pelo Pages antes do primeiro deployment.
+- A GitHub App fica limitada por `Only select repositories` exclusivamente a
+  `JoaoMat10/caixinha-das-multas`. As permissões individuais definidas pelo fornecedor
+  não podem ser reduzidas na instalação e devem ser revistas antes de confirmar.
+- O fluxo pelo dashboard requer apenas sessões interativas Cloudflare e GitHub;
+  não exige API token, Global API Key ou autenticação Wrangler.
+- Definidas verificações reais de build, URL, SPA, headers, cache, PWA, rede e
+  ausência de previews, segredos e referências ao projeto descartável.
+- O primeiro deployment não tem rollback anterior; uma falha de smoke exige
+  pausar builds e correção forward. Deployments seguintes podem reverter para um
+  deployment de produção aprovado.
+- Não foram criados projeto, integração, variáveis ou deployments e não foi lida
+  qualquer credencial Cloudflare.
+- O detalhe operacional está em `docs/operacao/deploy-cloudflare-pages.md`.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -257,6 +281,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Preflight read-only do bloqueio de signup            | passou    | Três fontes confirmaram `showcaseprodref00001`; dry-run sem escrita e payload mínimo definido. |
 | Bloqueio do signup global em produção                | passou    | `disable_signup=true`; provider email/password ativo; restantes campos Auth idênticos.         |
 | Auditoria read-only após bloqueio                    | passou    | Zero Auth, zero Storage, duas roles de referência e zero linhas nas restantes tabelas.         |
+| Preflight Cloudflare Pages                           | passou    | Configuração, permissões, URL, verificações, credenciais e rollback definidos sem mutações.    |
 
 ## Desvios ao planeamento
 
@@ -300,6 +325,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [ ] Remover CORS `*`, separar o segredo HMAC da service role e recalcular o checksum do bundle antes de autorizar a Edge Function.
 - [ ] Alinhar a validação do frontend com a política final de password antes de alterar Auth.
 - [x] Desativar exclusivamente o signup público global em produção, mantendo o provider email/password e todos os restantes campos Auth inalterados.
+- [x] Atualizar o preflight específico do Cloudflare Pages sem criar ou configurar recursos.
 - [ ] Executar backup/restauro apenas entre ambientes autorizados e nunca sobre produção.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
