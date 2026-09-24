@@ -2,12 +2,12 @@
 
 ## Estado
 
-- Estado: em curso — testes e migrações de produção concluídos; Auth, secrets, Edge Function, Owner e deploy aguardam autorizações separadas
+- Estado: em curso — testes e migrações concluídos e signup público global bloqueado; restante Auth, secrets, Edge Function, Owner e deploy aguardam autorizações separadas
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
-- Última atualização: 2026-09-23
+- Última atualização: 2026-09-24
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
-- Revisão: PR #8 integrado por Squash and merge em `main` no commit `[COMMIT_SHOWCASE]`; continuação isolada em `feature/ativacao-producao`, sem deployment.
+- Revisão: PR #8 integrado por Squash and merge em `main` no commit `[COMMIT_SHOWCASE]`; continuação isolada no PR Draft #9, branch `feature/ativacao-producao`, sem deployment.
 
 ## Objetivo
 
@@ -25,24 +25,24 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Decisões tomadas
 
-| Data       | Decisão                                                                                     | Justificação                                                                                        | Impacto                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                          | Nenhuma alteração é feita diretamente em `main`.                                                              |
-| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                         | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                           |
-| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.         | `.node-version` passa a definir o runtime esperado.                                                           |
-| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.        | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                    |
-| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.        | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                                |
-| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                          | O checkpoint local foi revisto antes de qualquer teste remoto.                                                |
-| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                  | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base.   |
-| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.      | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.              |
-| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado. | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.         |
-| 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.     | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                          |
-| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.            | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.          |
-| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.             | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                        |
-| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                           | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.         |
-| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                             | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                             |
-| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                      | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.                |
-| 2026-09-23 | Isolar o bloqueio do signup num `PATCH` de dois campos.                                     | Evita aplicar diferenças Auth locais que não foram autorizadas.                                     | Só `disable_signup` e `external_email_enabled` podem mudar neste checkpoint; reversão repõe os valores lidos. |
+| Data       | Decisão                                                                                     | Justificação                                                                                        | Impacto                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                          | Nenhuma alteração é feita diretamente em `main`.                                                            |
+| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                         | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                         |
+| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.         | `.node-version` passa a definir o runtime esperado.                                                         |
+| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.        | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                  |
+| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.        | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                              |
+| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                          | O checkpoint local foi revisto antes de qualquer teste remoto.                                              |
+| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                  | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base. |
+| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.      | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.            |
+| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado. | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.       |
+| 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.     | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                        |
+| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.            | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.        |
+| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.             | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                      |
+| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                           | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.       |
+| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                             | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                           |
+| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                      | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.              |
+| 2026-09-24 | Bloquear o signup apenas com `disable_signup=true`.                                         | `external_email_enabled` mantém o provider de email/password necessário ao login técnico.           | O provider permanece ativo; a reversão futura repõe apenas `disable_signup=false`, após nova autorização.   |
 
 ## Trabalho realizado
 
@@ -178,16 +178,20 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - O trabalho posterior fica definido numa branch `feature/ativacao-producao`, criada apenas após o merge autorizado do PR #8, com um novo PR Draft e continuação deste diário; secrets e dados pessoais ficam excluídos.
 - As gates locais estão concluídas no checkpoint técnico `eba69ad`, sete commits de implementação sobre `main`; o PR #8 está Ready for review e recebe depois apenas esta correção documental, sem merge ou deployment. Não foram alterados Cloudflare, Auth, secrets, Edge Functions ou Owner.
 
-### Preflight Auth para bloquear o signup público de 2026-09-23
+### Bloqueio do signup público de 2026-09-24
 
 - O alvo `showcaseprodref00001` foi confirmado pelo registo versionado de produção, pelo inventário remoto de projetos e pelo `target.project_ref` do dry-run Auth.
 - O projeto remoto corresponde a `caixinha-showcase-producao`, região `eu-central-1`, estado `ACTIVE_HEALTHY`.
 - `config pull --dry-run` devolveu `dry_run=true` e `wrote=false`; o vínculo local permaneceu no projeto descartável `showcasetestref00001`.
-- O inventário read-only confirmou signup global e por email ativos, confirmação de email ativa, Site URL local, redirects vazios, mínimo de 6 caracteres, alteração segura por email desativada e TOTP ativo.
-- A proposta é um único `PATCH` para `showcaseprodref00001`, limitado a `disable_signup=true` e `external_email_enabled=false`.
+- O inventário read-only confirmou `disable_signup=false`, `external_email_enabled=true`, confirmação de email ativa, Site URL local, redirects vazios, mínimo de 6 caracteres, alteração segura por email desativada e TOTP ativo.
+- Corrigida a semântica de `external_email_enabled`: o campo mantém o provider de email/password necessário ao login por username técnico e não deve ser desligado.
+- Após validar as duas precondições, foi executado um único `PATCH` para `showcaseprodref00001`, contendo exclusivamente `disable_signup=true`.
 - Não será usado `config push`, evitando alterar Site URL, redirects, password, confirmação de email, TOTP, sessões ou qualquer outra diferença não autorizada.
-- A reversão repõe apenas os dois valores lidos (`false` e `true`, respetivamente), mediante autorização explícita, seguida da mesma auditoria read-only.
-- Não foram alterados Auth, Cloudflare, secrets, Edge Functions, Owner, dados ou configuração remota.
+- O segundo `GET` confirmou `disable_signup=true` e `external_email_enabled=true`; a comparação integral confirmou todos os restantes campos Auth inalterados.
+- O dry-run final não escreveu ficheiros e a auditoria SQL read-only confirmou zero identidades Auth, zero objetos Storage, duas roles de referência e zero linhas nas restantes tabelas.
+- A credencial da CLI permaneceu apenas em memória durante `GET → PATCH → GET`, não foi impressa nem persistida e foi removida imediatamente depois.
+- A reversão futura repõe exclusivamente `disable_signup=false`, mediante nova autorização e seguida da mesma auditoria read-only.
+- Não foram alterados Cloudflare, secrets, Edge Functions, Owner ou outros recursos.
 - O procedimento detalhado foi acrescentado a `docs/operacao/preflight-producao-auth-edge-owner.md`.
 
 ## Ficheiros criados ou alterados
@@ -251,6 +255,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Auditoria read-only pós-migração                     | passou    | Todos os checks verdadeiros; 14/14 RLS, 29+4 políticas, bucket privado e base vazia.           |
 | Dry-run final de produção                            | passou    | `upToDate: true`; zero migrações, seeds ou roles pendentes.                                    |
 | Preflight read-only do bloqueio de signup            | passou    | Três fontes confirmaram `showcaseprodref00001`; dry-run sem escrita e payload mínimo definido. |
+| Bloqueio do signup global em produção                | passou    | `disable_signup=true`; provider email/password ativo; restantes campos Auth idênticos.         |
+| Auditoria read-only após bloqueio                    | passou    | Zero Auth, zero Storage, duas roles de referência e zero linhas nas restantes tabelas.         |
 
 ## Desvios ao planeamento
 
@@ -265,7 +271,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
 - Médio: a Edge Function mantém CORS permissivo; o token JWT e a verificação Owner no servidor preservam a autorização, mas a origem deve ser restringida quando existirem hostnames definitivos.
 - Baixo: `main` contém o squash do PR #8 em `[COMMIT_SHOWCASE]`; a continuação operacional ainda precisa de revisão no novo PR Draft antes de qualquer integração.
-- Elevado: produção ainda permite signup Auth global e por email; esta superfície deve ser fechada antes de expor a chave publicável no primeiro frontend funcional.
+- Baixo: o signup Auth global está bloqueado; o provider email/password permanece deliberadamente ativo para o login por username técnico.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
 - Médio: o workflow GitHub Actions existente é parcial e o bloqueio histórico de faturação não foi reconfirmado nesta sessão.
 - Médio: o Node global desta máquina é 21.7.2; foi necessário forçar o runtime 24.19.0. O Pages deverá respeitar `.node-version`.
@@ -293,7 +299,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
 - [ ] Remover CORS `*`, separar o segredo HMAC da service role e recalcular o checksum do bundle antes de autorizar a Edge Function.
 - [ ] Alinhar a validação do frontend com a política final de password antes de alterar Auth.
-- [ ] Desativar exclusivamente o signup público global e por email em produção após autorização explícita, sem alterar os restantes campos Auth.
+- [x] Desativar exclusivamente o signup público global em produção, mantendo o provider email/password e todos os restantes campos Auth inalterados.
 - [ ] Executar backup/restauro apenas entre ambientes autorizados e nunca sobre produção.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 

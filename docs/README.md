@@ -27,8 +27,8 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 - Planeamento funcional: **aprovado**
 - Implementacao: **Fase 07 concluida; o primeiro bloco da Fase 08 foi integrado em `main` pelo PR #8 e a ativacao de producao continua em `feature/ativacao-producao`**
 - Fase atual: **Fase 08 — qualidade, seguranca e deploy**
-- Progresso da Fase 08: **testes locais e remotos concluidos; oito migracoes iniciais aplicadas e verificadas no Supabase de producao, sem seed ou dados de utilizacao; preflight para bloquear o signup publico preparado sem mutacoes**
-- Pendente na Fase 08: **ativacao de Auth, secrets, Edge Function `admin-users`, primeiro Owner e Cloudflare Pages, sempre mediante autorizacoes separadas**
+- Progresso da Fase 08: **testes locais e remotos concluidos; oito migracoes iniciais aplicadas e verificadas no Supabase de producao, sem seed ou dados de utilizacao; signup publico global bloqueado, mantendo ativo o provider interno de email/password**
+- Pendente na Fase 08: **restante configuracao Auth, secrets, Edge Function `admin-users`, primeiro Owner e Cloudflare Pages, sempre mediante autorizacoes separadas**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao

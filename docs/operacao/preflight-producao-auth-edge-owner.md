@@ -109,17 +109,17 @@ valores públicos sem os colar no chat e confirmar o primeiro deployment.
 
 Leitura dry-run de `showcaseprodref00001`, sem escrita:
 
-| Campo                      | Atual                          | Checkpoint atual                         |
-| -------------------------- | ------------------------------ | ---------------------------------------- |
-| Site URL                   | `http://localhost:3000`        | sem alteração                            |
-| Redirects                  | vazio                          | sem alteração                            |
-| Signup global              | ativo                          | desativar                                |
-| Signup por email           | ativo                          | desativar                                |
-| Confirmação de email       | ativa                          | sem alteração                            |
-| Password mínima            | 6                              | sem alteração; decisão continua pendente |
-| Caracteres                 | sem requisito remoto explícito | sem alteração; decisão continua pendente |
-| Alteração segura por email | desativada                     | sem alteração                            |
-| TOTP                       | ativo na plataforma            | sem alteração                            |
+| Campo                                              | Estado após o checkpoint       | Resultado                                |
+| -------------------------------------------------- | ------------------------------ | ---------------------------------------- |
+| Site URL                                           | `http://localhost:3000`        | sem alteração                            |
+| Redirects                                          | vazio                          | sem alteração                            |
+| Signup global (`disable_signup`)                   | desativado                     | alterado de `false` para `true`          |
+| Provider email/password (`external_email_enabled`) | ativo                          | mantido; necessário ao login técnico     |
+| Confirmação de email                               | ativa                          | sem alteração                            |
+| Password mínima                                    | 6                              | sem alteração; decisão continua pendente |
+| Caracteres                                         | sem requisito remoto explícito | sem alteração; decisão continua pendente |
+| Alteração segura por email                         | desativada                     | sem alteração                            |
+| TOTP                                               | ativo na plataforma            | sem alteração                            |
 
 O frontend envia sempre `current_password` na mudança. Ativar um fluxo que
 envie nonce por email bloquearia utilizadores porque os emails técnicos não são
@@ -158,9 +158,10 @@ Como controlo negativo, `supabase/.temp/project-ref` continua a apontar para o
 projeto descartável `showcasetestref00001`; não existe vínculo local implícito a
 produção.
 
-O inventário read-only confirmou ainda:
+O inventário read-only anterior à escrita confirmou:
 
-- signup global e signup por email ativos;
+- signup global permitido (`disable_signup=false`) e provider email/password
+  ativo (`external_email_enabled=true`);
 - confirmação de email ativa;
 - `Site URL` em `http://localhost:3000` e lista de redirects vazia;
 - password mínima de 6 caracteres e nenhum requisito remoto explícito de
@@ -171,13 +172,17 @@ O inventário read-only confirmou ainda:
 - JWT de 3600 segundos, rotação de refresh token ativa e intervalo de
   reutilização de 10 segundos, conforme o inventário anterior desta fase.
 
-A alteração proposta usa um único `PATCH` da Management API para o alvo
-explícito e contém exclusivamente:
+A semântica foi corrigida antes da execução: `external_email_enabled` mantém o
+provider de email/password usado pelo identificador técnico da aplicação. Não é
+um interruptor adicional que possa ser desligado neste produto para bloquear o
+auto-registo. O bloqueio global é feito exclusivamente por `disable_signup`.
+
+A alteração autorizada e executada usou um único `PATCH` da Management API para
+o alvo explícito e conteve exclusivamente:
 
 ```json
 {
-  "disable_signup": true,
-  "external_email_enabled": false
+  "disable_signup": true
 }
 ```
 
@@ -187,23 +192,32 @@ que não estão autorizadas neste checkpoint. A credencial de gestão será obti
 apenas de uma sessão local segura, nunca incluída no comando, Git, documentação
 ou logs.
 
-Verificação prevista após autorização:
+Verificação executada:
 
-1. repetir imediatamente as três confirmações do alvo;
-2. ler e guardar apenas em memória os dois valores atuais;
-3. enviar o `PATCH` único;
-4. reler a configuração e exigir `disable_signup=true` e
-   `external_email_enabled=false`;
-5. confirmar que os restantes campos inventariados não mudaram;
-6. repetir `config pull --dry-run`, esperando que apenas as duas divergências de
-   signup desapareçam, sem escrever ficheiros;
-7. confirmar que não foram criadas identidades Auth nem outros dados.
+1. as três fontes confirmaram `showcaseprodref00001`,
+   `caixinha-showcase-producao`, `eu-central-1` e `ACTIVE_HEALTHY`;
+2. o primeiro `GET` confirmou as precondições `disable_signup=false` e
+   `external_email_enabled=true`;
+3. o `PATCH` enviou apenas `disable_signup=true`;
+4. o segundo `GET` confirmou `disable_signup=true` e
+   `external_email_enabled=true`;
+5. a comparação canónica de todos os restantes campos Auth confirmou igualdade
+   integral antes e depois;
+6. o dry-run final devolveu `dry_run=true`, `wrote=false`, sem divergência no
+   signup global e com o provider email/password ainda ativo;
+7. a auditoria SQL read-only confirmou zero identidades Auth, zero objetos
+   Storage, apenas `captain` e `treasurer` nas tabelas de referência e zero
+   linhas nas restantes tabelas da aplicação;
+8. `supabase/.temp/project-ref` permaneceu em `showcasetestref00001`.
+
+O access token da CLI foi lido do Gestor de Credenciais apenas para
+`GET → PATCH → GET`, permaneceu em memória, não foi impresso ou persistido e foi
+removido da memória do processo imediatamente após o segundo `GET`.
 
 Reversão, apenas mediante autorização explícita: enviar um `PATCH` para o mesmo
-alvo com os valores anteriores observados, `disable_signup=false` e
-`external_email_enabled=true`, e repetir a mesma verificação read-only. Nenhum
-rollback altera Site URL, redirects, password, confirmação de email, TOTP ou
-sessões.
+alvo contendo exclusivamente `{"disable_signup":false}` e repetir a mesma
+verificação read-only. A reversão nunca altera `external_email_enabled`, Site
+URL, redirects, password, confirmação de email, TOTP ou sessões.
 
 ## Edge Function `admin-users`
 
