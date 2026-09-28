@@ -3,13 +3,16 @@
 ## Estado e limites
 
 Este documento descreve a ativação do frontend, Auth, secrets, Edge Function,
-primeiro Owner e smoke test. Não autoriza nem executa mutações remotas.
+primeiro Owner e smoke test. Regista também os checkpoints já executados; não
+autoriza por si só novas mutações remotas.
 
 - Supabase de produção: `showcaseprodref00001`.
 - Supabase descartável de preview/testes: `showcasetestref00001`.
-- Cloudflare Pages: ainda não criado nem ligado ao GitHub.
-- PR #8: aberto em Draft; `main` está seis commits atrás da branch
-  `feature/qualidade-seguranca-deploy`.
+- Cloudflare Pages: `caixinha-das-multas` criado e ligado exclusivamente a
+  `JoaoMat10/caixinha-das-multas`; primeiro deployment efetuado, rollout pausado após
+  falha do smoke test.
+- PR #8: integrado em `main` por squash no commit
+  `[COMMIT_SHOWCASE]`; continuação no PR Draft #9.
 - Não existem identidades Auth, objetos Storage ou dados de utilização em
   produção.
 - Não será executado `supabase/seed.sql` nem serão criadas fixtures.
@@ -57,20 +60,42 @@ fica Draft durante as operações e só será integrado depois do fecho do rollo
    temporários e comparar o inventário final.
 
 O signup público global já está bloqueado com `disable_signup=true`; o provider
-email/password permanece ativo. A autorização Cloudflare continua condicionada
-às gates locais e a um checkpoint próprio.
+email/password permanece ativo. A operação Cloudflare autorizada foi executada
+uma única vez; qualquer correção ou novo deployment exige novo checkpoint.
+
+### Checkpoint Cloudflare Pages de 2026-09-28
+
+- Projeto e hostname: `caixinha-das-multas` e
+  `https://caixinha-showcase.pages.dev`.
+- A GitHub App oficial ficou limitada por **Only select repositories** apenas a
+  `JoaoMat10/caixinha-das-multas`.
+- O único deployment é Production/main, ID
+  `11111111-1111-4111-8111-111111111111`, no commit completo
+  `[COMMIT_SHOWCASE]`.
+- O build usou Node 24.19.0 e `npm run verify` terminou sem falhas: 88/88
+  Vitest, 11/11 testes PostgreSQL embebidos e build `dist`.
+- `Preview branch = None`; Preview ficou sem variáveis e não existe qualquer
+  deployment Preview. Production mantém exclusivamente as quatro variáveis
+  públicas aprovadas.
+- O smoke real confirmou URL, CSP, headers, cache de HTML/assets/manifest e
+  service worker, rota profunda, manifest, página offline e ícones. Confirmou
+  ainda `disable_signup=true` e `external_email_enabled=true` por `GET` público.
+- O rollout ficou pausado porque o primeiro bundle não contém
+  `VITE_SUPABASE_URL` nem `VITE_SUPABASE_PUBLISHABLE_KEY`, deixando o frontend
+  sem autenticação, e porque `/assets/nao-existe.js` devolve `index.html` com
+  cache imutável de um ano. Não foi iniciado qualquer segundo deployment.
 
 ## Cloudflare Pages
 
-| Campo              | Valor proposto                                      |
-| ------------------ | --------------------------------------------------- |
-| Projeto            | `caixinha-das-multas`, se o nome estiver disponível |
-| Repositório        | `JoaoMat10/caixinha-das-multas`                          |
-| Branch de produção | `main`                                              |
-| Diretório raiz     | `/`                                                 |
-| Comando de build   | `npm run verify`                                    |
-| Output             | `dist`                                              |
-| Node               | `24.19.0`, fixado em `.node-version`                |
+| Campo              | Valor                                |
+| ------------------ | ------------------------------------ |
+| Projeto            | `caixinha-das-multas`                |
+| Repositório        | `JoaoMat10/caixinha-das-multas`           |
+| Branch de produção | `main`                               |
+| Diretório raiz     | `/`                                  |
+| Comando de build   | `npm run verify`                     |
+| Output             | `dist`                               |
+| Node               | `24.19.0`, fixado em `.node-version` |
 
 Variáveis públicas de produção:
 

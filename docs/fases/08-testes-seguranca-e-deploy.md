@@ -2,12 +2,12 @@
 
 ## Estado
 
-- Estado: em curso — testes e migrações concluídos e signup público global bloqueado; restante Auth, secrets, Edge Function, Owner e deploy aguardam autorizações separadas
+- Estado: em curso — primeiro deployment Pages concluído, mas rollout pausado por duas falhas no smoke; restante Auth, secrets, Edge Function e Owner aguardam autorizações separadas
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
-- Última atualização: 2026-09-24
+- Última atualização: 2026-09-28
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
-- Revisão: PR #8 integrado por Squash and merge em `main` no commit `[COMMIT_SHOWCASE]`; continuação isolada no PR Draft #9, branch `feature/ativacao-producao`, sem deployment.
+- Revisão: PR #8 integrado por Squash and merge em `main` no commit `[COMMIT_SHOWCASE]`; continuação isolada no PR Draft #9, branch `feature/ativacao-producao`, com rollout Pages pausado e sem segundo deployment.
 
 ## Objetivo
 
@@ -56,7 +56,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Depois de concluir as gates locais de CSP, cache e documentação, publicado o commit `eba69ad` e colocado o PR #8 como Ready for review; nesse checkpoint, a branch ficou sete commits de implementação à frente de `main` e sincronizada com o remoto.
 - O PR #8 foi integrado por Squash and merge no commit `[COMMIT_SHOWCASE]`; a working tree foi confirmada limpa, `main` foi atualizada exclusivamente por fast-forward de `origin/main` e o commit foi validado como `HEAD`.
 - Criada `feature/ativacao-producao` diretamente dessa `main` atualizada. O trabalho continua neste mesmo diário e o novo PR permanece em Draft durante os checkpoints operacionais.
-- Nenhum recurso Cloudflare, integração de alojamento, deployment ou migração remota foi criado. Os dados Supabase temporários dos testes foram integralmente removidos.
+- Antes do checkpoint autorizado não existia qualquer recurso Cloudflare. O
+  primeiro projeto e deployment foram depois criados nos termos registados
+  abaixo; os dados Supabase temporários dos testes continuam integralmente
+  removidos.
 
 ### Estabilização e pipeline local
 
@@ -218,6 +221,35 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   qualquer credencial Cloudflare.
 - O detalhe operacional está em `docs/operacao/deploy-cloudflare-pages.md`.
 
+### Primeiro deployment Cloudflare Pages de 2026-09-28
+
+- Instalada a GitHub App oficial `Cloudflare Workers and Pages` com **Only select
+  repositories**, exclusivamente para `JoaoMat10/caixinha-das-multas`.
+- Criado `caixinha-das-multas` na conta pessoal inequívoca e confirmado o
+  hostname exato `https://caixinha-showcase.pages.dev`.
+- O único deployment, Production/main, publicou exclusivamente o commit
+  `[COMMIT_SHOWCASE]`; ID
+  `11111111-1111-4111-8111-111111111111`.
+- O build confirmou Node 24.19.0 e concluiu `npm run verify`: Prettier, ESLint,
+  TypeScript, 88/88 Vitest, 11/11 PostgreSQL embebidos e Vite para `dist`.
+- Por limitação do formulário inicial, as quatro variáveis públicas ficaram
+  transitoriamente nos dois ambientes durante o primeiro build autorizado.
+  Logo após a conclusão, `Preview branch` foi guardado como `None`, as quatro
+  variáveis foram removidas de Preview e confirmadas intactas em Production.
+- O inventário final contém zero deployments Preview e exatamente um deployment
+  Production. Não foram configurados Web Analytics, domínio próprio, Workers,
+  Access, deploy hooks, secrets ou serviços adicionais.
+- O smoke HTTPS confirmou a URL, headers de segurança, CSP, cache dos documentos
+  principais, assets existentes, manifest, service worker, página offline,
+  ícones e rota profunda. O `GET` público Auth confirmou
+  `disable_signup=true` e `external_email_enabled=true`.
+- O smoke reprovou o rollout por dois motivos: o bundle não contém
+  `VITE_SUPABASE_URL` nem `VITE_SUPABASE_PUBLISHABLE_KEY`, deixando a UI sem
+  autenticação, e um asset inexistente sob `/assets/` recebe o HTML da SPA com
+  cache imutável de um ano.
+- Não foi executado um segundo deployment. O rollout fica pausado até existir
+  uma correção forward revista, testada e autorizada separadamente.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -255,51 +287,64 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Testes e verificações
 
-| Comando/cenário                                      | Resultado | Observações                                                                                    |
-| ---------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------- |
-| Pesquisa de segredos no estado atual e em 35 commits | passou    | Zero literais de alto risco encontrados; ficheiros locais ignorados não foram expostos.        |
-| `npm audit --json`                                   | passou    | 0 vulnerabilidades conhecidas em 338 dependências.                                             |
-| Suite Vitest integral, três repetições               | passou    | 88/88 em cada repetição; 26 ficheiros por execução.                                            |
-| Testes de configuração e segurança estática          | passou    | 6/6, incluídos nas 88 verificações Vitest.                                                     |
-| Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                   |
-| `npm run verify` com Node 24.19.0                    | passou    | Formatação, ESLint, TypeScript, 88 Vitest, 11 PostgreSQL e build passaram numa única cadeia.   |
-| Inspeção de `dist`                                   | passou    | `_headers` idêntico, 22 assets com hash, dois HTML, manifest, service worker e 0 source maps.  |
-| pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                      |
-| Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                  |
-| Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                               |
-| Concorrência PostgreSQL com duas sessões             | passou    | 1 sucesso, 1 rejeição, 1 batch e 1 log; role/função temporárias removidas.                     |
-| E2E Chromium desktop e Pixel 7                       | passou    | 10/10 após estabilizar o timeout de autenticação remota em 15 segundos.                        |
-| Auditoria final remota                               | passou    | Zero temporários e `baseline_exact` para dados, Storage, RLS, políticas, triggers e funções.   |
-| Inventário inicial de produção                       | passou    | Zero tabelas públicas, Auth, buckets, objetos e políticas da aplicação.                        |
-| Dry-run de migrações de produção                     | passou    | Oito migrações pendentes; zero seeds e roles de configuração; nenhuma alteração aplicada.      |
-| Auditoria estática das oito migrações                | passou    | 14/14 tabelas com RLS, 29+4 políticas e 33/33 funções efetivas com `search_path` seguro.       |
-| Dry-run isolado com `--skip-vault`                   | passou    | Alvo explícito de produção; oito migrações, zero seeds, zero roles e nenhum vínculo alterado.  |
-| Pipeline equivalente a `npm run verify`, Node 24     | passou    | Prettier, ESLint, TypeScript, 88/88 Vitest, 11/11 PostgreSQL e build passaram.                 |
-| Migrações de produção                                | passou    | Oito migrações aplicadas numa única invocação; zero seeds, roles, Auth ou dados de utilização. |
-| Auditoria read-only pós-migração                     | passou    | Todos os checks verdadeiros; 14/14 RLS, 29+4 políticas, bucket privado e base vazia.           |
-| Dry-run final de produção                            | passou    | `upToDate: true`; zero migrações, seeds ou roles pendentes.                                    |
-| Preflight read-only do bloqueio de signup            | passou    | Três fontes confirmaram `showcaseprodref00001`; dry-run sem escrita e payload mínimo definido. |
-| Bloqueio do signup global em produção                | passou    | `disable_signup=true`; provider email/password ativo; restantes campos Auth idênticos.         |
-| Auditoria read-only após bloqueio                    | passou    | Zero Auth, zero Storage, duas roles de referência e zero linhas nas restantes tabelas.         |
-| Preflight Cloudflare Pages                           | passou    | Configuração, permissões, URL, verificações, credenciais e rollback definidos sem mutações.    |
+| Comando/cenário                                      | Resultado | Observações                                                                                      |
+| ---------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
+| Pesquisa de segredos no estado atual e em 35 commits | passou    | Zero literais de alto risco encontrados; ficheiros locais ignorados não foram expostos.          |
+| `npm audit --json`                                   | passou    | 0 vulnerabilidades conhecidas em 338 dependências.                                               |
+| Suite Vitest integral, três repetições               | passou    | 88/88 em cada repetição; 26 ficheiros por execução.                                              |
+| Testes de configuração e segurança estática          | passou    | 6/6, incluídos nas 88 verificações Vitest.                                                       |
+| Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                     |
+| `npm run verify` com Node 24.19.0                    | passou    | Formatação, ESLint, TypeScript, 88 Vitest, 11 PostgreSQL e build passaram numa única cadeia.     |
+| Inspeção de `dist`                                   | passou    | `_headers` idêntico, 22 assets com hash, dois HTML, manifest, service worker e 0 source maps.    |
+| pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                        |
+| Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                    |
+| Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                                 |
+| Concorrência PostgreSQL com duas sessões             | passou    | 1 sucesso, 1 rejeição, 1 batch e 1 log; role/função temporárias removidas.                       |
+| E2E Chromium desktop e Pixel 7                       | passou    | 10/10 após estabilizar o timeout de autenticação remota em 15 segundos.                          |
+| Auditoria final remota                               | passou    | Zero temporários e `baseline_exact` para dados, Storage, RLS, políticas, triggers e funções.     |
+| Inventário inicial de produção                       | passou    | Zero tabelas públicas, Auth, buckets, objetos e políticas da aplicação.                          |
+| Dry-run de migrações de produção                     | passou    | Oito migrações pendentes; zero seeds e roles de configuração; nenhuma alteração aplicada.        |
+| Auditoria estática das oito migrações                | passou    | 14/14 tabelas com RLS, 29+4 políticas e 33/33 funções efetivas com `search_path` seguro.         |
+| Dry-run isolado com `--skip-vault`                   | passou    | Alvo explícito de produção; oito migrações, zero seeds, zero roles e nenhum vínculo alterado.    |
+| Pipeline equivalente a `npm run verify`, Node 24     | passou    | Prettier, ESLint, TypeScript, 88/88 Vitest, 11/11 PostgreSQL e build passaram.                   |
+| Migrações de produção                                | passou    | Oito migrações aplicadas numa única invocação; zero seeds, roles, Auth ou dados de utilização.   |
+| Auditoria read-only pós-migração                     | passou    | Todos os checks verdadeiros; 14/14 RLS, 29+4 políticas, bucket privado e base vazia.             |
+| Dry-run final de produção                            | passou    | `upToDate: true`; zero migrações, seeds ou roles pendentes.                                      |
+| Preflight read-only do bloqueio de signup            | passou    | Três fontes confirmaram `showcaseprodref00001`; dry-run sem escrita e payload mínimo definido.   |
+| Bloqueio do signup global em produção                | passou    | `disable_signup=true`; provider email/password ativo; restantes campos Auth idênticos.           |
+| Auditoria read-only após bloqueio                    | passou    | Zero Auth, zero Storage, duas roles de referência e zero linhas nas restantes tabelas.           |
+| Preflight Cloudflare Pages                           | passou    | Configuração, permissões, URL, verificações, credenciais e rollback definidos sem mutações.      |
+| Primeiro build Cloudflare Pages                      | passou    | Node 24.19.0, `npm run verify`, commit autorizado e deployment Production concluídos.            |
+| Isolamento Preview                                   | passou    | `Preview branch=None`, zero variáveis e zero deployments; quatro variáveis apenas em Production. |
+| Smoke HTTPS: headers, cache e PWA estática           | passou    | CSP e headers exatos; assets existentes, manifest, service worker, offline e ícones acessíveis.  |
+| Smoke HTTPS: configuração pública Supabase           | falhou    | Bundle sem variáveis Vite; frontend apresenta autenticação não configurada.                      |
+| Smoke HTTPS: asset inexistente                       | falhou    | Fallback devolve HTML com cache imutável para `/assets/nao-existe.js`.                           |
 
 ## Desvios ao planeamento
 
 - A regra `_redirects` inicialmente preparada foi removida antes do fecho do checkpoint. A documentação atual do Cloudflare confirma que o Pages fornece fallback SPA nativo na ausência de `404.html` e que regras globais podem sobrepor assets existentes.
+- O smoke real demonstrou que o fallback nativo também responde a assets
+  inexistentes. Com a regra de cache `/assets/*`, esse HTML recebe cache imutável;
+  a estratégia precisa de correção forward sem reintroduzir uma regra global.
 - A concorrência local usa chamadas intercaladas sobre PGlite; a prova remota complementar usou duas sessões PostgreSQL verdadeiramente independentes.
 - A via passwordless da CLI não pode ser iniciada em paralelo porque cada processo roda a password da role interna `cli_login_postgres`. A prova passou a usar uma role e função de teste exclusivas, com validade curta, privilégios mínimos e remoção verificada.
 
 ## Riscos e limitações
 
 - Elevado: o projeto Supabase de produção recebeu schema e políticas, mas ainda não tem Auth, secrets, Edge Function ou Owner; o projeto descartável nunca pode ser promovido.
-- Médio: os headers, o fallback SPA, o cache e a instalação PWA ainda não foram observados numa resposta HTTPS real do Pages.
+- Elevado: o bundle atualmente publicado não contém a configuração pública
+  Supabase; a aplicação não permite autenticação até novo deployment autorizado.
+- Elevado: pedidos a assets inexistentes recebem o HTML da SPA com cache imutável
+  de um ano; `nosniff` impede a execução, mas a resposta incorreta pode persistir
+  em caches.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
 - Médio: a Edge Function mantém CORS permissivo; o token JWT e a verificação Owner no servidor preservam a autorização, mas a origem deve ser restringida quando existirem hostnames definitivos.
 - Baixo: `main` contém o squash do PR #8 em `[COMMIT_SHOWCASE]`; a continuação operacional ainda precisa de revisão no novo PR Draft antes de qualquer integração.
 - Baixo: o signup Auth global está bloqueado; o provider email/password permanece deliberadamente ativo para o login por username técnico.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
 - Médio: o workflow GitHub Actions existente é parcial e o bloqueio histórico de faturação não foi reconfirmado nesta sessão.
-- Médio: o Node global desta máquina é 21.7.2; foi necessário forçar o runtime 24.19.0. O Pages deverá respeitar `.node-version`.
+- Baixo: o Pages confirmou Node 24.19.0 a partir de `.node-version`; o Node global
+  desta máquina continua fora da versão autorizada e não deve ser usado.
 - Baixo: o plano gratuito Supabase pode pausar por inatividade e não inclui backups automáticos nem SLA.
 
 ## Trabalho pendente
@@ -312,7 +357,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Executar pgTAP remoto: 81/81 asserções com `ROLLBACK`.
 - [x] Diagnosticar e limpar a identidade/perfil/membership/role `auth.test.217dfa2fa0`; confirmado regresso exato ao inventário inicial antes de retomar.
 - [x] Executar E2E desktop, móvel e PWA num preview local de produção: 10/10.
-- [ ] Executar smoke tests dos headers, fallback, cache e PWA num preview HTTPS do Pages após autorização de deployment.
+- [x] Executar smoke tests dos headers, fallback, cache e PWA no hostname HTTPS de produção; duas falhas bloquearam o rollout.
+- [ ] Preparar e rever localmente a correção forward das variáveis Vite e do fallback de assets antes de pedir novo deployment.
 - [ ] Rever e reforçar o workflow apenas se GitHub Actions estiver operacional; caso contrário, manter o pipeline local documentado.
 - [ ] Produzir procedimentos de backup/restauro, privacidade e resposta a incidente.
 - [x] Criar o projeto Supabase de produção e confirmar nome, região, referência, inventário inicial e dry-run.
@@ -320,7 +366,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Apresentar o preflight das 29 políticas públicas, bucket privado, quatro políticas Storage, privilégios, funções de segurança e checksums.
 - [x] Receber autorização final única e executar o lote coerente das oito migrações, incluindo RLS e Storage.
 - [ ] Publicar Edge Function, configurar segredos, URLs Auth e primeiro Owner apenas após autorizações específicas.
-- [ ] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment após autorização.
+- [x] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment autorizado.
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
 - [ ] Remover CORS `*`, separar o segredo HMAC da service role e recalcular o checksum do bundle antes de autorizar a Edge Function.
 - [ ] Alinhar a validação do frontend com a política final de password antes de alterar Auth.

@@ -2,9 +2,17 @@
 
 ## Estado
 
-Preflight atualizado em 2026-09-24. O projeto Cloudflare ainda não existe, o
-repositório não está ligado, nenhuma variável foi configurada e não foi efetuado
-qualquer deployment. Não foi lida nem utilizada qualquer credencial Cloudflare.
+Primeiro deployment executado em 2026-09-28 e rollout pausado após o smoke test.
+O projeto `caixinha-das-multas` está ligado exclusivamente a
+`JoaoMat10/caixinha-das-multas`; não foram configurados serviços adicionais.
+
+- URL canónica: `https://caixinha-showcase.pages.dev`.
+- Deployment de produção: `11111111-1111-4111-8111-111111111111`.
+- Commit publicado: `[COMMIT_SHOWCASE]`.
+- Build: sucesso com Node 24.19.0, `npm run verify` e output `dist`.
+- Previews: `None`, zero deployments e zero variáveis.
+- Production: quatro variáveis públicas presentes; nenhum segredo configurado.
+- Segundo deployment: não executado, enquanto as falhas do smoke permanecerem.
 
 ## Configuração de build
 
@@ -40,20 +48,26 @@ Configurar exclusivamente no ambiente Production:
 | `VITE_SUPABASE_URL`             | `https://showcaseprodref00001.supabase.co`                 |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | chave `sb_publishable_…` pública de `showcaseprodref00001` |
 
-A chave publicável não foi recolhida neste preflight sem credenciais. Será lida
-apenas da secção de API do projeto Supabase de produção e introduzida diretamente
-no painel Cloudflare após autorização; não será colocada no Git nem no chat.
+A chave publicável foi lida diretamente da secção de API do projeto Supabase de
+produção e introduzida no painel Cloudflare sem ser colocada no Git ou na
+documentação. Nenhum valor secreto foi lido ou configurado.
 
-Não configurar variáveis Preview enquanto os previews estiverem desativados.
+O formulário inicial obrigou a guardar temporariamente estas quatro variáveis em
+Production e Preview. Imediatamente após o primeiro deployment, antes de qualquer
+outra operação, `Preview branch` foi definido e confirmado como `None` e as
+quatro variáveis foram removidas de Preview. Production permaneceu intacto e
+nenhum deployment Preview foi criado.
+
+Não voltar a configurar variáveis Preview enquanto os previews estiverem
+desativados.
 Nunca configurar `SUPABASE_SERVICE_ROLE_KEY`, passwords, tokens administrativos,
 connection strings ou qualquer segredo no Cloudflare Pages.
 
 ## URL canónica
 
-O nome do projeto gera normalmente o subdomínio
-`caixinha-showcase.pages.dev`. Durante a criação, o painel deve confirmar que
-o nome está disponível e apresentar a URL de produção. A fonte de verdade final
-será o `pages.dev` devolvido pelo Pages, não uma URL inferida.
+O Pages atribuiu e confirmou exatamente o subdomínio
+`caixinha-showcase.pages.dev`. Este hostname é a fonte de verdade canónica do
+frontend até existir uma autorização separada para domínio próprio.
 
 Se o Pages atribuir qualquer hostname diferente, o processo para antes do
 deployment: regista-se a URL efetiva, corrige-se `VITE_PUBLIC_APP_URL` e pede-se
@@ -114,7 +128,9 @@ checkpoint.
 - Previews nunca recebem as variáveis do Supabase de produção.
 - A branch `main` será a única branch de produção.
 - Preview branch fica em `None`; nenhuma branch de pull request gera deployments.
-- Antes do primeiro deployment devem ser validados no browser a CSP, os headers, as rotas profundas, a instalação PWA e o conteúdo de Cache Storage.
+- O primeiro smoke HTTPS validou CSP, headers, rotas profundas e artefactos PWA;
+  a instalação funcional ficou inconclusiva porque o bundle publicado não contém
+  a configuração pública Supabase e a aplicação bloqueia a autenticação.
 
 ## Verificação pós-deploy
 
@@ -138,6 +154,28 @@ checkpoint.
    recusado;
 10. confirmar que não existem deployments de preview e registar o deployment ID
     de produção aprovado.
+
+### Resultado do primeiro smoke — 2026-09-28
+
+| Verificação                   | Resultado         | Evidência                                                                                                                              |
+| ----------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Build e commit                | passou            | Node 24.19.0; `npm run verify`; 88/88 Vitest; 11/11 PostgreSQL; commit `[COMMIT_SHOWCASE]`.                     |
+| Projeto e ambientes           | passou            | Hostname exato; `main`; raiz `/`; output `dist`; Preview `None`, sem variáveis e sem deployments.                                      |
+| Headers e CSP                 | passou            | CSP restrita à origem de produção; HSTS; `nosniff`; `DENY`; `no-referrer`; Permissions-Policy esperada.                                |
+| Cache previsto                | passou com desvio | HTML, assets com hash, manifest e service worker corretos; `/offline.html` normaliza para `/offline` com `max-age=0, must-revalidate`. |
+| SPA e rota profunda           | passou            | `/multas` devolve o mesmo documento HTML de entrada.                                                                                   |
+| Asset inexistente             | **falhou**        | `/assets/nao-existe.js` devolve `index.html` como `text/html` e recebe `public, max-age=31536000, immutable`.                          |
+| Manifest, offline e ícones    | passou            | Manifest válido, página offline e quatro ícones publicados com tipos corretos.                                                         |
+| Conteúdo do bundle            | **falhou**        | Os 22 assets não contêm a referência de produção nem a chave publicável; a UI mostra autenticação não configurada.                     |
+| Segredos e ambiente de testes | passou            | Sem `service_role`, `sb_secret_`, source maps ou referência `showcasetestref00001`; CSP sem wildcard Supabase.                         |
+| Auth público                  | passou            | `GET /auth/v1/settings`: `disable_signup=true` e `external_email_enabled=true`.                                                        |
+| Inventário de deployments     | passou            | Um único deployment Production/main, ID `11111111-1111-4111-8111-111111111111`; zero Preview.                                          |
+
+O rollout permanece pausado. A correção forward deve garantir que as variáveis
+`VITE_*` estão disponíveis ao processo de build e substituir o fallback nativo
+por uma estratégia que preserve as rotas SPA sem devolver HTML imutável em
+`/assets/*`. Qualquer novo deployment requer autorização própria após revisão e
+testes locais; não existe versão anterior para rollback.
 
 ## Promoção e rollback
 
