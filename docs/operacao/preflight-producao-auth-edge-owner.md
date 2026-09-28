@@ -8,60 +8,60 @@ autoriza por si só novas mutações remotas.
 
 - Supabase de produção: `showcaseprodref00001`.
 - Supabase descartável de preview/testes: `showcasetestref00001`.
-- Cloudflare Pages: `caixinha-das-multas` criado e ligado exclusivamente a
-  `JoaoMat10/caixinha-das-multas`; primeiro deployment efetuado, rollout pausado após
-  falha do smoke test.
-- PR #8: integrado em `main` por squash no commit
-  `[COMMIT_SHOWCASE]`; continuação no PR Draft #9.
+- Cloudflare Pages: `caixinha-das-multas` ligado exclusivamente a
+  `JoaoMat10/caixinha-das-multas`; correção forward publicada e smoke independente
+  aprovado.
+- PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9
+  integrado em `[COMMIT_SHOWCASE]`; continuação em
+  `feature/ativacao-producao-final`.
 - Não existem identidades Auth, objetos Storage ou dados de utilização em
   produção.
 - Não será executado `supabase/seed.sql` nem serão criadas fixtures.
 
 ## Gates obrigatórias
 
-1. Rever o PR #8, executar `npm run verify` com Node 24.19.0 e obter
-   autorização separada para retirar o Draft e fazer merge. O Pages nunca deve
-   publicar a versão anterior atualmente em `main`.
+1. Gate concluída: PR #9 integrado, segundo deployment Production concluído e
+   smoke independente aprovado.
 2. Antes da publicação da Edge Function, substituir CORS `*` por uma allowlist
    exata, configurada por ambiente, e recalcular os checksums do bundle.
 3. Decidir a política de password no checkpoint Auth. O mínimo permanece em
-   seis caracteres até existir autorização específica.
+   seis caracteres até existir decisão explícita; uma mudança para 12 exige
+   primeiro alinhar o frontend e autorizar novo deployment.
 4. Nenhuma etapa consome automaticamente a autorização da etapa seguinte.
 
 ## Registo do trabalho posterior
 
-Depois de o PR #8 ser revisto, autorizado e integrado em `main`, o trabalho de
-ativação continuará numa nova branch `feature/ativacao-producao`, criada a partir
-do `main` atualizado, e num PR Draft próprio. Esse PR registará apenas:
+Depois do merge do PR #9, o trabalho de ativação continua em
+`feature/ativacao-producao-final`, criada a partir de `main` no commit
+`[COMMIT_SHOWCASE]`. Esta continuação regista apenas:
 
 - hardening local necessário para Auth, CORS e Edge Function;
 - checksums, comandos sem credenciais, inventários e resultados sanitizados;
 - atualizações dos procedimentos operacionais e deste diário único da Fase 08.
 
-Cloudflare, Auth, secrets, publicação da função, bootstrap e smoke test manterão
-autorizações remotas separadas. Secrets, passwords, tokens, connection strings e
-dados pessoais nunca entram na branch, commits, PR ou logs. O PR de continuação
-fica Draft durante as operações e só será integrado depois do fecho do rollout.
+Auth, qualquer nova alteração Cloudflare, secrets, publicação da função,
+bootstrap e smoke test manterão autorizações remotas separadas. Secrets,
+passwords, tokens, connection strings e dados pessoais nunca entram na branch,
+commits, PR ou logs. O PR de continuação fica Draft durante as operações e só
+será integrado depois do fecho do rollout.
 
 ## Ordem segura
 
-1. Aprovar a operação Cloudflare, sem a executar enquanto as gates 1 a 3 não
-   estiverem cumpridas.
-2. Com autorização Auth própria, desativar primeiro toda a criação pública de
-   contas e aplicar a política de password/sessão que não depende da URL.
-3. Criar o Pages, ligar apenas o repositório autorizado, fixar `main`, desativar
-   previews e fazer o primeiro deployment. Registar a URL HTTPS canónica.
-4. Completar Auth com a Site URL e redirects exatos do Pages.
-5. Com autorização própria, guardar os secrets exclusivos da Edge Function.
-6. Com autorização própria, publicar `admin-users` com JWT e CORS restritos.
-7. Com autorização própria, executar o bootstrap transacional do primeiro
+1. Concluído: signup público global bloqueado, mantendo email/password ativo.
+2. Concluído: Pages criado, previews desativados, correção publicada e smoke
+   aprovado.
+3. Próximo: completar Auth com Site URL, redirect exato e decisão explícita da
+   password.
+4. Com autorização própria, guardar os secrets exclusivos da Edge Function.
+5. Com autorização própria, publicar `admin-users` com JWT e CORS restritos.
+6. Com autorização própria, executar o bootstrap transacional do primeiro
    Owner e obrigar à troca imediata da password.
-8. Com autorização própria, executar o smoke test, remover todos os artefactos
+7. Com autorização própria, executar o smoke test, remover todos os artefactos
    temporários e comparar o inventário final.
 
 O signup público global já está bloqueado com `disable_signup=true`; o provider
-email/password permanece ativo. A operação Cloudflare autorizada foi executada
-uma única vez; qualquer correção ou novo deployment exige novo checkpoint.
+email/password permanece ativo. O rollout Cloudflare do frontend está concluído;
+qualquer novo deployment ou rollback exige novo checkpoint.
 
 ### Checkpoint Cloudflare Pages de 2026-09-28
 
@@ -85,6 +85,18 @@ uma única vez; qualquer correção ou novo deployment exige novo checkpoint.
   sem autenticação, e porque `/assets/nao-existe.js` devolve `index.html` com
   cache imutável de um ano. Não foi iniciado qualquer segundo deployment.
 
+### Checkpoint da correção Pages de 2026-09-28
+
+- O PR #9 foi integrado em `main` no commit
+  `[COMMIT_SHOWCASE]` e desencadeou o segundo deployment
+  Production.
+- O build terminou com sucesso e o smoke independente passou.
+- A leitura pública sanitizada confirmou a configuração Supabase de produção no
+  bundle sem expor a chave, rota profunda funcional e `404` com `no-store` para
+  um asset inexistente, sem o app shell.
+- Secrets, Edge Function, identidades Auth, Owner e dados de utilização não foram
+  alterados neste checkpoint.
+
 ## Cloudflare Pages
 
 | Campo              | Valor                                |
@@ -104,18 +116,18 @@ Variáveis públicas de produção:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-`VITE_PUBLIC_APP_URL` será a URL HTTPS canónica realmente atribuída. A URL e a
+`VITE_PUBLIC_APP_URL` é a URL HTTPS canónica atribuída. A URL e a
 chave publicável Supabase são públicas por definição; passwords, connection
 strings, tokens, chaves secretas e `service_role` nunca entram no Pages.
 
-Os previews começam desativados (`None`) e não recebem variáveis. A branch
+Os previews permanecem desativados (`None`) e não recebem variáveis. A branch
 `main` é a única branch de produção.
 
-O fallback SPA é o mecanismo nativo do Pages: o build contém `index.html`, não
-contém `404.html` de topo e não contém uma regra global `_redirects`. `_headers`
-aplica CSP, HSTS, `nosniff`, bloqueio de framing, política de referência e de
-permissões. `/assets/*` tem cache imutável de um ano; service worker não tem
-cache persistente; manifest e página offline revalidam.
+O output contém `404.html` de topo e nove rewrites exatos para as rotas
+funcionais; não existe rewrite global. O pós-build gera cache imutável apenas
+para os assets com hash realmente existentes. `_headers` mantém CSP, HSTS,
+`nosniff`, bloqueio de framing, política de referência e de permissões; service
+worker não tem cache persistente e manifest e página offline revalidam.
 
 A CSP de produção autoriza apenas `showcaseprodref00001.supabase.co` em HTTPS.
 Não aceita wildcards, WebSockets, `data:`, `blob:` nem a referência descartável;
@@ -146,6 +158,30 @@ Leitura dry-run de `showcaseprodref00001`, sem escrita:
 | Caracteres                                         | sem requisito remoto explícito | sem alteração; decisão continua pendente |
 | Alteração segura por email                         | desativada                     | sem alteração                            |
 | TOTP                                               | ativo na plataforma            | sem alteração                            |
+
+### Próximo checkpoint Auth proposto
+
+Aplicar um único `PATCH` explícito a `showcaseprodref00001` contendo apenas:
+
+```json
+{
+  "site_url": "https://caixinha-showcase.pages.dev",
+  "uri_allow_list": "https://caixinha-showcase.pages.dev/"
+}
+```
+
+A origem e o caminho são exatos; não são autorizados wildcards, localhost ou
+URLs de preview. Antes da escrita serão repetidas as três confirmações do alvo e
+um `GET` read-only. O `PATCH` aborta se `disable_signup` não for `true`, se
+`external_email_enabled` não for `true`, ou se Site URL/redirects já divergirem
+do inventário registado. Depois, outro `GET` compara todos os campos e confirma
+que apenas `site_url` e `uri_allow_list` mudaram.
+
+Este checkpoint mantém confirmação de email, TOTP, JWT, refresh tokens, sessões,
+rate limits, alteração segura por email e providers exatamente inalterados. A
+password mínima continua em 6 até decisão explícita. Reversão, apenas com nova
+autorização: repor `site_url` em `http://localhost:3000` e `uri_allow_list` vazio.
+Não será usado `config push`.
 
 O frontend envia sempre `current_password` na mudança. Ativar um fluxo que
 envie nonce por email bloquearia utilizadores porque os emails técnicos não são

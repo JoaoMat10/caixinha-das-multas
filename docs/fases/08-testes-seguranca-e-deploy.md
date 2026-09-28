@@ -2,12 +2,12 @@
 
 ## Estado
 
-- Estado: em curso — primeiro deployment Pages concluído, mas rollout pausado por duas falhas no smoke; restante Auth, secrets, Edge Function e Owner aguardam autorizações separadas
+- Estado: em curso — correção forward publicada e smoke independente aprovado; configuração Auth, secrets, Edge Function e Owner aguardam checkpoints próprios
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-28
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
-- Revisão: PR #8 integrado por Squash and merge em `main` no commit `[COMMIT_SHOWCASE]`; continuação isolada no PR Draft #9, branch `feature/ativacao-producao`, com rollout Pages pausado e sem segundo deployment.
+- Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado por Squash and merge em `[COMMIT_SHOWCASE]`; continuação documental e operacional em `feature/ativacao-producao-final`.
 
 ## Objetivo
 
@@ -46,6 +46,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-24 | Manter previews Pages desativados e limitar a GitHub App a um repositório.                  | Previews não podem usar produção e a instalação deve minimizar o alcance no GitHub.                 | Só `main` publica; a instalação seleciona exclusivamente `JoaoMat10/caixinha-das-multas`.                          |
 | 2026-09-28 | Substituir o fallback nativo por rotas explícitas e cache gerado pós-build.                 | O smoke real provou que um asset inexistente recebia o documento SPA e cache imutável.              | `404.html` bloqueia o fallback global; só rotas conhecidas reescrevem e só assets existentes ficam imutáveis. |
 | 2026-09-28 | Tornar as variáveis públicas uma precondição do build Production/main.                      | Valores visíveis no painel não demonstram que chegaram ao processo Vite que produziu o bundle.      | A gate valida quatro variáveis sem expor a chave e não afeta desenvolvimento ou testes locais.                |
+| 2026-09-28 | Aceitar o segundo deployment apenas após merge revisto e smoke independente.                | O primeiro deployment expôs duas falhas que exigiam correção forward comprovada antes da promoção.  | O frontend publicado contém a configuração pública correta e devolve 404 seguro para assets inexistentes.     |
 
 ## Trabalho realizado
 
@@ -58,6 +59,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Depois de concluir as gates locais de CSP, cache e documentação, publicado o commit `eba69ad` e colocado o PR #8 como Ready for review; nesse checkpoint, a branch ficou sete commits de implementação à frente de `main` e sincronizada com o remoto.
 - O PR #8 foi integrado por Squash and merge no commit `[COMMIT_SHOWCASE]`; a working tree foi confirmada limpa, `main` foi atualizada exclusivamente por fast-forward de `origin/main` e o commit foi validado como `HEAD`.
 - Criada `feature/ativacao-producao` diretamente dessa `main` atualizada. O trabalho continua neste mesmo diário e o novo PR permanece em Draft durante os checkpoints operacionais.
+- O PR #9 foi integrado por Squash and merge em `main` no commit
+  `[COMMIT_SHOWCASE]`. `main` foi atualizada por
+  fast-forward e a continuação foi criada em `feature/ativacao-producao-final`,
+  sem criar um segundo diário da Fase 08.
 - Antes do checkpoint autorizado não existia qualquer recurso Cloudflare. O
   primeiro projeto e deployment foram depois criados nos termos registados
   abaixo; os dados Supabase temporários dos testes continuam integralmente
@@ -77,7 +82,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Fixados localmente o nome lógico `caixinha-das-multas`, o output `dist`, Node 24.19.0 e a data de compatibilidade do Pages.
 - Adicionado `public/_headers` com CSP, HSTS, proteção contra framing e MIME sniffing, política de referência, política de permissões e cache específico para assets e PWA.
 - Confirmado que `_headers` é copiado sem alterações para `dist` e que o build não contém source maps.
-- O fallback SPA usa o comportamento nativo do Pages: existe `index.html` e não existe `404.html` nem uma regra global que sobreponha assets.
+- O fallback SPA final usa `404.html` no topo e apenas nove rewrites explícitos;
+  não existe uma regra global que intercepte assets.
+- O pós-build gera regras imutáveis exatas apenas para os assets com hash que
+  existem no `dist` final.
 - Documentados build, variáveis públicas separadas, promoção, rollback e limites de autorização em `docs/operacao/deploy-cloudflare-pages.md`.
 
 ### Auditoria local de segurança
@@ -284,6 +292,21 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - O rollout permanece pausado. Não houve alteração remota a Cloudflare,
   Supabase Auth, Edge Functions, secrets ou Owner, nem segundo deployment.
 
+### Segundo deployment Cloudflare Pages de 2026-09-28
+
+- O PR #9 foi integrado em `main` por Squash and merge no commit completo
+  `[COMMIT_SHOWCASE]`; o merge desencadeou o segundo
+  deployment Production previsto.
+- O deployment terminou com sucesso e o smoke test independente foi aprovado.
+- A reconfirmação pública read-only devolveu `200` para `/` e `/multas`, com o
+  mesmo documento de entrada, e confirmou no bundle a referência
+  `showcaseprodref00001` e uma chave no formato `sb_publishable_…`, sem expor o
+  respetivo valor.
+- `/assets/nao-existe.js` devolveu `404`, `Cache-Control: no-store` e não recebeu
+  o shell da aplicação nem cache imutável.
+- O frontend fica aprovado para prosseguir para a configuração Auth. Não foram
+  alterados secrets, Edge Functions, identidades, Owner ou dados de utilização.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -361,6 +384,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Smoke HTTPS: asset inexistente                       | falhou    | Fallback devolve HTML com cache imutável para `/assets/nao-existe.js`.                           |
 | Gate Cloudflare Production/main                      | passou    | Casos positivos e negativos; alvo e formato validados sem expor a chave.                         |
 | Pages local sobre o `dist` final                     | passou    | 5/5; rotas explícitas, 404 de asset, cache exato, zero source maps e zero segredos.              |
+| Segundo deployment Production                        | passou    | `main` em `d0c9ac8`; build concluído e smoke independente aprovado.                              |
+| Smoke público após correção                          | passou    | Bundle com configuração pública; rota profunda 200; asset inexistente 404 sem cache imutável.    |
 
 ## Desvios ao planeamento
 
@@ -377,14 +402,11 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 ## Riscos e limitações
 
 - Elevado: o projeto Supabase de produção recebeu schema e políticas, mas ainda não tem Auth, secrets, Edge Function ou Owner; o projeto descartável nunca pode ser promovido.
-- Elevado: o bundle atualmente publicado não contém a configuração pública
-  Supabase; a aplicação não permite autenticação até novo deployment autorizado.
-- Elevado: pedidos a assets inexistentes recebem o HTML da SPA com cache imutável
-  de um ano; `nosniff` impede a execução, mas a resposta incorreta pode persistir
-  em caches.
+- Baixo: o frontend corrigido está publicado e o smoke passou; o login só ficará
+  operacional depois de concluir Auth, secrets, Edge Function e primeiro Owner.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
 - Médio: a Edge Function mantém CORS permissivo; o token JWT e a verificação Owner no servidor preservam a autorização, mas a origem deve ser restringida quando existirem hostnames definitivos.
-- Baixo: `main` contém o squash do PR #8 em `[COMMIT_SHOWCASE]`; a continuação operacional ainda precisa de revisão no novo PR Draft antes de qualquer integração.
+- Baixo: `main` contém o squash do PR #9 em `[COMMIT_SHOWCASE]`; a continuação operacional permanece isolada numa nova branch.
 - Baixo: o signup Auth global está bloqueado; o provider email/password permanece deliberadamente ativo para o login por username técnico.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
 - Médio: o workflow GitHub Actions existente é parcial e o bloqueio histórico de faturação não foi reconfirmado nesta sessão.
@@ -404,13 +426,15 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Executar E2E desktop, móvel e PWA num preview local de produção: 10/10.
 - [x] Executar smoke tests dos headers, fallback, cache e PWA no hostname HTTPS de produção; duas falhas bloquearam o rollout.
 - [x] Preparar e rever localmente a correção forward das variáveis Vite e do fallback de assets antes de pedir novo deployment.
+- [x] Publicar a correção forward e obter smoke independente aprovado.
 - [ ] Rever e reforçar o workflow apenas se GitHub Actions estiver operacional; caso contrário, manter o pipeline local documentado.
 - [ ] Produzir procedimentos de backup/restauro, privacidade e resposta a incidente.
 - [x] Criar o projeto Supabase de produção e confirmar nome, região, referência, inventário inicial e dry-run.
 - [x] Aplicar apenas migrações versionadas em produção, sem `supabase/seed.sql`, após dry-run e autorização.
 - [x] Apresentar o preflight das 29 políticas públicas, bucket privado, quatro políticas Storage, privilégios, funções de segurança e checksums.
 - [x] Receber autorização final única e executar o lote coerente das oito migrações, incluindo RLS e Storage.
-- [ ] Publicar Edge Function, configurar segredos, URLs Auth e primeiro Owner apenas após autorizações específicas.
+- [ ] Configurar Site URL, redirect e política final de password no Auth após autorização específica.
+- [ ] Guardar secrets, publicar Edge Function e criar o primeiro Owner apenas após três autorizações independentes.
 - [x] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment autorizado.
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
 - [ ] Remover CORS `*`, separar o segredo HMAC da service role e recalcular o checksum do bundle antes de autorizar a Edge Function.
