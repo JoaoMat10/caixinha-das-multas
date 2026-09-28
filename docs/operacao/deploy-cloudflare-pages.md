@@ -10,7 +10,8 @@ O projeto `caixinha-das-multas` está ligado exclusivamente a
 - Deployment de produção: `11111111-1111-4111-8111-111111111111`.
 - Commit publicado: `[COMMIT_SHOWCASE]`.
 - Build: sucesso com Node 24.19.0, `npm run verify` e output `dist`.
-- Previews: `None`, zero deployments e zero variáveis.
+- Previews: `None`, zero deployments executáveis e zero variáveis; existe apenas
+  um registo `skipped — No deployment available`, sem URL nem assets.
 - Production: quatro variáveis públicas presentes; nenhum segredo configurado.
 - Segundo deployment: não executado, enquanto as falhas do smoke permanecerem.
 
@@ -29,7 +30,9 @@ O projeto `caixinha-das-multas` está ligado exclusivamente a
 | Preview branches    | `None`, sem deployments automáticos        |
 | Domínio inicial     | apenas `pages.dev`, sem domínio próprio    |
 
-O comando `verify` executa formatação, lint, tipos, testes web, testes PostgreSQL embebidos e build. Não usa credenciais nem contacta ambientes remotos.
+O comando `verify` executa formatação, lint, tipos, testes web, testes PostgreSQL
+embebidos, build e validação do `dist` final com o servidor local oficial do
+Pages. Não usa credenciais, não autentica no Cloudflare e não cria deployments.
 
 O ficheiro `wrangler.toml` fixa o nome lógico do projeto, o diretório `dist`, a
 data de compatibilidade e desativa telemetria do Wrangler. Não contém variáveis,
@@ -51,6 +54,13 @@ Configurar exclusivamente no ambiente Production:
 A chave publicável foi lida diretamente da secção de API do projeto Supabase de
 produção e introduzida no painel Cloudflare sem ser colocada no Git ou na
 documentação. Nenhum valor secreto foi lido ou configurado.
+
+A presença visual destas variáveis no painel não prova que foram injetadas no
+processo que produziu um bundle. Para Production/main, o build valida a presença
+das quatro variáveis, a URL canónica, a referência Supabase exata e o formato
+`sb_publishable_…`; a chave nunca é escrita no diagnóstico. A gate só é ativada
+quando `CF_PAGES=1` e `CF_PAGES_BRANCH=main`, pelo que desenvolvimento e testes
+locais continuam a funcionar sem configuração de produção.
 
 O formulário inicial obrigou a guardar temporariamente estas quatro variáveis em
 Production e Preview. Imediatamente após o primeiro deployment, antes de qualquer
@@ -113,12 +123,18 @@ checkpoint.
 
 ## SPA, segurança e cache
 
-- O Cloudflare Pages reconhece a aplicação como SPA porque o build contém `index.html` e não contém um `404.html` de topo. Nesse modo, as rotas sem asset correspondente são servidas pelo fallback nativo para `/`.
-- Não existe uma regra global em `_redirects`: no Pages, essa regra teria precedência mesmo sobre assets existentes e poderia encaminhar JavaScript ou CSS para `index.html`.
+- O output inclui um `404.html` de topo, desativando o fallback SPA nativo e
+  indiscriminado. A raiz continua a ser servida por `index.html`.
+- `_redirects` contém apenas rewrites `200` das nove rotas funcionais conhecidas
+  para `/index.html`. Não existe `/* /index.html 200`, pelo que um caminho
+  desconhecido em `/assets/` devolve `404` e nunca o documento da SPA.
 - `public/_headers` aplica CSP, proteção contra framing e MIME sniffing, política de referência, política de permissões e HSTS.
 - A CSP permite scripts, manifest e worker apenas da própria origem. Estilos permitem ainda o hash SHA-256 exato do CSS inline da página offline. Ligações HTTPS e fotografias permitem apenas a própria origem e `https://showcaseprodref00001.supabase.co`; não são autorizados WebSockets, `data:` ou `blob:`.
 - A build de produção não aceita wildcards Supabase nem a referência do projeto descartável. Previews permanecem desativados até existir uma política CSP própria que autorize exclusivamente o respetivo backend de testes.
-- Assets com hash em `/assets/` usam cache imutável de um ano.
+- O pós-build enumera os ficheiros com hash realmente produzidos em
+  `dist/assets` e acrescenta ao `_headers` final uma regra exata de cache
+  imutável de um ano para cada um. Não existe `/assets/*`; um asset inexistente
+  não recebe `immutable`.
 - `service-worker.js` usa `no-cache, no-store, must-revalidate`, evitando manter indefinidamente o ponto de atualização da PWA.
 - O manifest usa uma hora com revalidação. `index.html`, `offline.html` e todas as rotas HTML conhecidas usam `no-cache, must-revalidate`.
 - O service worker continua a excluir Auth, REST, RPC, Storage e qualquer pedido cross-origin.
@@ -128,6 +144,12 @@ checkpoint.
 - Previews nunca recebem as variáveis do Supabase de produção.
 - A branch `main` será a única branch de produção.
 - Preview branch fica em `None`; nenhuma branch de pull request gera deployments.
+- O push documental anterior gerou no histórico a entrada
+  `22222222-2222-4222-8222-222222222222`, branch
+  `feature/ativacao-producao`, commit
+  `[COMMIT_SHOWCASE]`, com estado
+  `skipped — No deployment available`. Esta entrada não é um deployment Preview
+  executável: não publicou URL nem assets e não foi eliminada.
 - O primeiro smoke HTTPS validou CSP, headers, rotas profundas e artefactos PWA;
   a instalação funcional ficou inconclusiva porque o bundle publicado não contém
   a configuração pública Supabase e a aplicação bloqueia a autenticação.
@@ -176,6 +198,30 @@ O rollout permanece pausado. A correção forward deve garantir que as variávei
 por uma estratégia que preserve as rotas SPA sem devolver HTML imutável em
 `/assets/*`. Qualquer novo deployment requer autorização própria após revisão e
 testes locais; não existe versão anterior para rollback.
+
+### Correção forward preparada localmente
+
+As duas causas foram confirmadas:
+
+1. as variáveis estavam visíveis em Production no painel, mas o build publicado
+   não continha os valores Vite; não existia uma precondição que relacionasse a
+   configuração visual com o ambiente efetivo do processo de build;
+2. a ausência de `404.html` ativava o fallback SPA nativo para todos os caminhos
+   e a regra genérica `/assets/*` aplicava cache imutável também à resposta HTML
+   de um asset inexistente.
+
+A correção forward acrescenta a gate específica de Production/main, `404.html`,
+os nove rewrites explícitos e geração pós-build de regras exatas apenas para os
+assets com hash existentes. `npm run verify` valida o output que acabou de ser
+produzido e inicia localmente `wrangler pages dev` para confirmar raiz, rotas
+conhecidas, `404` de asset inexistente, headers, cache, ausência de source maps e
+ausência de segredos. O rollout e o segundo deployment continuam pausados; o
+merge em `main` só pode ocorrer depois de revisão e autorização explícita porque
+desencadeia automaticamente o deployment de produção.
+
+Resultado local: Node 24.19.0, 27 ficheiros/99 testes Vitest, 11/11 testes
+PostgreSQL, build de 22 assets com hash e 5/5 verificações Pages. Nenhuma
+credencial Cloudflare foi lida e nenhuma operação remota foi executada.
 
 ## Promoção e rollback
 

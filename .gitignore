@@ -30,3 +30,6 @@ npm-debug.log*
 # Estado local do Supabase CLI
 supabase/.branches/
 supabase/.temp/
+
+# Estado local do Wrangler
+.wrangler/

@@ -25,25 +25,27 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Decisões tomadas
 
-| Data       | Decisão                                                                                     | Justificação                                                                                        | Impacto                                                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                          | Nenhuma alteração é feita diretamente em `main`.                                                            |
-| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                         | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                         |
-| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.         | `.node-version` passa a definir o runtime esperado.                                                         |
-| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.        | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                  |
-| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.        | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                              |
-| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                          | O checkpoint local foi revisto antes de qualquer teste remoto.                                              |
-| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                  | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base. |
-| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.      | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.            |
-| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado. | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.       |
-| 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.     | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                        |
-| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.            | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.        |
-| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.             | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                      |
-| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                           | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.       |
-| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                             | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                           |
-| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                      | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.              |
-| 2026-09-24 | Bloquear o signup apenas com `disable_signup=true`.                                         | `external_email_enabled` mantém o provider de email/password necessário ao login técnico.           | O provider permanece ativo; a reversão futura repõe apenas `disable_signup=false`, após nova autorização.   |
-| 2026-09-24 | Manter previews Pages desativados e limitar a GitHub App a um repositório.                  | Previews não podem usar produção e a instalação deve minimizar o alcance no GitHub.                 | Só `main` publica; a instalação seleciona exclusivamente `JoaoMat10/caixinha-das-multas`.                        |
+| Data       | Decisão                                                                                     | Justificação                                                                                        | Impacto                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                          | Nenhuma alteração é feita diretamente em `main`.                                                              |
+| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                         | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                           |
+| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.         | `.node-version` passa a definir o runtime esperado.                                                           |
+| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.        | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                    |
+| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.        | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                                |
+| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                          | O checkpoint local foi revisto antes de qualquer teste remoto.                                                |
+| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                  | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base.   |
+| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.      | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.              |
+| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado. | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.         |
+| 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.     | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                          |
+| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.            | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.          |
+| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.             | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                        |
+| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                           | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.         |
+| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                             | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                             |
+| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                      | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.                |
+| 2026-09-24 | Bloquear o signup apenas com `disable_signup=true`.                                         | `external_email_enabled` mantém o provider de email/password necessário ao login técnico.           | O provider permanece ativo; a reversão futura repõe apenas `disable_signup=false`, após nova autorização.     |
+| 2026-09-24 | Manter previews Pages desativados e limitar a GitHub App a um repositório.                  | Previews não podem usar produção e a instalação deve minimizar o alcance no GitHub.                 | Só `main` publica; a instalação seleciona exclusivamente `JoaoMat10/caixinha-das-multas`.                          |
+| 2026-09-28 | Substituir o fallback nativo por rotas explícitas e cache gerado pós-build.                 | O smoke real provou que um asset inexistente recebia o documento SPA e cache imutável.              | `404.html` bloqueia o fallback global; só rotas conhecidas reescrevem e só assets existentes ficam imutáveis. |
+| 2026-09-28 | Tornar as variáveis públicas uma precondição do build Production/main.                      | Valores visíveis no painel não demonstram que chegaram ao processo Vite que produziu o bundle.      | A gate valida quatro variáveis sem expor a chave e não afeta desenvolvimento ou testes locais.                |
 
 ## Trabalho realizado
 
@@ -236,8 +238,13 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   transitoriamente nos dois ambientes durante o primeiro build autorizado.
   Logo após a conclusão, `Preview branch` foi guardado como `None`, as quatro
   variáveis foram removidas de Preview e confirmadas intactas em Production.
-- O inventário final contém zero deployments Preview e exatamente um deployment
-  Production. Não foram configurados Web Analytics, domínio próprio, Workers,
+- O inventário contém zero deployments Preview executáveis e exatamente um
+  deployment Production. O histórico inclui a entrada
+  `22222222-2222-4222-8222-222222222222`, branch
+  `feature/ativacao-producao`, commit
+  `[COMMIT_SHOWCASE]`, marcada
+  `skipped — No deployment available`: não publicou URL nem assets e não foi
+  eliminada. Não foram configurados Web Analytics, domínio próprio, Workers,
   Access, deploy hooks, secrets ou serviços adicionais.
 - O smoke HTTPS confirmou a URL, headers de segurança, CSP, cache dos documentos
   principais, assets existentes, manifest, service worker, página offline,
@@ -250,6 +257,33 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Não foi executado um segundo deployment. O rollout fica pausado até existir
   uma correção forward revista, testada e autorizada separadamente.
 
+### Correção forward local de 2026-09-28
+
+- Causa 1: as quatro variáveis públicas estavam visíveis no painel Production,
+  mas o bundle publicado não as continha. A visibilidade no painel não é
+  evidência de que uma variável esteve disponível ao processo de build.
+- Causa 2: o fallback SPA nativo, ativado pela ausência de `404.html`, devolvia
+  `index.html` para qualquer caminho inexistente; a regra `/assets/*` acrescentava
+  depois `immutable` à resposta incorreta.
+- O build passa a executar uma gate apenas quando `CF_PAGES=1` e
+  `CF_PAGES_BRANCH=main`. São obrigatórias as quatro variáveis `VITE_*`; URL
+  canónica, referência `showcaseprodref00001` e formato `sb_publishable_…` são
+  validados sem imprimir a chave. Fora deste contexto a gate não interfere com
+  desenvolvimento e testes locais.
+- Foi adicionado `404.html` no topo e `_redirects` contém apenas as nove rotas
+  funcionais autorizadas. A raiz usa `index.html`; um `/assets/` desconhecido
+  devolve `404`, sem o documento SPA.
+- A regra genérica de cache foi removida. O pós-build recusa assets sem hash e
+  gera no `_headers` final regras exatas apenas para os ficheiros efetivamente
+  existentes em `dist/assets`.
+- A verificação passou a ocorrer depois do build acabado e usa localmente
+  `wrangler pages dev`, sem autenticação ou deployment. Confirma `_headers`,
+  `_redirects`, `404.html`, rotas SPA, asset inexistente, source maps e segredos.
+- `npm run verify` passou com Node 24.19.0: 27 ficheiros/99 testes Vitest,
+  11/11 testes PostgreSQL, 22 assets com hash e 5/5 testes do Pages local.
+- O rollout permanece pausado. Não houve alteração remota a Cloudflare,
+  Supabase Auth, Edge Functions, secrets ou Owner, nem segundo deployment.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -261,7 +295,13 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `src/test/setup.ts`                                               | alterado          | Estabilizar esperas assíncronas de rotas lazy.                                                    |
 | `playwright.config.ts`                                            | alterado          | Acomodar a latência real de autenticação nos E2E remotos.                                         |
 | `public/_headers`                                                 | criado            | Definir CSP, headers de segurança e cache.                                                        |
+| `public/_redirects`                                               | criado            | Reescrever exclusivamente as nove rotas funcionais conhecidas para a SPA.                         |
+| `public/404.html`                                                 | criado            | Desativar o fallback SPA global para caminhos e assets inexistentes.                              |
+| `scripts/validate-cloudflare-production-env.mjs`                  | criado            | Bloquear um build Production/main sem a configuração pública exata.                               |
+| `scripts/finalize-pages-build.mjs`                                | criado            | Gerar regras de cache exatas a partir dos assets com hash do `dist` final.                        |
 | `tests/scripts/deployment-security.test.mjs`                      | criado            | Validar configuração do Pages e garantias estáticas do frontend.                                  |
+| `tests/scripts/cloudflare-production-env.test.mjs`                | criado            | Cobrir casos positivos, negativos e não exposição da chave na gate.                               |
+| `tests/pages/pages-output.test.mjs`                               | criado            | Validar o output final e a semântica local do Pages com Wrangler.                                 |
 | `tests/database/database.test.mjs`                                | alterado          | Completar matriz RLS/RBAC, imutabilidade, idempotência e concorrência local.                      |
 | `tests/database/production-verification.test.mjs`                 | criado            | Aplicar localmente o manifesto sem seed e validar checksums e auditoria pós-migração.             |
 | `scripts/supabase-auth-test-fixture.mjs`                          | alterado          | Garantir limpeza e validação SQL das tabelas protegidas.                                          |
@@ -292,10 +332,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Pesquisa de segredos no estado atual e em 35 commits | passou    | Zero literais de alto risco encontrados; ficheiros locais ignorados não foram expostos.          |
 | `npm audit --json`                                   | passou    | 0 vulnerabilidades conhecidas em 338 dependências.                                               |
 | Suite Vitest integral, três repetições               | passou    | 88/88 em cada repetição; 26 ficheiros por execução.                                              |
-| Testes de configuração e segurança estática          | passou    | 6/6, incluídos nas 88 verificações Vitest.                                                       |
+| Testes de configuração e segurança estática          | passou    | 17/17; inclui fallback/cache e onze cenários da gate Cloudflare.                                 |
 | Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                     |
-| `npm run verify` com Node 24.19.0                    | passou    | Formatação, ESLint, TypeScript, 88 Vitest, 11 PostgreSQL e build passaram numa única cadeia.     |
-| Inspeção de `dist`                                   | passou    | `_headers` idêntico, 22 assets com hash, dois HTML, manifest, service worker e 0 source maps.    |
+| `npm run verify` com Node 24.19.0                    | passou    | Formatação, lint, tipos, 99 Vitest, 11 PostgreSQL, build e 5 testes Pages numa única cadeia.     |
+| Inspeção de `dist` final                             | passou    | 22 regras exatas de assets, redirects, três HTML, manifest, service worker e 0 source maps.      |
 | pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                        |
 | Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                    |
 | Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                                 |
@@ -315,17 +355,22 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Auditoria read-only após bloqueio                    | passou    | Zero Auth, zero Storage, duas roles de referência e zero linhas nas restantes tabelas.           |
 | Preflight Cloudflare Pages                           | passou    | Configuração, permissões, URL, verificações, credenciais e rollback definidos sem mutações.      |
 | Primeiro build Cloudflare Pages                      | passou    | Node 24.19.0, `npm run verify`, commit autorizado e deployment Production concluídos.            |
-| Isolamento Preview                                   | passou    | `Preview branch=None`, zero variáveis e zero deployments; quatro variáveis apenas em Production. |
+| Isolamento Preview                                   | passou    | `None`, zero variáveis e zero deployments executáveis; uma entrada `skipped`, sem URL ou assets. |
 | Smoke HTTPS: headers, cache e PWA estática           | passou    | CSP e headers exatos; assets existentes, manifest, service worker, offline e ícones acessíveis.  |
 | Smoke HTTPS: configuração pública Supabase           | falhou    | Bundle sem variáveis Vite; frontend apresenta autenticação não configurada.                      |
 | Smoke HTTPS: asset inexistente                       | falhou    | Fallback devolve HTML com cache imutável para `/assets/nao-existe.js`.                           |
+| Gate Cloudflare Production/main                      | passou    | Casos positivos e negativos; alvo e formato validados sem expor a chave.                         |
+| Pages local sobre o `dist` final                     | passou    | 5/5; rotas explícitas, 404 de asset, cache exato, zero source maps e zero segredos.              |
 
 ## Desvios ao planeamento
 
-- A regra `_redirects` inicialmente preparada foi removida antes do fecho do checkpoint. A documentação atual do Cloudflare confirma que o Pages fornece fallback SPA nativo na ausência de `404.html` e que regras globais podem sobrepor assets existentes.
+- A regra `_redirects` global inicialmente preparada foi removida antes do fecho
+  do primeiro checkpoint. A correção forward reintroduz apenas nove regras
+  estáticas exatas; nenhuma regra `/*` pode intercetar assets.
 - O smoke real demonstrou que o fallback nativo também responde a assets
   inexistentes. Com a regra de cache `/assets/*`, esse HTML recebe cache imutável;
-  a estratégia precisa de correção forward sem reintroduzir uma regra global.
+  a correção adiciona `404.html` e gera cache apenas para nomes com hash que
+  existem no output final.
 - A concorrência local usa chamadas intercaladas sobre PGlite; a prova remota complementar usou duas sessões PostgreSQL verdadeiramente independentes.
 - A via passwordless da CLI não pode ser iniciada em paralelo porque cada processo roda a password da role interna `cli_login_postgres`. A prova passou a usar uma role e função de teste exclusivas, com validade curta, privilégios mínimos e remoção verificada.
 
@@ -358,7 +403,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Diagnosticar e limpar a identidade/perfil/membership/role `auth.test.217dfa2fa0`; confirmado regresso exato ao inventário inicial antes de retomar.
 - [x] Executar E2E desktop, móvel e PWA num preview local de produção: 10/10.
 - [x] Executar smoke tests dos headers, fallback, cache e PWA no hostname HTTPS de produção; duas falhas bloquearam o rollout.
-- [ ] Preparar e rever localmente a correção forward das variáveis Vite e do fallback de assets antes de pedir novo deployment.
+- [x] Preparar e rever localmente a correção forward das variáveis Vite e do fallback de assets antes de pedir novo deployment.
 - [ ] Rever e reforçar o workflow apenas se GitHub Actions estiver operacional; caso contrário, manter o pipeline local documentado.
 - [ ] Produzir procedimentos de backup/restauro, privacidade e resposta a incidente.
 - [x] Criar o projeto Supabase de produção e confirmar nome, região, referência, inventário inicial e dry-run.

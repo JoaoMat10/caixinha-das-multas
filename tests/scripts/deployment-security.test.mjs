@@ -40,17 +40,40 @@ describe('deploy estático e headers de segurança', () => {
 
     const packageJson = JSON.parse(read('package.json'));
     expect(packageJson.scripts.verify).toBe(
-      'npm run format:check && npm run lint && npm run typecheck && npm test && npm run test:db && npm run build',
+      'npm run format:check && npm run lint && npm run typecheck && npm test && npm run test:db && npm run build && npm run test:pages',
+    );
+    expect(packageJson.scripts.build).toContain(
+      'node scripts/validate-cloudflare-production-env.mjs',
+    );
+    expect(packageJson.scripts.build).toContain(
+      'node scripts/finalize-pages-build.mjs',
     );
   });
 
-  it('configura o Pages sem sobrepor o fallback SPA nativo', () => {
+  it('limita o fallback SPA às rotas funcionais conhecidas', () => {
     const wrangler = read('wrangler.toml');
+    const redirects = read('public/_redirects').trim().split(/\r?\n/);
+    const routes = [
+      '/entrar',
+      '/alterar-password-obrigatoria',
+      '/painel',
+      '/mural',
+      '/multas',
+      '/tesouraria',
+      '/administracao',
+      '/definicoes/password',
+      '/sem-acesso',
+    ];
 
     expect(wrangler).toContain('name = "caixinha-das-multas"');
     expect(wrangler).toContain('pages_build_output_dir = "./dist"');
-    expect(fs.existsSync(path.join(root, 'public/404.html'))).toBe(false);
-    expect(fs.existsSync(path.join(root, 'public/_redirects'))).toBe(false);
+    expect(fs.existsSync(path.join(root, 'public/404.html'))).toBe(true);
+    expect(redirects).toEqual(
+      routes.map((route) => `${route} /index.html 200`),
+    );
+    expect(redirects).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/^\/\*/)]),
+    );
   });
 
   it('define uma CSP restritiva compatível com o Supabase', () => {
@@ -96,9 +119,7 @@ describe('deploy estático e headers de segurança', () => {
     expect(headers).toContain('Referrer-Policy: no-referrer');
     expect(headers).toContain('Permissions-Policy:');
     expect(headers).toContain('Strict-Transport-Security: max-age=31536000');
-    expect(cacheControlFor(headers, '/assets/*')).toBe(
-      'public, max-age=31536000, immutable',
-    );
+    expect(cacheControlFor(headers, '/assets/*')).toBeUndefined();
     expect(cacheControlFor(headers, '/icons/*')).toBe('public, max-age=86400');
     expect(cacheControlFor(headers, '/manifest.webmanifest')).toBe(
       'public, max-age=3600, must-revalidate',
@@ -117,7 +138,7 @@ describe('deploy estático e headers de segurança', () => {
       '/multas',
       '/tesouraria',
       '/administracao',
-      '/definicoes/*',
+      '/definicoes/password',
       '/sem-acesso',
     ];
     for (const route of htmlRoutes) {
