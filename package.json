@@ -8,13 +8,14 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/validate-cloudflare-production-env.mjs && tsc -b && vite build && node scripts/finalize-pages-build.mjs",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
+    "test:pages": "node --test tests/pages/*.test.mjs",
     "test:db": "node --test tests/database/*.test.mjs",
     "test:db:supabase": "node scripts/test-supabase-linked.mjs",
     "test:db:supabase:local": "supabase db reset --local && supabase test db --local",
@@ -25,7 +26,7 @@
     "test:e2e": "node scripts/test-e2e.mjs",
     "test:e2e:install": "playwright install chromium",
     "typecheck": "tsc -b",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run test:db && npm run build"
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run test:db && npm run build && npm run test:pages"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -61,6 +62,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.0",
     "vite": "^8.3.0",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "wrangler": "^4.142.0"
   }
 }

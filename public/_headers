@@ -35,14 +35,11 @@
 /administracao
   Cache-Control: no-cache, must-revalidate
 
-/definicoes/*
+/definicoes/password
   Cache-Control: no-cache, must-revalidate
 
 /sem-acesso
   Cache-Control: no-cache, must-revalidate
-
-/assets/*
-  Cache-Control: public, max-age=31536000, immutable
 
 /icons/*
   Cache-Control: public, max-age=86400

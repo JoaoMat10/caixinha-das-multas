@@ -3,13 +3,16 @@
 ## Estado e limites
 
 Este documento descreve a ativação do frontend, Auth, secrets, Edge Function,
-primeiro Owner e smoke test. Não autoriza nem executa mutações remotas.
+primeiro Owner e smoke test. Regista também os checkpoints já executados; não
+autoriza por si só novas mutações remotas.
 
 - Supabase de produção: `showcaseprodref00001`.
 - Supabase descartável de preview/testes: `showcasetestref00001`.
-- Cloudflare Pages: ainda não criado nem ligado ao GitHub.
-- PR #8: aberto em Draft; `main` está seis commits atrás da branch
-  `feature/qualidade-seguranca-deploy`.
+- Cloudflare Pages: `caixinha-das-multas` criado e ligado exclusivamente a
+  `JoaoMat10/caixinha-das-multas`; primeiro deployment efetuado, rollout pausado após
+  falha do smoke test.
+- PR #8: integrado em `main` por squash no commit
+  `[COMMIT_SHOWCASE]`; continuação no PR Draft #9.
 - Não existem identidades Auth, objetos Storage ou dados de utilização em
   produção.
 - Não será executado `supabase/seed.sql` nem serão criadas fixtures.
@@ -56,21 +59,43 @@ fica Draft durante as operações e só será integrado depois do fecho do rollo
 8. Com autorização própria, executar o smoke test, remover todos os artefactos
    temporários e comparar o inventário final.
 
-Esta ordem evita expor o endpoint de produção enquanto o signup público estiver
-ativo. A autorização Cloudflare pode ser recolhida primeiro, mas a execução fica
-condicionada ao fecho das gates e ao bloqueio Auth inicial.
+O signup público global já está bloqueado com `disable_signup=true`; o provider
+email/password permanece ativo. A operação Cloudflare autorizada foi executada
+uma única vez; qualquer correção ou novo deployment exige novo checkpoint.
+
+### Checkpoint Cloudflare Pages de 2026-09-28
+
+- Projeto e hostname: `caixinha-das-multas` e
+  `https://caixinha-showcase.pages.dev`.
+- A GitHub App oficial ficou limitada por **Only select repositories** apenas a
+  `JoaoMat10/caixinha-das-multas`.
+- O único deployment é Production/main, ID
+  `11111111-1111-4111-8111-111111111111`, no commit completo
+  `[COMMIT_SHOWCASE]`.
+- O build usou Node 24.19.0 e `npm run verify` terminou sem falhas: 88/88
+  Vitest, 11/11 testes PostgreSQL embebidos e build `dist`.
+- `Preview branch = None`; Preview ficou sem variáveis e não existe qualquer
+  deployment Preview. Production mantém exclusivamente as quatro variáveis
+  públicas aprovadas.
+- O smoke real confirmou URL, CSP, headers, cache de HTML/assets/manifest e
+  service worker, rota profunda, manifest, página offline e ícones. Confirmou
+  ainda `disable_signup=true` e `external_email_enabled=true` por `GET` público.
+- O rollout ficou pausado porque o primeiro bundle não contém
+  `VITE_SUPABASE_URL` nem `VITE_SUPABASE_PUBLISHABLE_KEY`, deixando o frontend
+  sem autenticação, e porque `/assets/nao-existe.js` devolve `index.html` com
+  cache imutável de um ano. Não foi iniciado qualquer segundo deployment.
 
 ## Cloudflare Pages
 
-| Campo              | Valor proposto                                        |
-| ------------------ | ----------------------------------------------------- |
-| Projeto            | `caixinha-das-multas`, se o nome estiver disponível   |
-| Repositório        | `JoaoMat10/caixinha-das-multas`                            |
-| Branch de produção | `main`                                                |
-| Diretório raiz     | `/`                                                   |
-| Comando de build   | `npm run verify`                                      |
-| Output             | `dist`                                                |
-| Node               | `24.19.0`, fixado em `.node-version` e `NODE_VERSION` |
+| Campo              | Valor                                |
+| ------------------ | ------------------------------------ |
+| Projeto            | `caixinha-das-multas`                |
+| Repositório        | `JoaoMat10/caixinha-das-multas`           |
+| Branch de produção | `main`                               |
+| Diretório raiz     | `/`                                  |
+| Comando de build   | `npm run verify`                     |
+| Output             | `dist`                               |
+| Node               | `24.19.0`, fixado em `.node-version` |
 
 Variáveis públicas de produção:
 
@@ -83,8 +108,7 @@ Variáveis públicas de produção:
 chave publicável Supabase são públicas por definição; passwords, connection
 strings, tokens, chaves secretas e `service_role` nunca entram no Pages.
 
-Os previews começam desativados (`None`). Quando forem autorizados, usam apenas
-`showcasetestref00001` e a respetiva chave publicável, nunca produção. A branch
+Os previews começam desativados (`None`) e não recebem variáveis. A branch
 `main` é a única branch de produção.
 
 O fallback SPA é o mecanismo nativo do Pages: o build contém `index.html`, não
@@ -101,25 +125,27 @@ Rollback: selecionar no Pages o último deployment de produção aprovado. Um
 preview não é alvo de rollback de produção. O rollback do frontend não altera
 Supabase.
 
-Ações manuais: autenticar no Cloudflare, autorizar a aplicação GitHub apenas
-para o repositório indicado, confirmar a disponibilidade do nome, rever os
-valores públicos sem os colar no chat e confirmar o primeiro deployment.
+Ações manuais: autenticar no Cloudflare, autorizar a aplicação GitHub com
+`Only select repositories` apenas para o repositório indicado, confirmar a
+disponibilidade do nome, rever os valores públicos sem os colar no chat e
+confirmar o primeiro deployment. O detalhe atualizado de permissões, URL,
+verificações e rollback está em `docs/operacao/deploy-cloudflare-pages.md`.
 
 ## Supabase Auth
 
 Leitura dry-run de `showcaseprodref00001`, sem escrita:
 
-| Campo                      | Atual                          | Pretendido                                                    |
-| -------------------------- | ------------------------------ | ------------------------------------------------------------- |
-| Site URL                   | `http://localhost:3000`        | URL HTTPS canónica do Pages                                   |
-| Redirects                  | vazio                          | apenas a URL/rotas HTTPS estritamente necessárias             |
-| Signup global              | ativo                          | desativado                                                    |
-| Signup por email           | ativo                          | desativado                                                    |
-| Confirmação de email       | ativa                          | mantida; contas administrativas são confirmadas pelo servidor |
-| Password mínima            | 6                              | decisão pendente do checkpoint Auth; sem alteração autorizada |
-| Caracteres                 | sem requisito remoto explícito | decisão pendente do checkpoint Auth                           |
-| Alteração segura por email | desativada                     | desativada enquanto os emails técnicos forem `.invalid`       |
-| TOTP                       | ativo na plataforma            | desativado até existir fluxo testado na aplicação             |
+| Campo                                              | Estado após o checkpoint       | Resultado                                |
+| -------------------------------------------------- | ------------------------------ | ---------------------------------------- |
+| Site URL                                           | `http://localhost:3000`        | sem alteração                            |
+| Redirects                                          | vazio                          | sem alteração                            |
+| Signup global (`disable_signup`)                   | desativado                     | alterado de `false` para `true`          |
+| Provider email/password (`external_email_enabled`) | ativo                          | mantido; necessário ao login técnico     |
+| Confirmação de email                               | ativa                          | sem alteração                            |
+| Password mínima                                    | 6                              | sem alteração; decisão continua pendente |
+| Caracteres                                         | sem requisito remoto explícito | sem alteração; decisão continua pendente |
+| Alteração segura por email                         | desativada                     | sem alteração                            |
+| TOTP                                               | ativo na plataforma            | sem alteração                            |
 
 O frontend envia sempre `current_password` na mudança. Ativar um fluxo que
 envie nonce por email bloquearia utilizadores porque os emails técnicos não são
@@ -142,9 +168,82 @@ para `u-<base32>@auth.caixinha.invalid`. Consequências: não existe recuperaç�
 por email; criação e reposição são exclusivamente administrativas e server-side;
 o email técnico nunca é mostrado na UI nem escrito em auditoria.
 
-Rollback Auth: restaurar apenas os valores previamente inventariados. Desativar
-signup é uma alteração conservadora e não deve ser revertida durante um
-incidente. Alterações de sessão só são observadas no refresh seguinte.
+### Checkpoint isolado — bloqueio do signup público
+
+O alvo foi confirmado em três fontes independentes:
+
+1. o registo versionado de produção identifica `showcaseprodref00001` em
+   `docs/operacao/supabase-production-preflight.md`;
+2. `projects list` devolveu exatamente essa referência para
+   `caixinha-showcase-producao`, em `eu-central-1`, com estado
+   `ACTIVE_HEALTHY`;
+3. `config pull --project-ref showcaseprodref00001 --dry-run` devolveu a mesma
+   referência em `target.project_ref`, com `dry_run=true` e `wrote=false`.
+
+Como controlo negativo, `supabase/.temp/project-ref` continua a apontar para o
+projeto descartável `showcasetestref00001`; não existe vínculo local implícito a
+produção.
+
+O inventário read-only anterior à escrita confirmou:
+
+- signup global permitido (`disable_signup=false`) e provider email/password
+  ativo (`external_email_enabled=true`);
+- confirmação de email ativa;
+- `Site URL` em `http://localhost:3000` e lista de redirects vazia;
+- password mínima de 6 caracteres e nenhum requisito remoto explícito de
+  composição;
+- alteração segura por email desativada;
+- TOTP ativo para inscrição e verificação;
+- frequência de email de 1 minuto e OTP de email com 8 algarismos;
+- JWT de 3600 segundos, rotação de refresh token ativa e intervalo de
+  reutilização de 10 segundos, conforme o inventário anterior desta fase.
+
+A semântica foi corrigida antes da execução: `external_email_enabled` mantém o
+provider de email/password usado pelo identificador técnico da aplicação. Não é
+um interruptor adicional que possa ser desligado neste produto para bloquear o
+auto-registo. O bloqueio global é feito exclusivamente por `disable_signup`.
+
+A alteração autorizada e executada usou um único `PATCH` da Management API para
+o alvo explícito e conteve exclusivamente:
+
+```json
+{
+  "disable_signup": true
+}
+```
+
+Não será usado `config push`, porque a configuração local contém diferenças de
+Site URL, redirects, confirmação de email, alteração segura de password e TOTP
+que não estão autorizadas neste checkpoint. A credencial de gestão será obtida
+apenas de uma sessão local segura, nunca incluída no comando, Git, documentação
+ou logs.
+
+Verificação executada:
+
+1. as três fontes confirmaram `showcaseprodref00001`,
+   `caixinha-showcase-producao`, `eu-central-1` e `ACTIVE_HEALTHY`;
+2. o primeiro `GET` confirmou as precondições `disable_signup=false` e
+   `external_email_enabled=true`;
+3. o `PATCH` enviou apenas `disable_signup=true`;
+4. o segundo `GET` confirmou `disable_signup=true` e
+   `external_email_enabled=true`;
+5. a comparação canónica de todos os restantes campos Auth confirmou igualdade
+   integral antes e depois;
+6. o dry-run final devolveu `dry_run=true`, `wrote=false`, sem divergência no
+   signup global e com o provider email/password ainda ativo;
+7. a auditoria SQL read-only confirmou zero identidades Auth, zero objetos
+   Storage, apenas `captain` e `treasurer` nas tabelas de referência e zero
+   linhas nas restantes tabelas da aplicação;
+8. `supabase/.temp/project-ref` permaneceu em `showcasetestref00001`.
+
+O access token da CLI foi lido do Gestor de Credenciais apenas para
+`GET → PATCH → GET`, permaneceu em memória, não foi impresso ou persistido e foi
+removido da memória do processo imediatamente após o segundo `GET`.
+
+Reversão, apenas mediante autorização explícita: enviar um `PATCH` para o mesmo
+alvo contendo exclusivamente `{"disable_signup":false}` e repetir a mesma
+verificação read-only. A reversão nunca altera `external_email_enabled`, Site
+URL, redirects, password, confirmação de email, TOTP ou sessões.
 
 ## Edge Function `admin-users`
 
