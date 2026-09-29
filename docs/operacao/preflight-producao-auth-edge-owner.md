@@ -318,6 +318,97 @@ O bundle local está aprovado para o checkpoint seguinte:
 mantém a segunda camada: valida o utilizador Auth e exige `is_active=true` e
 presença em `app_admins` antes de criar/alterar contas.
 
+### Preflight read-only de publicação de 2026-09-29
+
+Alvo reconfirmado sem escrita:
+
+1. `docs/operacao/supabase-production-preflight.md` identifica
+   `showcaseprodref00001` como produção;
+2. `projects list` devolveu uma única correspondência com o nome
+   `caixinha-showcase-producao`, região `eu-central-1` e estado
+   `ACTIVE_HEALTHY`;
+3. `config pull --project-ref showcaseprodref00001 --dry-run` devolveu
+   `target.project_ref=showcaseprodref00001`, `dry_run=true` e `wrote=false`.
+
+Como controlo negativo, `supabase/.temp/project-ref` continua em
+`showcasetestref00001`. A listagem remota devolveu zero Edge Functions: não
+existe versão anterior de `admin-users`. O primeiro número de versão e o
+deployment ID serão atribuídos pela plataforma e só podem ser registados depois
+de uma publicação bem-sucedida; não se presume antecipadamente `version=1`.
+
+O candidato local chama-se `admin-users`, usa o entrypoint convencional
+`supabase/functions/admin-users/index.ts` e mantém
+`[functions.admin-users] verify_jwt = true`. O comando futuro não inclui
+`--no-verify-jwt`, `--prune`, `--import-map`, secrets ou qualquer opção de
+publicação em lote:
+
+```powershell
+.\node_modules\.bin\supabase.cmd functions deploy admin-users --project-ref showcaseprodref00001 --use-api --jobs 1 --output-format json
+```
+
+O deployment exige working tree limpa, branch remota sincronizada, repetição das
+três confirmações e checksums idênticos aos desta tabela. `--use-api` limita a
+operação ao bundle server-side da única função indicada, sem Docker e sem mudar o
+vínculo local.
+
+Diff exato de código face a `main`:
+
+| Estado | Ficheiro                                  | Linhas    | Alteração                                                        |
+| ------ | ----------------------------------------- | --------- | ---------------------------------------------------------------- |
+| novo   | `src/shared/rules/adminCors.ts`           | `+73`     | allowlist CORS exata, `Vary: Origin` e falha fechada             |
+| mod.   | `src/shared/rules/adminPasswordReset.ts`  | `+10/-1`  | segredo HMAC próprio com mínimo de 32 bytes                      |
+| novo   | `src/shared/rules/supabaseRuntimeKeys.ts` | `+46`     | chaves modernas `default` e remoção da secret key de Bearer      |
+| mod.   | `supabase/functions/admin-users/index.ts` | `+67/-36` | integra CORS, HMAC, runtime keys e respostas com origem validada |
+
+`src/shared/rules/username.ts` e `supabase/config.toml` entram no bundle e na
+configuração, mas não têm diff face a `main`. Os seis checksums são os registados
+na tabela anterior e foram recalculados neste preflight.
+
+Secrets necessários:
+
+- customizados, já criados e verificados no checkpoint anterior:
+  `ADMIN_ALLOWED_ORIGINS` e `ADMIN_PASSWORD_RESET_SECRET`;
+- injetados pelo runtime, sem criação ou leitura manual:
+  `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS` e `SUPABASE_SECRET_KEYS`.
+
+A CLI 2.117.0 não oferece uma projeção apenas de nomes e carrega um campo interno
+`value` ao listar secrets. Este preflight não voltou a consultar esse endpoint:
+usa o inventário 0→2 já verificado no checkpoint anterior, evitando reler ou
+expor valores. O valor CORS aprovado é exclusivamente
+`https://caixinha-showcase.pages.dev`; não existem wildcards, localhost ou
+origens de preview.
+
+Verificação posterior autorizável, sem criar dados:
+
+1. capturar o resultado sanitizado do deploy e exigir slug `admin-users`;
+2. executar `functions list` e exigir exatamente uma função, estado ativo,
+   versão positiva e `verify_jwt=true`;
+3. confirmar o endpoint
+   `https://showcaseprodref00001.supabase.co/functions/v1/admin-users`;
+4. enviar `OPTIONS` da origem canónica e exigir `204`, origem exata,
+   `Vary: Origin` e apenas `POST, OPTIONS`;
+5. enviar `OPTIONS` de uma origem não autorizada e exigir recusa sem
+   `Access-Control-Allow-Origin`;
+6. enviar `POST` sem JWT válido e exigir `401`, sem efeitos;
+7. confirmar que continuam a existir zero identidades Auth, zero perfis/Owners e
+   zero dados de utilização, e que não ocorreu qualquer alteração Cloudflare;
+8. não executar ações funcionais de Owner até ao checkpoint separado.
+
+Rollback e falhas:
+
+- se o comando falhar e `functions list` continuar vazio, parar e preservar o
+  diagnóstico; não repetir automaticamente;
+- se surgir uma função não ativa ou o smoke falhar, parar, recolher apenas
+  metadados/logs redigidos e não criar o Owner;
+- por ser a primeira publicação, não existe versão anterior para restaurar. A
+  correção preferida é um novo bundle revisto, sujeito a nova autorização;
+- restaurar a linha de base de zero funções exigiria eliminar exatamente
+  `admin-users`, uma ação destrutiva separada que nunca será executada sem nova
+  autorização explícita.
+
+Os testes dirigidos deste candidato passaram com Node 24.19.0: quatro ficheiros,
+29 testes, TypeScript e `git diff --check`.
+
 ### Checkpoint de secrets executado em 2026-09-29
 
 - O runtime Supabase já injeta `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS` e
