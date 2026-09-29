@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — frontend, URL/redirect Auth, secrets e Edge Function `admin-users` ativos; decisão de password e primeiro Owner aguardam checkpoint próprio
+- Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; primeiro login, mudança obrigatória de password e smoke autenticado aguardam checkpoint próprio
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-29
@@ -25,35 +25,36 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Decisões tomadas
 
-| Data       | Decisão                                                                                     | Justificação                                                                                         | Impacto                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                           | Nenhuma alteração é feita diretamente em `main`.                                                              |
-| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                          | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                           |
-| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.          | `.node-version` passa a definir o runtime esperado.                                                           |
-| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.         | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                    |
-| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.         | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                                |
-| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                           | O checkpoint local foi revisto antes de qualquer teste remoto.                                                |
-| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                   | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base.   |
-| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.       | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.              |
-| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado.  | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.         |
-| 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.      | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                          |
-| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.             | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.          |
-| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.              | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                        |
-| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                            | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.         |
-| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                              | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                             |
-| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                       | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.                |
-| 2026-09-24 | Bloquear o signup apenas com `disable_signup=true`.                                         | `external_email_enabled` mantém o provider de email/password necessário ao login técnico.            | O provider permanece ativo; a reversão futura repõe apenas `disable_signup=false`, após nova autorização.     |
-| 2026-09-24 | Manter previews Pages desativados e limitar a GitHub App a um repositório.                  | Previews não podem usar produção e a instalação deve minimizar o alcance no GitHub.                  | Só `main` publica; a instalação seleciona exclusivamente `JoaoMat10/caixinha-das-multas`.                          |
-| 2026-09-28 | Substituir o fallback nativo por rotas explícitas e cache gerado pós-build.                 | O smoke real provou que um asset inexistente recebia o documento SPA e cache imutável.               | `404.html` bloqueia o fallback global; só rotas conhecidas reescrevem e só assets existentes ficam imutáveis. |
-| 2026-09-28 | Tornar as variáveis públicas uma precondição do build Production/main.                      | Valores visíveis no painel não demonstram que chegaram ao processo Vite que produziu o bundle.       | A gate valida quatro variáveis sem expor a chave e não afeta desenvolvimento ou testes locais.                |
-| 2026-09-28 | Aceitar o segundo deployment apenas após merge revisto e smoke independente.                | O primeiro deployment expôs duas falhas que exigiam correção forward comprovada antes da promoção.   | O frontend publicado contém a configuração pública correta e devolve 404 seguro para assets inexistentes.     |
-| 2026-09-29 | Alterar apenas Site URL e redirects no Auth de produção.                                    | A URL canónica já foi validada e os restantes campos não pertencem a este checkpoint.                | `GET → PATCH → GET` confirmou só os dois campos autorizados; mínimo de password permanece em 6.               |
-| 2026-09-29 | Exigir CORS exato e segredo HMAC próprio na `admin-users`.                                  | A service role não deve ser reutilizada para derivação e CORS `*` deixou de ser necessário.          | A função falha fechada sem configuração, usa chaves modernas do runtime e fica pronta para revisão.           |
-| 2026-09-29 | Criar apenas os dois secrets customizados antes de publicar a função.                       | Separa configuração sensível, código e bootstrap em checkpoints reversíveis e auditáveis.            | Os valores existiram apenas em memória; a função e as identidades permaneceram inalteradas.                   |
-| 2026-09-29 | Usar uma única identidade `demo.admin` como Owner e futuro jogador.                       | Evita contas duplicadas e preserva a invisibilidade da permissão global no plantel.                  | O bootstrap exigirá `must_change_password=true`; a futura associação de jogador reutiliza o mesmo utilizador. |
-| 2026-09-29 | Publicar futuramente apenas `admin-users`, com versão atribuída pela plataforma.            | Produção ainda tem zero funções e não existe uma versão anterior que possa ser presumida ou reposta. | O deploy usará alvo explícito, `--use-api`, um job e `verify_jwt=true`, sem prune nem publicação em lote.     |
-| 2026-09-29 | Aceitar a versão 1 de `admin-users` como linha de base remota.                              | A tentativa única terminou com função ativa e o smoke sem dados passou.                              | Qualquer nova versão, correção ou eliminação requer nova autorização; o Owner continua ausente.               |
-| 2026-09-29 | Fazer o primeiro Owner por identidade manual e transação SQL estritamente verificada.       | `admin-users` exige um Owner prévio e a service role não pode sair do Supabase.                      | O painel cria a única identidade; uma transação insere perfil, Owner e auditoria sem mecanismo persistente.   |
+| Data       | Decisão                                                                                     | Justificação                                                                                         | Impacto                                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                           | Nenhuma alteração é feita diretamente em `main`.                                                                   |
+| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                          | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                                |
+| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.          | `.node-version` passa a definir o runtime esperado.                                                                |
+| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.         | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                         |
+| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.         | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                                     |
+| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                           | O checkpoint local foi revisto antes de qualquer teste remoto.                                                     |
+| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                   | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base.        |
+| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.       | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.                   |
+| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado.  | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.              |
+| 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.      | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                               |
+| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.             | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.               |
+| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.              | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                             |
+| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                            | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.              |
+| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                              | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                                  |
+| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                       | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.                     |
+| 2026-09-24 | Bloquear o signup apenas com `disable_signup=true`.                                         | `external_email_enabled` mantém o provider de email/password necessário ao login técnico.            | O provider permanece ativo; a reversão futura repõe apenas `disable_signup=false`, após nova autorização.          |
+| 2026-09-24 | Manter previews Pages desativados e limitar a GitHub App a um repositório.                  | Previews não podem usar produção e a instalação deve minimizar o alcance no GitHub.                  | Só `main` publica; a instalação seleciona exclusivamente `JoaoMat10/caixinha-das-multas`.                               |
+| 2026-09-28 | Substituir o fallback nativo por rotas explícitas e cache gerado pós-build.                 | O smoke real provou que um asset inexistente recebia o documento SPA e cache imutável.               | `404.html` bloqueia o fallback global; só rotas conhecidas reescrevem e só assets existentes ficam imutáveis.      |
+| 2026-09-28 | Tornar as variáveis públicas uma precondição do build Production/main.                      | Valores visíveis no painel não demonstram que chegaram ao processo Vite que produziu o bundle.       | A gate valida quatro variáveis sem expor a chave e não afeta desenvolvimento ou testes locais.                     |
+| 2026-09-28 | Aceitar o segundo deployment apenas após merge revisto e smoke independente.                | O primeiro deployment expôs duas falhas que exigiam correção forward comprovada antes da promoção.   | O frontend publicado contém a configuração pública correta e devolve 404 seguro para assets inexistentes.          |
+| 2026-09-29 | Alterar apenas Site URL e redirects no Auth de produção.                                    | A URL canónica já foi validada e os restantes campos não pertencem a este checkpoint.                | `GET → PATCH → GET` confirmou só os dois campos autorizados; mínimo de password permanece em 6.                    |
+| 2026-09-29 | Exigir CORS exato e segredo HMAC próprio na `admin-users`.                                  | A service role não deve ser reutilizada para derivação e CORS `*` deixou de ser necessário.          | A função falha fechada sem configuração, usa chaves modernas do runtime e fica pronta para revisão.                |
+| 2026-09-29 | Criar apenas os dois secrets customizados antes de publicar a função.                       | Separa configuração sensível, código e bootstrap em checkpoints reversíveis e auditáveis.            | Os valores existiram apenas em memória; a função e as identidades permaneceram inalteradas.                        |
+| 2026-09-29 | Usar uma única identidade `demo.admin` como Owner e futuro jogador.                       | Evita contas duplicadas e preserva a invisibilidade da permissão global no plantel.                  | O bootstrap exigirá `must_change_password=true`; a futura associação de jogador reutiliza o mesmo utilizador.      |
+| 2026-09-29 | Publicar futuramente apenas `admin-users`, com versão atribuída pela plataforma.            | Produção ainda tem zero funções e não existe uma versão anterior que possa ser presumida ou reposta. | O deploy usará alvo explícito, `--use-api`, um job e `verify_jwt=true`, sem prune nem publicação em lote.          |
+| 2026-09-29 | Aceitar a versão 1 de `admin-users` como linha de base remota.                              | A tentativa única terminou com função ativa e o smoke sem dados passou.                              | Qualquer nova versão, correção ou eliminação requer nova autorização; o Owner continuava ausente nesse checkpoint. |
+| 2026-09-29 | Fazer o primeiro Owner por identidade manual e transação SQL estritamente verificada.       | `admin-users` exige um Owner prévio e a service role não pode sair do Supabase.                      | O painel cria a única identidade; uma transação insere perfil, Owner e auditoria sem mecanismo persistente.        |
+| 2026-09-29 | Concluir o bootstrap sem iniciar sessão.                                                    | Separa a criação administrativa do primeiro acesso e mantém o alcance autorizado mínimo.             | Produção fica com uma identidade, perfil ativo, Owner e auditoria; `must_change_password=true` e zero sessões.     |
 
 ## Trabalho realizado
 
@@ -448,6 +449,30 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Este preflight não executou qualquer escrita, criação de conta, sessão, equipa,
   época, membership, multa, fotografia, alteração Auth, secret ou deployment.
 
+### Bootstrap do primeiro Owner
+
+- A única identidade Auth foi criada no painel com o email técnico determinista
+  e uma password nova introduzida diretamente pelo responsável. Nenhum valor da
+  password foi lido ou registado e não foi iniciada sessão.
+- O inventário read-only imediatamente anterior confirmou uma identidade email
+  confirmada, zero sessões/refresh tokens, zero dados públicos ou Storage, roles
+  de referência exatas, RLS e trigger de password ativos.
+- A transação foi executada uma única vez no alvo explícito
+  `showcaseprodref00001`, com advisory lock, precondições integrais e asserções
+  antes do `COMMIT`. O SQL Editor devolveu sucesso sem linhas.
+- A auditoria pós-commit confirmou 1/1/1 para identidade, perfil ativo e Owner,
+  um evento imutável `owner.bootstrap`, `must_change_password=true` e o mesmo
+  UUID nos três contratos.
+- Permanecem zero sessões, refresh tokens, equipas, épocas, memberships,
+  categorias, multas, batches, logs, pedidos administrativos e objetos Storage;
+  as referências continuam exclusivamente `captain` e `treasurer`.
+- RLS, `auth_user_password_changed`, `private.sync_password_change()` e
+  `public.get_auth_context()` permanecem ativos; as funções mantêm
+  `security definer` e `search_path` restrito.
+- Não houve erro, repetição, rollback, alteração de configuração Auth, secret,
+  função, Cloudflare ou deployment. O primeiro login e a mudança de password
+  exigem autorização própria.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -541,6 +566,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Preflight read-only da Edge Function                 | passou    | Alvo, zero funções, diff, checksums, JWT, CORS, comando, verificação e rollback confirmados.     |
 | Publicação da Edge Function                          | passou    | Tentativa única; versão 1 ativa, JWT preservado, CORS validado e auditoria final com zero dados. |
 | Preflight read-only do primeiro Owner                | passou    | Três fontes, inventário vazio, identidade, transação, auditoria e rollback dirigido definidos.   |
+| Bootstrap do primeiro Owner                          | passou    | Execução única; 1 Auth, 1 perfil ativo, 1 Owner, 1 auditoria e zero sessões ou dados de domínio. |
 
 ## Desvios ao planeamento
 
@@ -556,14 +582,14 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Riscos e limitações
 
-- Elevado: o projeto Supabase de produção tem schema, políticas, configuração
-  Auth mínima, secrets e Edge Function publicada, mas ainda não tem Owner; o
-  projeto descartável nunca pode ser promovido.
-- Baixo: o frontend e a Edge Function estão publicados; o login só ficará
-  operacional depois de criar o primeiro Owner.
+- Baixo: o projeto Supabase de produção tem schema, políticas, configuração
+  Auth mínima, secrets, Edge Function e primeiro Owner; o projeto descartável
+  nunca pode ser promovido.
+- Baixo: o frontend, a Edge Function e o primeiro Owner estão ativos; o primeiro
+  login e a mudança obrigatória de password ainda não foram executados.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
 - Baixo: a Edge Function está ativa na versão 1 com JWT e CORS validados; o smoke
-  funcional autenticado permanece dependente do primeiro Owner.
+  funcional autenticado permanece dependente do primeiro login autorizado.
 - Baixo: `main` contém o squash do PR #9 em `[COMMIT_SHOWCASE]`; a continuação operacional permanece isolada numa nova branch.
 - Baixo: o signup Auth global está bloqueado; o provider email/password permanece deliberadamente ativo para o login por username técnico.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
@@ -595,7 +621,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [ ] Decidir a política final de password; o mínimo permanece em 6.
 - [x] Guardar exclusivamente os dois secrets customizados após autorização própria.
 - [x] Publicar exclusivamente a Edge Function após autorização própria e validar sem dados.
-- [ ] Criar o primeiro Owner apenas após autorização independente adicional.
+- [x] Criar o primeiro Owner após autorização independente, sem iniciar sessão.
+- [ ] Executar o primeiro login, a mudança obrigatória de password e o smoke
+      autenticado apenas após nova autorização.
 - [x] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment autorizado.
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
 - [x] Remover CORS `*`, separar o segredo HMAC da chave elevada e recalcular o checksum do bundle antes de autorizar a Edge Function.

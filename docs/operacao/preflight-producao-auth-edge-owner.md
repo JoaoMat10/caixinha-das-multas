@@ -14,12 +14,13 @@ autoriza por si só novas mutações remotas.
 - PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9
   integrado em `[COMMIT_SHOWCASE]`; continuação em
   `feature/ativacao-producao-final`.
-- Não existem identidades Auth, objetos Storage ou dados de utilização em
-  produção.
+- Produção contém exatamente uma identidade Auth, o perfil ativo
+  `demo.admin`, uma atribuição Owner e o evento `owner.bootstrap`; não existem
+  sessões, objetos Storage ou dados de utilização.
 - Existem exclusivamente os secrets customizados `ADMIN_ALLOWED_ORIGINS` e
   `ADMIN_PASSWORD_RESET_SECRET`; os respetivos valores não são registados.
 - A Edge Function `admin-users` está publicada na versão 1, ativa e com
-  `verify_jwt=true`; ainda não existem identidades ou Owner.
+  `verify_jwt=true`; o primeiro Owner foi criado, mas ainda não iniciou sessão.
 - Não será executado `supabase/seed.sql` nem serão criadas fixtures.
 
 ## Gates obrigatórias
@@ -28,7 +29,7 @@ autoriza por si só novas mutações remotas.
    smoke independente aprovado.
 2. Gate concluída localmente: CORS `*` foi substituído por uma allowlist exata,
    o HMAC foi separado da chave elevada e os checksums foram recalculados.
-3. Decidir a política de password antes do primeiro Owner. O mínimo permanece em
+3. A política de password não foi alterada no bootstrap. O mínimo permanece em
    seis caracteres até existir decisão explícita; uma mudança para 12 exige
    primeiro alinhar o frontend e autorizar novo deployment.
 4. Nenhuma etapa consome automaticamente a autorização da etapa seguinte.
@@ -59,10 +60,11 @@ será integrado depois do fecho do rollout.
 4. Concluído: guardados os dois secrets customizados da Edge Function, sem
    publicar código.
 5. Concluído: publicada `admin-users` com JWT e CORS restritos e smoke sem dados.
-6. Com autorização própria, executar o bootstrap transacional do primeiro
-   Owner e obrigar à troca imediata da password.
-7. Com autorização própria, executar o smoke test, remover todos os artefactos
-   temporários e comparar o inventário final.
+6. Concluído: executado o bootstrap transacional do primeiro Owner, mantendo
+   `must_change_password=true` e zero sessões.
+7. Com autorização própria, executar o primeiro login, a mudança obrigatória de
+   password e o smoke test, removendo todos os artefactos temporários e
+   comparando o inventário final.
 
 O signup público global já está bloqueado com `disable_signup=true`; o provider
 email/password permanece ativo. O rollout Cloudflare do frontend está concluído;
@@ -636,6 +638,51 @@ recuperação por email é possível para o endereço técnico.
   bootstrap. Qualquer estado parcial é inventariado e apresentado antes de uma
   decisão.
 
+### Checkpoint executado em 2026-09-29
+
+O formulário do painel criou uma única identidade Auth para o email técnico já
+definido, com confirmação administrativa. Foi usada uma password nova
+introduzida diretamente no painel; o valor não foi lido, exibido, registado ou
+persistido na documentação e não foi iniciada qualquer sessão.
+
+Antes da transação, o inventário read-only confirmou exatamente:
+
+- uma linha em `auth.users` e uma identidade do provider `email`, ambas para o
+  email técnico esperado e com confirmação ativa;
+- zero sessões e zero refresh tokens;
+- zero perfis, Owners, auditoria, pedidos administrativos, dados de domínio e
+  objetos Storage;
+- apenas `captain` e `treasurer` em `public.roles`;
+- RLS ativo em `users`, `app_admins` e `audit_events`, e o trigger de mudança de
+  password ativo.
+
+Foi executada uma única vez a transação autorizada, com advisory lock,
+precondições repetidas e asserções antes do `COMMIT`. O SQL Editor devolveu
+sucesso sem linhas. Não houve repetição, erro ou rollback.
+
+A auditoria read-only pós-commit confirmou:
+
+| Verificação                                 | Resultado                                     |
+| ------------------------------------------- | --------------------------------------------- |
+| `auth.users` / `auth.identities`            | 1 / 1, identidade email confirmada            |
+| Sessões / refresh tokens                    | 0 / 0                                         |
+| `public.users`                              | 1, `Administrador Demo`, ativo e sem avatar           |
+| `must_change_password`                      | `true`                                        |
+| `public.app_admins`                         | 1, para o mesmo UUID do perfil e Auth         |
+| `public.audit_events`                       | 1, evento exato `owner.bootstrap`             |
+| Metadata de auditoria                       | sem email ou password                         |
+| Equipas, épocas e memberships               | 0                                             |
+| Categorias, multas, batches e logs          | 0                                             |
+| Pedidos administrativos                     | 0                                             |
+| Objetos Storage                             | 0                                             |
+| Roles de referência                         | apenas `captain` e `treasurer`                |
+| RLS e trigger de password                   | ativos                                        |
+| `sync_password_change` / `get_auth_context` | `security definer` com `search_path` restrito |
+
+O checkpoint terminou sem login. O primeiro acesso, criação de sessão, mudança
+de password, equipa, época, membership, fotografia e dados financeiros
+continuam fora desta autorização.
+
 ## Verificação, dados temporários e limpeza
 
 Inventário antes de cada mutação:
@@ -664,7 +711,8 @@ em `finally` e verificada por caminho e contagem. Não serão criadas contas de
 smoke test, dados financeiros ou fixtures. Se a limpeza falhar, o processo para,
 preserva IDs, timestamps e respostas sem credenciais, e não avança.
 
-Inventário final esperado: um Auth user, um `public.users`, um
-`public.app_admins`, auditoria de bootstrap e mudança de password; zero objetos
-Storage; apenas `captain` e `treasurer` nas referências; restantes tabelas sem
-dados de utilização.
+Inventário atual: um Auth user, um `public.users`, um `public.app_admins` e a
+auditoria de bootstrap; zero sessões e objetos Storage; apenas `captain` e
+`treasurer` nas referências; restantes tabelas sem dados de utilização. A
+mudança futura passará `must_change_password` para `false`; o trigger não cria
+um novo evento em `public.audit_events`.
