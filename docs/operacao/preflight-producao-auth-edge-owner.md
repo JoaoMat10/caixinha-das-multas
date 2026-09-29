@@ -492,52 +492,149 @@ automático.
 
 ## Primeiro Owner
 
-Decisão aprovada para o checkpoint futuro:
+### Preflight read-only de bootstrap de 2026-09-29
 
-- produção começa com uma única identidade Auth, de username `demo.admin`;
-- a mesma identidade recebe acesso global de Owner e será posteriormente
-  associada como jogador a uma equipa, sem criar uma segunda conta;
-- a qualidade de Owner permanece privada e não é apresentada aos restantes
-  membros; quando integrar um plantel, aparece apenas com o perfil desse plantel;
-- a password inicial só será fornecida no momento autorizado da criação e nunca
-  será guardada em documentação, commits, logs ou ficheiros versionados;
-- `must_change_password=true` é obrigatório desde o bootstrap até à alteração da
-  password no primeiro acesso;
-- não serão criadas contas, fixtures ou dados adicionais neste checkpoint.
+O alvo foi reconfirmado sem escrita em três fontes independentes:
 
-Dados mínimos: username `demo.admin`, nome apresentado ainda a confirmar no
-checkpoint, password temporária fornecida nesse momento e guardada pelo
-responsável no gestor de passwords, e o UUID Auth criado pelo Supabase.
-Passwords e tokens nunca são transmitidos no chat.
+1. `docs/operacao/supabase-production-preflight.md` identifica
+   `showcaseprodref00001` como produção;
+2. `projects list` devolveu exatamente essa referência para
+   `caixinha-showcase-producao`, região `eu-central-1`, estado
+   `ACTIVE_HEALTHY`;
+3. `config pull --project-ref showcaseprodref00001 --dry-run` devolveu
+   `target.project_ref=showcaseprodref00001`, `dry_run=true` e `wrote=false`.
 
-Procedimento:
+Como controlo negativo, `supabase/.temp/project-ref` continua em
+`showcasetestref00001`; nenhum comando futuro pode usar `--linked`.
 
-1. Confirmar zero `auth.users`, `public.users`, `public.app_admins` e
-   `public.audit_events`.
-2. Criar manualmente no painel a única identidade Auth, para `demo.admin`, com
-   o email técnico calculado localmente, password temporária forte fornecida no
-   momento autorizado e email marcado como confirmado.
-3. Capturar apenas o UUID. Se qualquer passo seguinte falhar, parar; a única
-   limpeza admissível é eliminar essa identidade exata após autorização.
-4. Executar no SQL Editor uma única transação que obtém advisory lock, exige
-   zero Owners e uma única identidade Auth correspondente, insere
-   `public.users` com `must_change_password=true`, `is_active=true` e
-   `created_by` igual ao próprio UUID, insere `public.app_admins` e regista
-   `owner.bootstrap` em `public.audit_events`.
-5. Não criar função, token, policy ou conta de bootstrap persistente. O bloco
-   SQL é descartável e deixa apenas as três linhas de negócio/auditoria.
-6. Iniciar sessão na aplicação. O route guard permite apenas a página de troca
-   de password; o Owner fornece a password atual e uma nova password. O trigger
-   `private.sync_password_change` muda `must_change_password` para `false`.
-7. Invalidar e remover do gestor a password temporária; confirmar que deixa de
-   autenticar e que apenas a nova password funciona.
-8. Numa autorização posterior e separada, associar esta mesma `public.users` ao
-   plantel como jogador; nunca criar outra identidade para essa participação.
+O inventário read-only confirmou:
+
+| Objeto                             |           Estado atual |   Estado após o bootstrap |
+| ---------------------------------- | ---------------------: | ------------------------: |
+| `auth.users`                       |                      0 |                         1 |
+| `auth.identities`                  |                      0 |       1, provider `email` |
+| `public.users`                     |                      0 |                  1, ativo |
+| `public.app_admins`                |                      0 |      1, para o mesmo UUID |
+| `public.audit_events`              |                      0 | 1, ação `owner.bootstrap` |
+| Equipas, épocas e memberships      |                      0 |                         0 |
+| Categorias, multas, batches e logs |                      0 |                         0 |
+| Pedidos administrativos            |                      0 |                         0 |
+| Objetos Storage                    |                      0 |                         0 |
+| `public.roles`                     | `captain`, `treasurer` |                inalterado |
+
+O trigger `auth_user_password_changed` está ativo e chama
+`private.sync_password_change()`. A função é `security definer`, usa
+`search_path=''` e só muda `must_change_password` para `false` quando a password
+da identidade é efetivamente alterada. `public.users`, `public.app_admins` e
+`public.audit_events` mantêm RLS ativo; `get_auth_context()` usa igualmente
+`security definer` e `search_path=''`.
+
+### Identidade e campos necessários
+
+| Campo                | Valor/estado                                                      |
+| -------------------- | ----------------------------------------------------------------- |
+| Projeto              | `showcaseprodref00001`                                            |
+| Username             | `demo.admin`                                                    |
+| Username normalizado | `demo.admin`                                                    |
+| Email técnico Auth   | `u-mrsw23zomfsg22lo@auth.caixinha.invalid`                    |
+| Nome apresentado     | **a indicar antes da escrita**                                    |
+| Password inicial     | **a criar no gestor de passwords no momento autorizado**          |
+| UUID                 | gerado pelo Supabase Auth e reutilizado nas duas tabelas públicas |
+| Email confirmado     | `true`; o endereço técnico não recebe correio                     |
+| Perfil ativo         | `is_active=true`                                                  |
+| Troca obrigatória    | `must_change_password=true`                                       |
+| Avatar               | `null`                                                            |
+| Criado por           | o próprio UUID, apenas para este bootstrap inicial                |
+
+A configuração Auth mantém o mínimo global de 6 caracteres e nenhum requisito
+remoto explícito de composição. O frontend exige pelo menos 6 caracteres, uma
+minúscula, uma maiúscula e um algarismo. Este checkpoint não altera essas
+regras. Para a credencial inicial recomenda-se uma password aleatória com pelo
+menos 16 caracteres que cumpra a validação do frontend.
+
+### Mecanismo de bootstrap
+
+O bootstrap será executado em duas partes deliberadamente limitadas, sem usar a
+Edge Function — a função exige um Owner já existente — e sem levar a service
+role para o frontend ou para a máquina local:
+
+1. Repetir as três confirmações do alvo e o inventário completo imediatamente
+   antes da primeira escrita. Abortar perante qualquer divergência.
+2. No painel Supabase do projeto exato, em **Authentication → Users**, criar uma
+   única identidade com o email técnico indicado, a password introduzida
+   diretamente pelo responsável e email confirmado. Não enviar convite, não
+   adicionar metadata e não iniciar sessão.
+3. Ler apenas o UUID criado e confirmar `auth.users=1`, `auth.identities=1`,
+   provider `email`, email técnico exato, identidade confirmada, não anónima,
+   não banida e não eliminada. Todas as tabelas públicas continuam vazias.
+4. No SQL Editor do mesmo projeto, executar um único bloco transacional. O bloco
+   obtém `pg_advisory_xact_lock` com uma chave fixa de bootstrap, volta a exigir
+   o inventário exato e recusa UUID, username, email ou nome apresentado
+   divergentes.
+5. Na mesma transação, inserir exatamente:
+   - `public.users`: o UUID Auth, username e normalização exatos, nome
+     apresentado, `avatar_path=null`, `must_change_password=true`,
+     `is_active=true` e `created_by` igual ao próprio UUID;
+   - `public.app_admins`: uma linha para o mesmo UUID;
+   - `public.audit_events`: ação `owner.bootstrap`, entidade `user`, o mesmo UUID
+     e metadata mínima sem email ou password.
+6. Ainda antes do `COMMIT`, afirmar contagens, correspondência dos três UUIDs,
+   flags do perfil, única ação de auditoria, duas roles de referência, zero
+   equipas, épocas, memberships, dados financeiros, pedidos administrativos e
+   objetos Storage. Qualquer falha lança exceção e reverte a transação inteira.
+7. Após o `COMMIT`, executar apenas a mesma auditoria read-only. O resultado do
+   checkpoint fica com uma identidade, um perfil ativo e um Owner;
+   `must_change_password` permanece `true` e não existe sessão iniciada.
+
+O bloco não cria funções, policies, triggers, roles, secrets, tokens, tabelas ou
+um mecanismo persistente de bootstrap. Não usa `seed.sql`, não cria equipa,
+época, membership, multa, fotografia ou uma segunda conta.
+
+### Primeiro acesso e privacidade do Owner
+
+O primeiro login será um checkpoint posterior. A aplicação transforma
+`demo.admin` no email técnico, autentica por password e obtém um contexto com
+`isAppAdmin=true`, `memberships=[]` e `mustChangePassword=true`. O route guard
+permite apenas `/alterar-password-obrigatoria` até a password ser alterada com a
+password atual. O trigger seguro passa então `must_change_password` para
+`false`.
+
+`app_admins` não é devolvida na listagem administrativa nem apresentada a
+outros membros. A futura associação como jogador reutilizará este UUID e será
+autorizada separadamente, depois de existirem equipa e época.
 
 Não existe caminho público ou de utilizador comum para criar um segundo Owner.
-As policies atuais permitem alteração de `app_admins` apenas a um Owner ativo;
-a UI e a Edge Function não expõem promoção a Owner. Uma alteração que exija
-dupla aprovação de Owners necessitaria de nova migração, fora deste rollout.
+As policies só permitem gerir `app_admins` a um Owner ativo e nem a UI nem
+`admin-users` expõem promoção a Owner. Acesso direto privilegiado à base de
+dados continuaria tecnicamente capaz de o fazer e permanece sujeito a uma nova
+autorização operacional.
+
+### Password sem exposição
+
+O responsável deve gerar e guardar a password inicial no seu gestor de
+passwords e introduzi-la diretamente no campo do painel. A password não será
+pedida no chat, terminal ou SQL Editor, nem copiada para documentação, commits,
+ficheiros, variáveis de ambiente ou logs. Depois da troca no primeiro acesso, a
+entrada temporária deve ser substituída pela nova credencial no gestor; nenhuma
+recuperação por email é possível para o endereço técnico.
+
+### Rollback dirigido
+
+- Se a criação Auth falhar, não existe alteração a reverter.
+- Se a identidade for criada mas o bloco SQL não chegar a `COMMIT`, a transação
+  deixa zero linhas públicas. O processo para e conserva apenas UUID e
+  timestamp; eliminar essa identidade exata no painel exige nova autorização.
+- Uma falha dentro do bloco SQL provoca `ROLLBACK` integral automático.
+- Depois do `COMMIT`, o evento `owner.bootstrap` é imutável e referencia o
+  perfil; uma eliminação integral exigiria enfraquecer temporariamente triggers
+  e FKs e não faz parte deste procedimento. O rollback seguro pós-commit é uma
+  compensação com nova autorização: registar `owner.bootstrap_revoked`, remover
+  apenas a linha `app_admins`, marcar o perfil inativo, revogar sessões e banir
+  a identidade Auth exata. Preserva-se assim a auditoria e elimina-se o acesso,
+  mas não se regressa artificialmente a zero linhas.
+- Nunca executar limpeza automática, apagar outra identidade ou repetir o
+  bootstrap. Qualquer estado parcial é inventariado e apresentado antes de uma
+  decisão.
 
 ## Verificação, dados temporários e limpeza
 

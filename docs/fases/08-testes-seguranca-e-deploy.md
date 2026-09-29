@@ -53,6 +53,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-29 | Usar uma única identidade `demo.admin` como Owner e futuro jogador.                       | Evita contas duplicadas e preserva a invisibilidade da permissão global no plantel.                  | O bootstrap exigirá `must_change_password=true`; a futura associação de jogador reutiliza o mesmo utilizador. |
 | 2026-09-29 | Publicar futuramente apenas `admin-users`, com versão atribuída pela plataforma.            | Produção ainda tem zero funções e não existe uma versão anterior que possa ser presumida ou reposta. | O deploy usará alvo explícito, `--use-api`, um job e `verify_jwt=true`, sem prune nem publicação em lote.     |
 | 2026-09-29 | Aceitar a versão 1 de `admin-users` como linha de base remota.                              | A tentativa única terminou com função ativa e o smoke sem dados passou.                              | Qualquer nova versão, correção ou eliminação requer nova autorização; o Owner continua ausente.               |
+| 2026-09-29 | Fazer o primeiro Owner por identidade manual e transação SQL estritamente verificada.       | `admin-users` exige um Owner prévio e a service role não pode sair do Supabase.                      | O painel cria a única identidade; uma transação insere perfil, Owner e auditoria sem mecanismo persistente.   |
 
 ## Trabalho realizado
 
@@ -419,6 +420,34 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Não foram alterados Cloudflare, Auth, secrets, schema ou dados e não foi criado
   o Owner. A versão 1 é agora a linha de base; não foi executado rollback.
 
+### Preflight read-only do primeiro Owner
+
+- O alvo foi confirmado pelo registo versionado, por `projects list` e por
+  `config pull --project-ref showcaseprodref00001 --dry-run`; as três fontes
+  devolveram `showcaseprodref00001`. O vínculo local permaneceu no projeto de
+  testes `showcasetestref00001`.
+- O inventário confirmou zero `auth.users`, `auth.identities`, perfis, Owners,
+  auditoria, dados de utilização e objetos Storage; as únicas referências são
+  `captain` e `treasurer`.
+- O email técnico determinista de `demo.admin` é
+  `u-mrsw23zomfsg22lo@auth.caixinha.invalid`. Falta apenas confirmar o nome
+  apresentado e preparar a password inicial fora do chat, no gestor de
+  passwords.
+- O mecanismo definido cria manualmente uma única identidade confirmada no
+  painel e executa depois um bloco SQL transacional com advisory lock,
+  precondições exatas, `public.users`, `public.app_admins`, auditoria
+  `owner.bootstrap` e asserções antes do `COMMIT`.
+- O perfil começa ativo, sem avatar, membership ou dados de domínio e com
+  `must_change_password=true`. A futura associação como jogador reutilizará o
+  mesmo UUID e terá checkpoint separado.
+- O trigger de password, RLS e funções de contexto continuam ativos e com
+  `search_path` restrito. A UI e a Edge Function não expõem promoção a Owner.
+- O rollback anterior ao `COMMIT` é integral. Após o `COMMIT`, a auditoria
+  imutável impede uma eliminação silenciosa; uma reversão autorizada desativa e
+  bane a identidade, remove `app_admins` e preserva um evento compensatório.
+- Este preflight não executou qualquer escrita, criação de conta, sessão, equipa,
+  época, membership, multa, fotografia, alteração Auth, secret ou deployment.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -511,6 +540,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Secrets customizados da Edge Function                | passou    | Três fontes; inventário 0→2; apenas os dois nomes autorizados; sem publish ou identidades.       |
 | Preflight read-only da Edge Function                 | passou    | Alvo, zero funções, diff, checksums, JWT, CORS, comando, verificação e rollback confirmados.     |
 | Publicação da Edge Function                          | passou    | Tentativa única; versão 1 ativa, JWT preservado, CORS validado e auditoria final com zero dados. |
+| Preflight read-only do primeiro Owner                | passou    | Três fontes, inventário vazio, identidade, transação, auditoria e rollback dirigido definidos.   |
 
 ## Desvios ao planeamento
 
