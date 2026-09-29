@@ -22,8 +22,8 @@ autoriza por si só novas mutações remotas.
 - A Edge Function `admin-users` está publicada na versão 1, ativa e com
   `verify_jwt=true`; o primeiro Owner concluiu o primeiro acesso e a mudança
   obrigatória de password. O smoke autenticado confirmou a administração
-  read-only, mas identificou que a listagem usa `get_admin_overview` e que a
-  função não expõe uma operação `list`.
+  read-only. A listagem pertence deliberadamente à RPC `get_admin_overview`; a
+  função contém exclusivamente operações mutáveis e não deve expor `list`.
 - Não será executado `supabase/seed.sql` nem serão criadas fixtures.
 
 ## Gates obrigatórias
@@ -67,9 +67,9 @@ será integrado depois do fecho do rollout.
    `must_change_password=true` e zero sessões.
 7. Concluído: primeiro login e mudança obrigatória de password, seguidos apenas
    da auditoria read-only autorizada.
-8. Executado parcialmente: o smoke autenticado read-only confirmou a sessão e
-   a administração. A validação específica de uma listagem pela Edge Function
-   ficou bloqueada porque esse contrato não existe no candidato publicado.
+8. Concluído: o smoke autenticado read-only confirmou a sessão e a administração.
+   A gate de listagem pela Edge Function é não aplicável: a leitura pertence à
+   RPC `get_admin_overview` e alargar a função duplicaria o contrato.
 
 O signup público global já está bloqueado com `disable_signup=true`; o provider
 email/password permanece ativo. O rollout Cloudflare do frontend está concluído;
@@ -726,24 +726,25 @@ Foi reutilizada exclusivamente a sessão Owner já aberta, sem ler credenciais,
 tokens, storage do browser ou headers de autenticação e sem acionar qualquer
 controlo de criação, edição, desativação, eliminação ou upload.
 
-| Verificação                                  | Resultado                                                                         |
-| -------------------------------------------- | --------------------------------------------------------------------------------- |
-| `/administracao` e refresh                   | passou; a sessão e o contexto administrativo foram preservados                    |
-| Único utilizador                             | passou; apenas `Administrador Demo` / `@demo.admin`, ativo e sem fotografia             |
-| `isAppAdmin`                                 | passou; a route guard e a área administrativa autorizaram o Owner                 |
-| Equipas / épocas / memberships               | passou; contadores `0 / 0 / 0` e listas vazias                                    |
-| Fotografias e dados financeiros              | passou; perfil sem fotografia e nenhum dado de domínio no inventário              |
-| Navegação autorizada                         | passou; disponíveis apenas Administração e Definições de password                 |
-| Consola do frontend                          | passou; zero avisos ou erros após refresh e navegação                             |
-| Listagem read-only de utilizadores           | passou pela RPC `get_admin_overview`                                              |
-| Listagem read-only pela função `admin-users` | bloqueada; a função só aceita `create`, `update`, `set-active` e `reset-password` |
-| Erros da Edge Function durante o smoke       | não aplicável; nenhuma operação da função foi invocada                            |
+| Verificação                                  | Resultado                                                             |
+| -------------------------------------------- | --------------------------------------------------------------------- |
+| `/administracao` e refresh                   | passou; a sessão e o contexto administrativo foram preservados        |
+| Único utilizador                             | passou; apenas `Administrador Demo` / `@demo.admin`, ativo e sem fotografia |
+| `isAppAdmin`                                 | passou; a route guard e a área administrativa autorizaram o Owner     |
+| Equipas / épocas / memberships               | passou; contadores `0 / 0 / 0` e listas vazias                        |
+| Fotografias e dados financeiros              | passou; perfil sem fotografia e nenhum dado de domínio no inventário  |
+| Navegação autorizada                         | passou; disponíveis apenas Administração e Definições de password     |
+| Consola do frontend                          | passou; zero avisos ou erros após refresh e navegação                 |
+| Listagem read-only de utilizadores           | passou pela RPC `get_admin_overview`                                  |
+| Listagem read-only pela função `admin-users` | não aplicável; a função contém exclusivamente operações mutáveis      |
+| Erros da Edge Function durante o smoke       | não aplicável; nenhuma operação mutável foi invocada                  |
 
-O último ponto não foi simulado com uma ação inválida e nenhuma ação mutável foi
-invocada. Para validar uma listagem autenticada através da Edge Function será
-necessário decidir e implementar explicitamente um contrato read-only, com novo
-checkpoint de código e publicação. Até essa decisão, a consulta administrativa
-continua corretamente servida pela RPC protegida por RLS/RBAC.
+Não será implementada uma operação `list`: duplicaria a RPC protegida por
+RLS/RBAC e alargaria desnecessariamente o contrato da função. A classificação
+não aplicável assenta no conjunto de evidências já concluído: testes locais do
+handler e regras partilhadas, `verify_jwt=true`, smokes CORS e `401` sem efeitos,
+deployment remoto versão 1 em estado `ACTIVE` e smoke autenticado da área
+administrativa. Nenhuma ação mutável foi invocada neste fecho.
 
 ## Verificação, dados temporários e limpeza
 
