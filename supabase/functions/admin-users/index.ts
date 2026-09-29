@@ -3,21 +3,29 @@ import {
   isValidUsername,
   usernameToTechnicalEmail,
 } from '../../../src/shared/rules/username.ts';
-import { executeAdminPasswordReset } from '../../../src/shared/rules/adminPasswordReset.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Headers':
-    'authorization, apikey, content-type, x-client-info',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Origin': '*',
-};
+import {
+  executeAdminPasswordReset,
+  isValidAdminPasswordResetSecret,
+} from '../../../src/shared/rules/adminPasswordReset.ts';
+import {
+  adminCorsBaseHeaders,
+  resolveAdminCors,
+} from '../../../src/shared/rules/adminCors.ts';
+import {
+  createSupabaseSecretKeyFetch,
+  resolveSupabaseRuntimeKeys,
+} from '../../../src/shared/rules/supabaseRuntimeKeys.ts';
 
 type JsonRecord = Record<string, unknown>;
 
-function jsonResponse(status: number, body: JsonRecord) {
+function jsonResponse(
+  status: number,
+  body: JsonRecord,
+  headers: Record<string, string> = adminCorsBaseHeaders,
+) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...headers, 'Content-Type': 'application/json' },
   });
 }
 
@@ -50,37 +58,61 @@ function temporaryPassword() {
 }
 
 Deno.serve(async (request) => {
+  const cors = resolveAdminCors(
+    request.headers.get('Origin'),
+    Deno.env.get('ADMIN_ALLOWED_ORIGINS'),
+  );
+  if (cors.status === 'unavailable')
+    return jsonResponse(503, {
+      error: 'Serviço administrativo indisponível.',
+    });
+  if (cors.status === 'forbidden')
+    return jsonResponse(403, { error: 'Origem não autorizada.' });
+
+  const corsHeaders = cors.headers;
+  const respond = (status: number, body: JsonRecord) =>
+    jsonResponse(status, body, corsHeaders);
+
   if (request.method === 'OPTIONS')
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   if (request.method !== 'POST')
-    return jsonResponse(405, { error: 'Método não permitido.' });
+    return respond(405, { error: 'Método não permitido.' });
 
   try {
     const authorization = request.headers.get('Authorization');
     const token = authorization?.replace(/^Bearer\s+/i, '');
-    if (!token)
-      return jsonResponse(401, { error: 'Autenticação obrigatória.' });
+    if (!token) return respond(401, { error: 'Autenticação obrigatória.' });
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const publishableKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!supabaseUrl || !publishableKey || !serviceRoleKey) {
-      return jsonResponse(503, {
+    const runtimeKeys = resolveSupabaseRuntimeKeys(
+      Deno.env.get('SUPABASE_PUBLISHABLE_KEYS'),
+      Deno.env.get('SUPABASE_SECRET_KEYS'),
+    );
+    const passwordResetSecret = Deno.env.get('ADMIN_PASSWORD_RESET_SECRET');
+    if (
+      !supabaseUrl ||
+      !runtimeKeys ||
+      !isValidAdminPasswordResetSecret(passwordResetSecret)
+    ) {
+      return respond(503, {
         error: 'Serviço administrativo indisponível.',
       });
     }
 
-    const callerClient = createClient(supabaseUrl, publishableKey, {
+    const callerClient = createClient(supabaseUrl, runtimeKeys.publishableKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false },
     });
     const { data: callerData, error: callerError } =
       await callerClient.auth.getUser(token);
     if (callerError || !callerData.user) {
-      return jsonResponse(401, { error: 'Sessão inválida.' });
+      return respond(401, { error: 'Sessão inválida.' });
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    const adminClient = createClient(supabaseUrl, runtimeKeys.secretKey, {
+      global: {
+        fetch: createSupabaseSecretKeyFetch(runtimeKeys.secretKey),
+      },
       auth: { autoRefreshToken: false, persistSession: false },
     });
     const actorId = callerData.user.id;
@@ -91,7 +123,7 @@ Deno.serve(async (request) => {
       .eq('is_active', true)
       .maybeSingle();
     if (actorError || !actor)
-      return jsonResponse(403, { error: 'Operação não autorizada.' });
+      return respond(403, { error: 'Operação não autorizada.' });
 
     const body = (await request.json()) as JsonRecord;
     const action = requiredString(body, 'action', 32);
@@ -101,15 +133,14 @@ Deno.serve(async (request) => {
       const displayName = requiredString(body, 'displayName', 120);
       const idempotencyKey = requiredUuid(body, 'idempotencyKey');
       if (!isValidUsername(username))
-        return jsonResponse(400, { error: 'Username inválido.' });
+        return respond(400, { error: 'Username inválido.' });
 
       const { data: existing, error: lookupError } = await adminClient.rpc(
         'get_admin_user_creation',
         { p_actor_user_id: actorId, p_idempotency_key: idempotencyKey },
       );
       if (lookupError) throw lookupError;
-      if (existing)
-        return jsonResponse(200, { user: existing, replayed: true });
+      if (existing) return respond(200, { user: existing, replayed: true });
 
       const password = temporaryPassword();
       const { data: created, error: createError } =
@@ -135,7 +166,7 @@ Deno.serve(async (request) => {
         await adminClient.auth.admin.deleteUser(created.user.id);
         throw profileError;
       }
-      return jsonResponse(201, {
+      return respond(201, {
         user: profile,
         temporaryPassword: password,
         replayed: false,
@@ -150,13 +181,13 @@ Deno.serve(async (request) => {
         .eq('id', userId)
         .single();
     if (profileLookupError || !currentProfile)
-      return jsonResponse(404, { error: 'Utilizador não encontrado.' });
+      return respond(404, { error: 'Utilizador não encontrado.' });
 
     if (action === 'update') {
       const username = requiredString(body, 'username', 32);
       const displayName = requiredString(body, 'displayName', 120);
       if (!isValidUsername(username))
-        return jsonResponse(400, { error: 'Username inválido.' });
+        return respond(400, { error: 'Username inválido.' });
 
       const previousEmail = usernameToTechnicalEmail(currentProfile.username);
       const nextEmail = usernameToTechnicalEmail(username);
@@ -186,15 +217,15 @@ Deno.serve(async (request) => {
         }
         throw updateError;
       }
-      return jsonResponse(200, { user: profile });
+      return respond(200, { user: profile });
     }
 
     if (action === 'set-active') {
       if (typeof body.isActive !== 'boolean')
-        return jsonResponse(400, { error: 'Estado inválido.' });
+        return respond(400, { error: 'Estado inválido.' });
       const isActive = body.isActive;
       if (userId === actorId && !isActive) {
-        return jsonResponse(400, {
+        return respond(400, {
           error: 'O Owner não pode desativar a própria conta.',
         });
       }
@@ -218,7 +249,7 @@ Deno.serve(async (request) => {
         });
         throw activeError;
       }
-      return jsonResponse(200, { user: profile });
+      return respond(200, { user: profile });
     }
 
     if (action === 'reset-password') {
@@ -227,7 +258,7 @@ Deno.serve(async (request) => {
       const reset = await executeAdminPasswordReset(
         { actorUserId: actorId, userId, idempotencyKey },
         {
-          secret: serviceRoleKey,
+          secret: passwordResetSecret,
           prepare: async () => {
             const { data, error } = await adminClient.rpc(
               'prepare_admin_password_reset',
@@ -261,14 +292,14 @@ Deno.serve(async (request) => {
           },
         },
       );
-      return jsonResponse(200, {
+      return respond(200, {
         user: reset.result,
         temporaryPassword: reset.temporaryPassword,
         replayed,
       });
     }
 
-    return jsonResponse(400, { error: 'Operação administrativa inválida.' });
+    return respond(400, { error: 'Operação administrativa inválida.' });
   } catch (error) {
     const message =
       error instanceof Error
@@ -281,7 +312,7 @@ Deno.serve(async (request) => {
       /Campo .* inválido|Username inválido|Dados do utilizador invalidos/i.test(
         message,
       );
-    return jsonResponse(status, {
+    return respond(status, {
       error:
         status === 409
           ? 'Já existe um utilizador com esse username.'

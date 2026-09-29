@@ -2,10 +2,10 @@
 
 ## Estado
 
-- Estado: em curso — correção forward publicada e smoke independente aprovado; configuração Auth, secrets, Edge Function e Owner aguardam checkpoints próprios
+- Estado: em curso — frontend e URL/redirect Auth ativos; hardening local da Edge Function concluído; secrets, publicação da função e Owner aguardam checkpoints próprios
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
-- Última atualização: 2026-09-28
+- Última atualização: 2026-09-29
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
 - Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado por Squash and merge em `[COMMIT_SHOWCASE]`; continuação documental e operacional em `feature/ativacao-producao-final`.
 
@@ -47,6 +47,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-28 | Substituir o fallback nativo por rotas explícitas e cache gerado pós-build.                 | O smoke real provou que um asset inexistente recebia o documento SPA e cache imutável.              | `404.html` bloqueia o fallback global; só rotas conhecidas reescrevem e só assets existentes ficam imutáveis. |
 | 2026-09-28 | Tornar as variáveis públicas uma precondição do build Production/main.                      | Valores visíveis no painel não demonstram que chegaram ao processo Vite que produziu o bundle.      | A gate valida quatro variáveis sem expor a chave e não afeta desenvolvimento ou testes locais.                |
 | 2026-09-28 | Aceitar o segundo deployment apenas após merge revisto e smoke independente.                | O primeiro deployment expôs duas falhas que exigiam correção forward comprovada antes da promoção.  | O frontend publicado contém a configuração pública correta e devolve 404 seguro para assets inexistentes.     |
+| 2026-09-29 | Alterar apenas Site URL e redirects no Auth de produção.                                    | A URL canónica já foi validada e os restantes campos não pertencem a este checkpoint.               | `GET → PATCH → GET` confirmou só os dois campos autorizados; mínimo de password permanece em 6.               |
+| 2026-09-29 | Exigir CORS exato e segredo HMAC próprio na `admin-users`.                                  | A service role não deve ser reutilizada para derivação e CORS `*` deixou de ser necessário.         | A função falha fechada sem configuração, usa chaves modernas do runtime e fica pronta para revisão.           |
 
 ## Trabalho realizado
 
@@ -172,10 +174,16 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 ### Preflight conjunto de ativação de produção de 2026-09-23
 
 - A leitura `config pull --dry-run` apontou explicitamente para `showcaseprodref00001` e devolveu `dry_run=true`, `wrote=false`; nenhum valor confidencial foi impresso.
-- À data deste preflight conjunto, Auth tinha `disable_signup=false` e `external_email_enabled=true`. O estado corrente, após o checkpoint de 2026-09-24, é `disable_signup=true` e `external_email_enabled=true`; Site URL, redirects, confirmação de email, password e restantes campos permaneceram inalterados.
+- À data deste preflight conjunto, Auth tinha `disable_signup=false` e
+  `external_email_enabled=true`. O estado corrente mantém
+  `disable_signup=true` e `external_email_enabled=true`; desde 2026-09-29, Site
+  URL e redirect apontam exclusivamente para o Pages, enquanto password,
+  confirmação de email e restantes campos permanecem inalterados.
 - O PR #8 está aberto e Ready for review, com merge state limpo. `eba69ad` fecha os sete commits de implementação da Fase 08 sobre `main`; o commit posterior corrige apenas documentação. `main` não pode ser usado num primeiro deployment antes da revisão e autorização de merge.
 - A configuração Cloudflare foi fixada para o projeto proposto `caixinha-das-multas`, repositório `JoaoMat10/caixinha-das-multas`, branch `main`, Node 24.19.0, `npm run verify` e output `dist`; previews começam desativados.
-- O estado local da Edge Function foi inventariado com checksums. O código atual continua com CORS `*` e ficou explicitamente reprovado para publicação até existir allowlist exata e novo checksum.
+- Nesse preflight, a Edge Function ainda tinha CORS `*` e ficou reprovada. O
+  hardening local e os novos checksums foram concluídos em 2026-09-29; a função
+  continua sem publicação remota.
 - Definido bootstrap sem mecanismo persistente: uma identidade criada manualmente, uma transação com lock e precondição de zero Owners, auditoria `owner.bootstrap` e mudança obrigatória de password.
 - Definidos inventários, smoke tests, rollback e limpeza. Não foram alterados Cloudflare, GitHub, Auth, secrets, funções, identidades, dados ou Storage.
 - O detalhe operacional está em `docs/operacao/preflight-producao-auth-edge-owner.md`.
@@ -200,13 +208,48 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - O inventário read-only confirmou `disable_signup=false`, `external_email_enabled=true`, confirmação de email ativa, Site URL local, redirects vazios, mínimo de 6 caracteres, alteração segura por email desativada e TOTP ativo.
 - Corrigida a semântica de `external_email_enabled`: o campo mantém o provider de email/password necessário ao login por username técnico e não deve ser desligado.
 - Após validar as duas precondições, foi executado um único `PATCH` para `showcaseprodref00001`, contendo exclusivamente `disable_signup=true`.
-- Não será usado `config push`, evitando alterar Site URL, redirects, password, confirmação de email, TOTP, sessões ou qualquer outra diferença não autorizada.
+- Não foi usado `config push`, evitando alterar Site URL, redirects, password,
+  confirmação de email, TOTP, sessões ou qualquer outra diferença não
+  autorizada.
 - O segundo `GET` confirmou `disable_signup=true` e `external_email_enabled=true`; a comparação integral confirmou todos os restantes campos Auth inalterados.
 - O dry-run final não escreveu ficheiros e a auditoria SQL read-only confirmou zero identidades Auth, zero objetos Storage, duas roles de referência e zero linhas nas restantes tabelas.
 - A credencial da CLI permaneceu apenas em memória durante `GET → PATCH → GET`, não foi impressa nem persistida e foi removida imediatamente depois.
 - A reversão futura repõe exclusivamente `disable_signup=false`, mediante nova autorização e seguida da mesma auditoria read-only.
 - Não foram alterados Cloudflare, secrets, Edge Functions, Owner ou outros recursos.
 - O procedimento detalhado foi acrescentado a `docs/operacao/preflight-producao-auth-edge-owner.md`.
+
+### Site URL e redirect Auth de 2026-09-29
+
+- As três fontes voltaram a confirmar exclusivamente `showcaseprodref00001`,
+  `caixinha-showcase-producao`, `eu-central-1` e `ACTIVE_HEALTHY`; o dry-run
+  devolveu `dry_run=true`, `wrote=false` e o vínculo local permaneceu em
+  `showcasetestref00001`.
+- O `GET` inicial confirmou `disable_signup=true`,
+  `external_email_enabled=true`, Site URL em `http://localhost:3000` e redirects
+  vazios.
+- O único `PATCH` conteve `site_url=https://caixinha-showcase.pages.dev` e
+  `uri_allow_list=https://caixinha-showcase.pages.dev/`.
+- O segundo `GET` confirmou os dois valores exatos e a comparação integral
+  confirmou todos os restantes campos Auth inalterados, incluindo password
+  mínima de 6, confirmação de email, TOTP, sessões e rate limits.
+- A credencial da CLI permaneceu exclusivamente em memória e foi libertada após
+  a verificação. Não foram alterados secrets, Edge Function, identidades, Owner
+  ou dados de utilização.
+
+### Hardening local da Edge Function de 2026-09-29
+
+- `admin-users` passou a exigir `ADMIN_ALLOWED_ORIGINS`, a rejeitar pedidos sem
+  `Origin` ou fora da allowlist e a devolver a origem exata com `Vary: Origin`.
+- `ADMIN_PASSWORD_RESET_SECRET`, com pelo menos 32 bytes, substitui a chave
+  elevada como segredo HMAC da reposição idempotente de password.
+- A função passou a consumir os dicionários modernos
+  `SUPABASE_PUBLISHABLE_KEYS` e `SUPABASE_SECRET_KEYS` injetados pelo runtime;
+  a chave elevada é enviada apenas em `apikey`, nunca como JWT em
+  `Authorization`, e nenhuma chave entra no frontend, Git ou logs.
+- `[functions.admin-users] verify_jwt = true`, a validação de utilizador e a
+  autorização Owner permanecem obrigatórias.
+- Esta preparação é exclusivamente local: não foram guardados secrets nem
+  publicada a Edge Function.
 
 ### Preflight Cloudflare Pages de 2026-09-24
 
@@ -323,6 +366,12 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `scripts/validate-cloudflare-production-env.mjs`                  | criado            | Bloquear um build Production/main sem a configuração pública exata.                               |
 | `scripts/finalize-pages-build.mjs`                                | criado            | Gerar regras de cache exatas a partir dos assets com hash do `dist` final.                        |
 | `tests/scripts/deployment-security.test.mjs`                      | criado            | Validar configuração do Pages e garantias estáticas do frontend.                                  |
+| `src/shared/rules/adminCors.ts`                                   | criado            | Validar allowlist CORS e produzir headers exatos ou falhar fechada.                               |
+| `src/shared/rules/adminCors.test.ts`                              | criado            | Cobrir origem autorizada, recusas e configuração inválida.                                        |
+| `src/shared/rules/supabaseRuntimeKeys.ts`                         | criado            | Ler apenas as chaves modernas `default` injetadas no runtime Supabase.                            |
+| `src/shared/rules/supabaseRuntimeKeys.test.ts`                    | criado            | Recusar chaves ausentes, inválidas ou no formato legado.                                          |
+| `src/shared/rules/adminPasswordReset.ts`                          | alterado          | Exigir segredo HMAC próprio com pelo menos 32 bytes.                                              |
+| `supabase/functions/admin-users/index.ts`                         | alterado          | Fechar CORS, separar HMAC e usar as chaves modernas do runtime.                                   |
 | `tests/scripts/cloudflare-production-env.test.mjs`                | criado            | Cobrir casos positivos, negativos e não exposição da chave na gate.                               |
 | `tests/pages/pages-output.test.mjs`                               | criado            | Validar o output final e a semântica local do Pages com Wrangler.                                 |
 | `tests/database/database.test.mjs`                                | alterado          | Completar matriz RLS/RBAC, imutabilidade, idempotência e concorrência local.                      |
@@ -342,7 +391,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 - Migrações adicionadas: nenhuma neste checkpoint.
 - Alterações de schema: nenhuma.
-- Funções/RPCs/Edge Functions: nenhuma alteração.
+- Funções/RPCs: nenhuma alteração. Edge Function: hardening local preparado,
+  ainda não publicado em produção.
 - Políticas RLS: nenhuma alteração; os testes existentes foram alargados.
 - Contratos públicos: adicionado apenas o comando de engenharia `npm run verify`.
 - Compatibilidade e dados existentes: todas as mutações, roles, funções, extensões e ficheiros temporários foram removidos; o inventário remoto regressou exatamente à linha de base.
@@ -386,6 +436,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Pages local sobre o `dist` final                     | passou    | 5/5; rotas explícitas, 404 de asset, cache exato, zero source maps e zero segredos.              |
 | Segundo deployment Production                        | passou    | `main` em `d0c9ac8`; build concluído e smoke independente aprovado.                              |
 | Smoke público após correção                          | passou    | Bundle com configuração pública; rota profunda 200; asset inexistente 404 sem cache imutável.    |
+| Site URL e redirect Auth em produção                 | passou    | Três fontes; `GET → PATCH → GET`; apenas os dois campos autorizados mudaram.                     |
+| Hardening local da Edge Function                     | passou    | 29 testes dirigidos; CORS exato, HMAC próprio, chaves modernas e `verify_jwt=true`.              |
+| Pipeline local após hardening                        | passou    | Node 24.19.0; 29 ficheiros/119 Vitest, 11/11 PostgreSQL, build e 5/5 Pages.                      |
 
 ## Desvios ao planeamento
 
@@ -401,11 +454,15 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Riscos e limitações
 
-- Elevado: o projeto Supabase de produção recebeu schema e políticas, mas ainda não tem Auth, secrets, Edge Function ou Owner; o projeto descartável nunca pode ser promovido.
+- Elevado: o projeto Supabase de produção tem schema, políticas e configuração
+  Auth mínima, mas ainda não tem os secrets customizados, Edge Function ou
+  Owner; o projeto descartável nunca pode ser promovido.
 - Baixo: o frontend corrigido está publicado e o smoke passou; o login só ficará
-  operacional depois de concluir Auth, secrets, Edge Function e primeiro Owner.
+  operacional depois de guardar secrets, publicar a Edge Function e criar o
+  primeiro Owner.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
-- Médio: a Edge Function mantém CORS permissivo; o token JWT e a verificação Owner no servidor preservam a autorização, mas a origem deve ser restringida quando existirem hostnames definitivos.
+- Médio: o hardening local da Edge Function está pronto e testado, mas ainda não
+  foi publicado; produção continua sem esta função até autorização própria.
 - Baixo: `main` contém o squash do PR #9 em `[COMMIT_SHOWCASE]`; a continuação operacional permanece isolada numa nova branch.
 - Baixo: o signup Auth global está bloqueado; o provider email/password permanece deliberadamente ativo para o login por username técnico.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
@@ -433,11 +490,12 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Aplicar apenas migrações versionadas em produção, sem `supabase/seed.sql`, após dry-run e autorização.
 - [x] Apresentar o preflight das 29 políticas públicas, bucket privado, quatro políticas Storage, privilégios, funções de segurança e checksums.
 - [x] Receber autorização final única e executar o lote coerente das oito migrações, incluindo RLS e Storage.
-- [ ] Configurar Site URL, redirect e política final de password no Auth após autorização específica.
+- [x] Configurar Site URL e redirect exato no Auth sem alterar os restantes campos.
+- [ ] Decidir a política final de password; o mínimo permanece em 6.
 - [ ] Guardar secrets, publicar Edge Function e criar o primeiro Owner apenas após três autorizações independentes.
 - [x] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment autorizado.
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
-- [ ] Remover CORS `*`, separar o segredo HMAC da service role e recalcular o checksum do bundle antes de autorizar a Edge Function.
+- [x] Remover CORS `*`, separar o segredo HMAC da chave elevada e recalcular o checksum do bundle antes de autorizar a Edge Function.
 - [ ] Alinhar a validação do frontend com a política final de password antes de alterar Auth.
 - [x] Desativar exclusivamente o signup público global em produção, mantendo o provider email/password e todos os restantes campos Auth inalterados.
 - [x] Atualizar o preflight específico do Cloudflare Pages sem criar ou configurar recursos.

@@ -22,9 +22,9 @@ autoriza por si só novas mutações remotas.
 
 1. Gate concluída: PR #9 integrado, segundo deployment Production concluído e
    smoke independente aprovado.
-2. Antes da publicação da Edge Function, substituir CORS `*` por uma allowlist
-   exata, configurada por ambiente, e recalcular os checksums do bundle.
-3. Decidir a política de password no checkpoint Auth. O mínimo permanece em
+2. Gate concluída localmente: CORS `*` foi substituído por uma allowlist exata,
+   o HMAC foi separado da chave elevada e os checksums foram recalculados.
+3. Decidir a política de password antes do primeiro Owner. O mínimo permanece em
    seis caracteres até existir decisão explícita; uma mudança para 12 exige
    primeiro alinhar o frontend e autorizar novo deployment.
 4. Nenhuma etapa consome automaticamente a autorização da etapa seguinte.
@@ -50,9 +50,10 @@ será integrado depois do fecho do rollout.
 1. Concluído: signup público global bloqueado, mantendo email/password ativo.
 2. Concluído: Pages criado, previews desativados, correção publicada e smoke
    aprovado.
-3. Próximo: completar Auth com Site URL, redirect exato e decisão explícita da
-   password.
-4. Com autorização própria, guardar os secrets exclusivos da Edge Function.
+3. Concluído: Site URL e redirect Auth configurados; a password mínima permanece
+   em 6 até decisão explícita.
+4. Próximo, com autorização própria: guardar os dois secrets customizados da
+   Edge Function.
 5. Com autorização própria, publicar `admin-users` com JWT e CORS restritos.
 6. Com autorização própria, executar o bootstrap transacional do primeiro
    Owner e obrigar à troca imediata da password.
@@ -147,21 +148,22 @@ verificações e rollback está em `docs/operacao/deploy-cloudflare-pages.md`.
 
 Leitura dry-run de `showcaseprodref00001`, sem escrita:
 
-| Campo                                              | Estado após o checkpoint       | Resultado                                |
-| -------------------------------------------------- | ------------------------------ | ---------------------------------------- |
-| Site URL                                           | `http://localhost:3000`        | sem alteração                            |
-| Redirects                                          | vazio                          | sem alteração                            |
-| Signup global (`disable_signup`)                   | desativado                     | alterado de `false` para `true`          |
-| Provider email/password (`external_email_enabled`) | ativo                          | mantido; necessário ao login técnico     |
-| Confirmação de email                               | ativa                          | sem alteração                            |
-| Password mínima                                    | 6                              | sem alteração; decisão continua pendente |
-| Caracteres                                         | sem requisito remoto explícito | sem alteração; decisão continua pendente |
-| Alteração segura por email                         | desativada                     | sem alteração                            |
-| TOTP                                               | ativo na plataforma            | sem alteração                            |
+| Campo                                              | Estado após o checkpoint                 | Resultado                                |
+| -------------------------------------------------- | ---------------------------------------- | ---------------------------------------- |
+| Site URL                                           | `https://caixinha-showcase.pages.dev`  | alterado apenas no checkpoint autorizado |
+| Redirects                                          | `https://caixinha-showcase.pages.dev/` | alterado apenas no checkpoint autorizado |
+| Signup global (`disable_signup`)                   | desativado                               | alterado de `false` para `true`          |
+| Provider email/password (`external_email_enabled`) | ativo                                    | mantido; necessário ao login técnico     |
+| Confirmação de email                               | ativa                                    | sem alteração                            |
+| Password mínima                                    | 6                                        | sem alteração; decisão continua pendente |
+| Caracteres                                         | sem requisito remoto explícito           | sem alteração; decisão continua pendente |
+| Alteração segura por email                         | desativada                               | sem alteração                            |
+| TOTP                                               | ativo na plataforma                      | sem alteração                            |
 
-### Próximo checkpoint Auth proposto
+### Checkpoint Auth executado em 2026-09-29
 
-Aplicar um único `PATCH` explícito a `showcaseprodref00001` contendo apenas:
+Foi aplicado um único `PATCH` explícito a `showcaseprodref00001`, contendo
+apenas:
 
 ```json
 {
@@ -170,18 +172,22 @@ Aplicar um único `PATCH` explícito a `showcaseprodref00001` contendo apenas:
 }
 ```
 
-A origem e o caminho são exatos; não são autorizados wildcards, localhost ou
-URLs de preview. Antes da escrita serão repetidas as três confirmações do alvo e
-um `GET` read-only. O `PATCH` aborta se `disable_signup` não for `true`, se
-`external_email_enabled` não for `true`, ou se Site URL/redirects já divergirem
-do inventário registado. Depois, outro `GET` compara todos os campos e confirma
-que apenas `site_url` e `uri_allow_list` mudaram.
+A origem e o caminho são exatos; não foram autorizados wildcards, localhost ou
+URLs de preview. Antes da escrita, o registo versionado, `projects list` e
+`target.project_ref` do dry-run confirmaram `showcaseprodref00001`; o vínculo
+local permaneceu em `showcasetestref00001`. O primeiro `GET` confirmou
+`disable_signup=true`, `external_email_enabled=true`, Site URL local e redirects
+vazios.
 
-Este checkpoint mantém confirmação de email, TOTP, JWT, refresh tokens, sessões,
-rate limits, alteração segura por email e providers exatamente inalterados. A
-password mínima continua em 6 até decisão explícita. Reversão, apenas com nova
-autorização: repor `site_url` em `http://localhost:3000` e `uri_allow_list` vazio.
-Não será usado `config push`.
+O segundo `GET` confirmou os valores finais e a comparação integral provou que
+confirmação de email, TOTP, JWT, refresh tokens, sessões, rate limits, alteração
+segura por email, providers e todos os restantes campos permaneceram idênticos.
+A password mínima continua em 6 até decisão explícita. Não foi usado
+`config push`, nem foram alterados secrets, função, identidades ou dados.
+
+Reversão, apenas com nova autorização: repor `site_url` em
+`http://localhost:3000` e `uri_allow_list` vazio, novamente com comparação
+integral `GET → PATCH → GET`.
 
 O frontend envia sempre `current_password` na mudança. Ativar um fluxo que
 envie nonce por email bloquearia utilizadores porque os emails técnicos não são
@@ -287,34 +293,53 @@ O bundle local atual é composto por:
 
 | Ficheiro                                  | SHA-256 atual                                                      |
 | ----------------------------------------- | ------------------------------------------------------------------ |
-| `supabase/functions/admin-users/index.ts` | `F5CF82E920A6E7D4E123799E057EB0079A6FD5832F8552FCA06DB2E90C27D179` |
+| `supabase/functions/admin-users/index.ts` | `4211B545A1BCE7BEBBEA7250842E629CA2581A118720C0F9CA83986C4168B267` |
 | `src/shared/rules/username.ts`            | `1B4A7382D9B8C0F74AA59763420949498F5829D75E61E80D2F8E0AB718847845` |
-| `src/shared/rules/adminPasswordReset.ts`  | `BB972B1165A7A75F6C16148C923446EED515B78266857BA07FE0076A311897FC` |
+| `src/shared/rules/adminPasswordReset.ts`  | `807D44D1A77633030DD2D6221483B8F4281B32B33F3E736FC3ACA67056672F3B` |
+| `src/shared/rules/adminCors.ts`           | `C6473E818A24B57707DCA5660A29B657A60099B76B1D808503DBBE8C2B41E42E` |
+| `src/shared/rules/supabaseRuntimeKeys.ts` | `7ED47D63654BF6E10C63DA7B33F174A22055F14032A5AC27D488385BB2726B44` |
 | `supabase/config.toml`                    | `63C6574A39C4BADB3B24ACC9208489E38532000976C52667E96034A19319AD4A` |
 
-Estes são checksums de inventário, não de publicação: o `index.ts` atual ainda
-tem `Access-Control-Allow-Origin: *` e fica reprovado nesta gate. O artefacto a
-publicar será recalculado depois de:
+O bundle local está aprovado para o checkpoint seguinte:
 
-- aceitar apenas a origem HTTPS canónica através de `ADMIN_ALLOWED_ORIGINS`;
-- rejeitar sem efeitos pedidos sem `Origin` ou com origem não autorizada;
-- devolver `Vary: Origin` e a origem exata nos preflights aceites;
-- usar `ADMIN_PASSWORD_RESET_SECRET` em vez da service role como segredo HMAC;
-- manter respostas genéricas e zero logging de tokens, passwords ou secrets.
+- aceita apenas origens exatas de `ADMIN_ALLOWED_ORIGINS`;
+- rejeita sem efeitos pedidos sem `Origin` ou com origem não autorizada;
+- devolve `Vary: Origin` e a origem exata nos preflights aceites;
+- usa `ADMIN_PASSWORD_RESET_SECRET` com pelo menos 32 bytes como segredo HMAC;
+- usa apenas `SUPABASE_PUBLISHABLE_KEYS` e `SUPABASE_SECRET_KEYS`, injetados pelo
+  runtime, em vez das variáveis legadas;
+- envia a chave elevada apenas em `apikey` e remove-a de `Authorization`, que
+  fica reservado a JWTs reais;
+- mantém respostas genéricas e zero logging de tokens, passwords ou secrets.
 
 `[functions.admin-users] verify_jwt = true` permanece obrigatório. O handler
 mantém a segunda camada: valida o utilizador Auth e exige `is_active=true` e
 presença em `app_admins` antes de criar/alterar contas.
 
-Secrets:
+### Próximo checkpoint — secrets
 
-- injetados e armazenados apenas pelo Supabase: URL, chave publicável e chave
-  secreta/service role;
-- customizados no cofre de Edge Function Secrets: `ADMIN_ALLOWED_ORIGINS` e
-  `ADMIN_PASSWORD_RESET_SECRET`.
+- O runtime Supabase já injeta `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS` e
+  `SUPABASE_SECRET_KEYS`; estes nomes reservados não serão criados, lidos ou
+  alterados neste checkpoint.
+- Criar exclusivamente `ADMIN_ALLOWED_ORIGINS` com o valor exato
+  `https://caixinha-showcase.pages.dev`.
+- Criar exclusivamente `ADMIN_PASSWORD_RESET_SECRET` com 32 bytes aleatórios ou
+  mais, gerados criptograficamente e nunca apresentados no chat ou logs.
+- Antes da escrita: repetir as três confirmações do project ref e inventariar
+  apenas os nomes/digests existentes, abortando se algum dos dois nomes já
+  existir.
+- Depois da escrita: listar apenas nomes/digests e exigir exatamente os dois
+  nomes customizados, sem publicar ainda a função.
+- Não usar argumentos `NAME=VALUE` nem ficheiros `.env`, para evitar exposição em
+  processos ou persistência local; os valores serão enviados apenas em memória.
 
 Nenhum valor entra no Git, frontend, Pages, comandos mostrados, chat ou logs.
-O deployment usa o project ref explícito e nunca `--no-verify-jwt`.
+A criação dos secrets não publica código. O futuro deployment usa o project ref
+explícito e nunca `--no-verify-jwt`.
+
+Reversão: eliminar ou rodar qualquer secret exige nova autorização. Depois da
+primeira utilização, rodar `ADMIN_PASSWORD_RESET_SECRET` pode alterar a password
+derivada para um replay ainda incompleto e exige avaliação operacional própria.
 
 Teste funcional sem dados: CORS permitido/negado, ausência de JWT=401,
 utilizador não autorizado=403 quando existir uma conta de teste autorizada para

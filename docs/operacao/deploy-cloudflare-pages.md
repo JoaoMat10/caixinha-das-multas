@@ -84,9 +84,9 @@ frontend até existir uma autorização separada para domínio próprio.
 
 Se o Pages atribuir qualquer hostname diferente, o processo para antes do
 deployment: regista-se a URL efetiva, corrige-se `VITE_PUBLIC_APP_URL` e pede-se
-nova validação. Depois do primeiro deployment, a URL será comparada com a URL do
-deployment canónico e usada no checkpoint separado de Site URL e redirects do
-Supabase Auth.
+nova validação. A URL foi comparada com o deployment canónico e usada no
+checkpoint separado de Site URL e redirects do Supabase Auth, concluído em
+2026-09-29.
 
 ## Integração GitHub e permissões
 
@@ -258,7 +258,7 @@ credencial Cloudflare foi lida e nenhuma operação remota foi executada.
 
 ## Próximo checkpoint
 
-Cloudflare Pages está concluído. O passo seguinte é configurar exclusivamente a
-Site URL e o redirect exato do Supabase Auth, após autorização própria. Secrets,
-publicação da Edge Function e criação do primeiro Owner mantêm três autorizações
-posteriores e independentes.
+Cloudflare Pages, Site URL e redirect exato do Supabase Auth estão concluídos. O
+passo seguinte é guardar exclusivamente os dois secrets customizados da Edge
+Function, após autorização própria. Publicação da função e criação do primeiro
+Owner mantêm duas autorizações posteriores e independentes.

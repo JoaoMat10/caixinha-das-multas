@@ -167,4 +167,28 @@ describe('deploy estático e headers de segurança', () => {
     );
     expect(frontend).not.toMatch(/console\.(log|debug|info)\s*\(/);
   });
+
+  it('fecha CORS e separa o segredo HMAC da Edge Function administrativa', () => {
+    const edgeFunction = read('supabase/functions/admin-users/index.ts');
+    const functionConfig = read('supabase/config.toml');
+
+    expect(functionConfig).toMatch(
+      /\[functions\.admin-users\][\s\S]*verify_jwt = true/,
+    );
+    expect(edgeFunction).toContain("Deno.env.get('ADMIN_ALLOWED_ORIGINS')");
+    expect(edgeFunction).toContain(
+      "Deno.env.get('ADMIN_PASSWORD_RESET_SECRET')",
+    );
+    expect(edgeFunction).toContain("Deno.env.get('SUPABASE_PUBLISHABLE_KEYS')");
+    expect(edgeFunction).toContain("Deno.env.get('SUPABASE_SECRET_KEYS')");
+    expect(edgeFunction).toContain('createSupabaseSecretKeyFetch');
+    expect(edgeFunction).toContain('secret: passwordResetSecret');
+    expect(edgeFunction).not.toContain("'Access-Control-Allow-Origin': '*'");
+    expect(edgeFunction).not.toContain('secret: serviceRoleKey');
+    expect(edgeFunction).not.toContain('SUPABASE_ANON_KEY');
+    expect(edgeFunction).not.toContain('SUPABASE_SERVICE_ROLE_KEY');
+    expect(edgeFunction).not.toMatch(
+      /console\.(log|debug|info|warn|error)\s*\(/,
+    );
+  });
 });
