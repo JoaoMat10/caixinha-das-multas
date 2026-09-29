@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — frontend, URL/redirect Auth e secrets customizados ativos; hardening local da Edge Function concluído; publicação da função e Owner aguardam checkpoints próprios
+- Estado: em curso — frontend, URL/redirect Auth, secrets e Edge Function `admin-users` ativos; decisão de password e primeiro Owner aguardam checkpoint próprio
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-29
@@ -52,6 +52,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-29 | Criar apenas os dois secrets customizados antes de publicar a função.                       | Separa configuração sensível, código e bootstrap em checkpoints reversíveis e auditáveis.            | Os valores existiram apenas em memória; a função e as identidades permaneceram inalteradas.                   |
 | 2026-09-29 | Usar uma única identidade `demo.admin` como Owner e futuro jogador.                       | Evita contas duplicadas e preserva a invisibilidade da permissão global no plantel.                  | O bootstrap exigirá `must_change_password=true`; a futura associação de jogador reutiliza o mesmo utilizador. |
 | 2026-09-29 | Publicar futuramente apenas `admin-users`, com versão atribuída pela plataforma.            | Produção ainda tem zero funções e não existe uma versão anterior que possa ser presumida ou reposta. | O deploy usará alvo explícito, `--use-api`, um job e `verify_jwt=true`, sem prune nem publicação em lote.     |
+| 2026-09-29 | Aceitar a versão 1 de `admin-users` como linha de base remota.                              | A tentativa única terminou com função ativa e o smoke sem dados passou.                              | Qualquer nova versão, correção ou eliminação requer nova autorização; o Owner continua ausente.               |
 
 ## Trabalho realizado
 
@@ -396,6 +397,28 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   `git diff --check`, com Node 24.19.0. Não houve publicação, criação de Owner,
   identidade ou dado.
 
+### Publicação da Edge Function de 2026-09-29
+
+- As gates foram repetidas imediatamente antes do comando único: três fontes do
+  alvo, zero funções, checksum aprovado, `verify_jwt=true`, branch sincronizada e
+  working tree limpa.
+- A CLI publicou `admin-users`. O formatador local do resumo falhou depois da
+  conclusão do comando; não houve nova tentativa. A leitura remota confirmou ID
+  `33333333-3333-4333-8333-333333333333`, versão 1, estado `ACTIVE` e
+  `verify_jwt=true`.
+- A origem canónica passou o preflight CORS com `204`, origem exata,
+  `Vary: Accept-Encoding,Origin` e `POST, OPTIONS`; uma origem estranha recebeu
+  `403` sem ACAO.
+- Um `POST` sem JWT recebeu `401` e `UNAUTHORIZED_NO_AUTH_HEADER` antes do
+  handler, sem efeitos. O gateway acrescentou ACAO `*` à sua resposta genérica
+  pré-handler; esta diferença da infraestrutura fica pendente de confirmação no
+  futuro smoke com sessão real, sem enfraquecer a allowlist do handler.
+- A auditoria SQL estritamente read-only confirmou zero Auth, perfis, Owners,
+  auditoria, objetos Storage e dados de utilização; apenas `captain` e
+  `treasurer` permanecem como referências.
+- Não foram alterados Cloudflare, Auth, secrets, schema ou dados e não foi criado
+  o Owner. A versão 1 é agora a linha de base; não foi executado rollback.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -487,6 +510,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Pipeline local após hardening                        | passou    | Node 24.19.0; 29 ficheiros/119 Vitest, 11/11 PostgreSQL, build e 5/5 Pages.                      |
 | Secrets customizados da Edge Function                | passou    | Três fontes; inventário 0→2; apenas os dois nomes autorizados; sem publish ou identidades.       |
 | Preflight read-only da Edge Function                 | passou    | Alvo, zero funções, diff, checksums, JWT, CORS, comando, verificação e rollback confirmados.     |
+| Publicação da Edge Function                          | passou    | Tentativa única; versão 1 ativa, JWT preservado, CORS validado e auditoria final com zero dados. |
 
 ## Desvios ao planeamento
 
@@ -503,13 +527,13 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 ## Riscos e limitações
 
 - Elevado: o projeto Supabase de produção tem schema, políticas, configuração
-  Auth mínima e secrets customizados, mas ainda não tem Edge Function publicada
-  ou Owner; o projeto descartável nunca pode ser promovido.
-- Baixo: o frontend corrigido está publicado e o smoke passou; o login só ficará
-  operacional depois de publicar a Edge Function e criar o primeiro Owner.
+  Auth mínima, secrets e Edge Function publicada, mas ainda não tem Owner; o
+  projeto descartável nunca pode ser promovido.
+- Baixo: o frontend e a Edge Function estão publicados; o login só ficará
+  operacional depois de criar o primeiro Owner.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
-- Médio: o hardening local da Edge Function está pronto e testado, mas ainda não
-  foi publicado; produção continua sem esta função até autorização própria.
+- Baixo: a Edge Function está ativa na versão 1 com JWT e CORS validados; o smoke
+  funcional autenticado permanece dependente do primeiro Owner.
 - Baixo: `main` contém o squash do PR #9 em `[COMMIT_SHOWCASE]`; a continuação operacional permanece isolada numa nova branch.
 - Baixo: o signup Auth global está bloqueado; o provider email/password permanece deliberadamente ativo para o login por username técnico.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
@@ -540,7 +564,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Configurar Site URL e redirect exato no Auth sem alterar os restantes campos.
 - [ ] Decidir a política final de password; o mínimo permanece em 6.
 - [x] Guardar exclusivamente os dois secrets customizados após autorização própria.
-- [ ] Publicar a Edge Function e criar o primeiro Owner apenas após duas autorizações independentes adicionais.
+- [x] Publicar exclusivamente a Edge Function após autorização própria e validar sem dados.
+- [ ] Criar o primeiro Owner apenas após autorização independente adicional.
 - [x] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment autorizado.
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
 - [x] Remover CORS `*`, separar o segredo HMAC da chave elevada e recalcular o checksum do bundle antes de autorizar a Edge Function.

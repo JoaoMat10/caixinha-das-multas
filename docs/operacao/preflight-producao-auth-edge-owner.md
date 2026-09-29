@@ -18,6 +18,8 @@ autoriza por si só novas mutações remotas.
   produção.
 - Existem exclusivamente os secrets customizados `ADMIN_ALLOWED_ORIGINS` e
   `ADMIN_PASSWORD_RESET_SECRET`; os respetivos valores não são registados.
+- A Edge Function `admin-users` está publicada na versão 1, ativa e com
+  `verify_jwt=true`; ainda não existem identidades ou Owner.
 - Não será executado `supabase/seed.sql` nem serão criadas fixtures.
 
 ## Gates obrigatórias
@@ -56,7 +58,7 @@ será integrado depois do fecho do rollout.
    em 6 até decisão explícita.
 4. Concluído: guardados os dois secrets customizados da Edge Function, sem
    publicar código.
-5. Com autorização própria, publicar `admin-users` com JWT e CORS restritos.
+5. Concluído: publicada `admin-users` com JWT e CORS restritos e smoke sem dados.
 6. Com autorização própria, executar o bootstrap transacional do primeiro
    Owner e obrigar à troca imediata da password.
 7. Com autorização própria, executar o smoke test, remover todos os artefactos
@@ -408,6 +410,50 @@ Rollback e falhas:
 
 Os testes dirigidos deste candidato passaram com Node 24.19.0: quatro ficheiros,
 29 testes, TypeScript e `git diff --check`.
+
+### Checkpoint de publicação executado em 2026-09-29
+
+Imediatamente antes da tentativa única foram repetidas as três confirmações do
+alvo, verificados zero deployments remotos, working tree limpa, branch
+sincronizada, `verify_jwt=true` e o checksum aprovado
+`4211B545A1BCE7BEBBEA7250842E629CA2581A118720C0F9CA83986C4168B267`.
+
+Foi executado uma única vez o comando previsto. A CLI concluiu o deployment; o
+bloco local que formatava o resumo falhou depois do comando por usar um literal
+PowerShell incorreto. Não houve repetição. A consulta read-only posterior
+confirmou inequivocamente:
+
+| Campo              | Resultado                                 |
+| ------------------ | ----------------------------------------- |
+| ID                 | `33333333-3333-4333-8333-333333333333`    |
+| slug/nome          | `admin-users`                             |
+| versão             | `1`                                       |
+| estado             | `ACTIVE`                                  |
+| `verify_jwt`       | `true`                                    |
+| import map         | `false`                                   |
+| caminho de entrada | `supabase/functions/admin-users/index.ts` |
+
+Smoke HTTP sem credenciais nem dados:
+
+- `OPTIONS` da origem canónica devolveu `204`, ACAO exato,
+  `Vary: Accept-Encoding,Origin` e `POST, OPTIONS`;
+- `OPTIONS` de `https://example.invalid` devolveu `403` sem ACAO;
+- `POST` sem JWT devolveu `401` e `UNAUTHORIZED_NO_AUTH_HEADER` antes do
+  handler, sem qualquer efeito;
+- nesse erro pré-handler, o gateway Supabase acrescentou ACAO `*`. Este header
+  pertence à resposta genérica do gateway, não ao handler e não dá acesso a
+  dados; as respostas alcançadas do handler mantêm a allowlist exata. Esta
+  diferença de infraestrutura fica registada para o smoke com sessão real.
+
+A auditoria pela rota oficial de SQL read-only confirmou zero `auth.users`, zero
+`public.users`, zero `public.app_admins`, zero `audit_events`, zero objetos
+Storage e zero linhas nas restantes tabelas da aplicação. Permanecem apenas as
+duas roles de referência `captain` e `treasurer`.
+
+Não foram alterados Cloudflare, Auth, secrets, Storage, schema ou dados. Não foi
+criado o Owner. A versão 1 passa a ser a linha de base para futuras atualizações;
+eliminar a função ou publicar uma correção continua a exigir autorização
+separada.
 
 ### Checkpoint de secrets executado em 2026-09-29
 
