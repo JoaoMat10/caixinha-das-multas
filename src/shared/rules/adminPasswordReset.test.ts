@@ -3,8 +3,11 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   deriveAdminResetPassword,
   executeAdminPasswordReset,
+  isValidAdminPasswordResetSecret,
   type AdminPasswordResetInput,
 } from '@/shared/rules/adminPasswordReset';
+
+const resetSecret = 'segredo-hmac-administrativo-com-32-bytes';
 
 const input: AdminPasswordResetInput = {
   actorUserId: '00000000-0000-4000-8000-000000000001',
@@ -14,9 +17,9 @@ const input: AdminPasswordResetInput = {
 
 describe('reposição administrativa de password', () => {
   it('deriva a mesma password forte apenas para a mesma operação', async () => {
-    const first = await deriveAdminResetPassword('segredo-servidor', input);
-    const replay = await deriveAdminResetPassword('segredo-servidor', input);
-    const other = await deriveAdminResetPassword('segredo-servidor', {
+    const first = await deriveAdminResetPassword(resetSecret, input);
+    const replay = await deriveAdminResetPassword(resetSecret, input);
+    const other = await deriveAdminResetPassword(resetSecret, {
       ...input,
       idempotencyKey: '00000000-0000-4000-8000-000000000004',
     });
@@ -30,7 +33,7 @@ describe('reposição administrativa de password', () => {
     const appliedPasswords: string[] = [];
     let completionAttempts = 0;
     const dependencies = {
-      secret: 'segredo-servidor',
+      secret: resetSecret,
       prepare: vi.fn().mockResolvedValue(undefined),
       updateAuth: vi.fn((password: string) => {
         appliedPasswords.push(password);
@@ -58,7 +61,7 @@ describe('reposição administrativa de password', () => {
 
   it('mantém a password recuperável quando a resposta é repetida', async () => {
     const dependencies = {
-      secret: 'segredo-servidor',
+      secret: resetSecret,
       prepare: vi.fn().mockResolvedValue(undefined),
       updateAuth: vi.fn().mockResolvedValue(undefined),
       complete: vi.fn().mockResolvedValue({ completed: true }),
@@ -69,5 +72,14 @@ describe('reposição administrativa de password', () => {
 
     expect(replay.temporaryPassword).toBe(first.temporaryPassword);
     expect(dependencies.updateAuth).toHaveBeenCalledTimes(2);
+  });
+
+  it('recusa um segredo HMAC ausente ou curto', async () => {
+    expect(isValidAdminPasswordResetSecret(undefined)).toBe(false);
+    expect(isValidAdminPasswordResetSecret('curto')).toBe(false);
+    expect(isValidAdminPasswordResetSecret(resetSecret)).toBe(true);
+    await expect(deriveAdminResetPassword('curto', input)).rejects.toThrow(
+      'Segredo de reposição indisponível.',
+    );
   });
 });

@@ -11,6 +11,14 @@ export type AdminPasswordResetDependencies<Result> = {
   complete(): Promise<Result>;
 };
 
+export function isValidAdminPasswordResetSecret(
+  value: string | undefined,
+): value is string {
+  return (
+    typeof value === 'string' && new TextEncoder().encode(value).length >= 32
+  );
+}
+
 function bytesToBase64Url(bytes: Uint8Array) {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -24,7 +32,8 @@ export async function deriveAdminResetPassword(
   secret: string,
   input: AdminPasswordResetInput,
 ) {
-  if (!secret) throw new Error('Segredo de reposição indisponível.');
+  if (!isValidAdminPasswordResetSecret(secret))
+    throw new Error('Segredo de reposição indisponível.');
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     'raw',

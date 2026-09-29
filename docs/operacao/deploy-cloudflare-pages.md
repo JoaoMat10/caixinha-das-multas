@@ -2,18 +2,21 @@
 
 ## Estado
 
-Primeiro deployment executado em 2026-09-28 e rollout pausado após o smoke test.
+Segundo deployment Production executado em 2026-09-28; a correção forward e o
+smoke test independente foram aprovados.
 O projeto `caixinha-das-multas` está ligado exclusivamente a
 `JoaoMat10/caixinha-das-multas`; não foram configurados serviços adicionais.
 
 - URL canónica: `https://caixinha-showcase.pages.dev`.
-- Deployment de produção: `11111111-1111-4111-8111-111111111111`.
-- Commit publicado: `[COMMIT_SHOWCASE]`.
+- Deployment inicial: `11111111-1111-4111-8111-111111111111`, preservado apenas
+  como evidência histórica da falha; não é um alvo de rollback aprovado.
+- Commit atualmente publicado: `[COMMIT_SHOWCASE]`.
 - Build: sucesso com Node 24.19.0, `npm run verify` e output `dist`.
 - Previews: `None`, zero deployments executáveis e zero variáveis; existe apenas
   um registo `skipped — No deployment available`, sem URL nem assets.
 - Production: quatro variáveis públicas presentes; nenhum segredo configurado.
-- Segundo deployment: não executado, enquanto as falhas do smoke permanecerem.
+- Segundo deployment: sucesso; smoke independente e reconfirmação pública
+  read-only aprovados.
 
 ## Configuração de build
 
@@ -81,9 +84,9 @@ frontend até existir uma autorização separada para domínio próprio.
 
 Se o Pages atribuir qualquer hostname diferente, o processo para antes do
 deployment: regista-se a URL efetiva, corrige-se `VITE_PUBLIC_APP_URL` e pede-se
-nova validação. Depois do primeiro deployment, a URL será comparada com a URL do
-deployment canónico e usada no checkpoint separado de Site URL e redirects do
-Supabase Auth.
+nova validação. A URL foi comparada com o deployment canónico e usada no
+checkpoint separado de Site URL e redirects do Supabase Auth, concluído em
+2026-09-29.
 
 ## Integração GitHub e permissões
 
@@ -153,6 +156,9 @@ checkpoint.
 - O primeiro smoke HTTPS validou CSP, headers, rotas profundas e artefactos PWA;
   a instalação funcional ficou inconclusiva porque o bundle publicado não contém
   a configuração pública Supabase e a aplicação bloqueia a autenticação.
+- O segundo deployment corrigiu estas duas falhas. O bundle contém a referência
+  de produção e uma chave no formato publicável, sem revelar o valor; o asset
+  inexistente devolve 404 sem o documento da SPA e sem cache imutável.
 
 ## Verificação pós-deploy
 
@@ -223,26 +229,36 @@ Resultado local: Node 24.19.0, 27 ficheiros/99 testes Vitest, 11/11 testes
 PostgreSQL, build de 22 assets com hash e 5/5 verificações Pages. Nenhuma
 credencial Cloudflare foi lida e nenhuma operação remota foi executada.
 
+### Resultado do segundo deployment — 2026-09-28
+
+- Origem: merge do PR #9 em `main`, commit
+  `[COMMIT_SHOWCASE]`.
+- Build Production: sucesso.
+- Smoke independente: aprovado.
+- Reconfirmação pública sanitizada: `/` e `/multas` responderam `200` com o
+  mesmo app shell; o bundle contém a referência Supabase de produção e uma chave
+  no formato publicável; `/assets/nao-existe.js` respondeu `404` com `no-store`
+  e sem o shell da aplicação.
+- Nenhum valor de chave foi apresentado ou persistido nesta verificação.
+- O rollout do frontend fica concluído; Auth, secrets, Edge Function e Owner
+  continuam em checkpoints separados.
+
 ## Promoção e rollback
 
 - A promoção normal ocorre através da integração em `main` depois de revisão e testes.
-- Um build falhado não é promovido. Como o primeiro deployment não tem versão
-  anterior, não existe alvo de rollback nesse momento; se o smoke test falhar,
-  pausar deployments automáticos e preparar uma correção forward. Eliminar o
-  projeto ou retirar a publicação exige autorização destrutiva própria.
-- A partir do segundo deployment, o rollback seleciona no Pages o último
-  deployment de produção aprovado; previews não são alvos válidos.
+- Um build falhado não é um alvo de rollback. O deployment inicial
+  `11111111-1111-4111-8111-111111111111` fica excluído porque falhou o smoke.
+- Num deployment futuro, o rollback pode selecionar este segundo deployment,
+  agora aprovado. Previews não são alvos válidos e qualquer rollback remoto
+  continua a exigir autorização explícita.
 - Um rollback do frontend não altera a base de dados. Migrações incompatíveis exigem uma estratégia corretiva própria antes da publicação.
 - Variáveis e definições do projeto são verificadas e revertidas separadamente;
   não se assume que o rollback de assets restaura configuração.
 - A publicação, ligação ao GitHub e qualquer rollback remoto exigem autorização explícita.
 
-## Ordem autorizável
+## Próximo checkpoint
 
-1. autenticação manual no Cloudflare;
-2. instalação GitHub limitada ao único repositório;
-3. criação de `caixinha-das-multas` e confirmação da URL atribuída;
-4. configuração de `main`, `/`, `npm run verify`, `dist` e previews `None`;
-5. introdução exclusiva das quatro variáveis públicas de Production;
-6. revisão final dos valores e primeiro deployment;
-7. verificações pós-deploy, sem avançar para Auth, Edge Function ou Owner.
+Cloudflare Pages, Site URL e redirect exato do Supabase Auth estão concluídos. O
+passo seguinte é guardar exclusivamente os dois secrets customizados da Edge
+Function, após autorização própria. Publicação da função e criação do primeiro
+Owner mantêm duas autorizações posteriores e independentes.

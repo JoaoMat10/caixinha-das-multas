@@ -25,10 +25,10 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 07 concluida; o primeiro bloco da Fase 08 foi integrado em `main` pelo PR #8 e a ativacao de producao continua no PR Draft #9, branch `feature/ativacao-producao`**
+- Implementacao: **Fase 07 concluida; os PR #8 e #9 da Fase 08 foram integrados em `main`; a ativacao final continua em `feature/ativacao-producao-final`**
 - Fase atual: **Fase 08 — qualidade, seguranca e deploy**
-- Progresso da Fase 08: **testes locais e remotos concluidos; oito migracoes iniciais aplicadas e verificadas no Supabase de producao, sem seed ou dados de utilizacao; signup publico global bloqueado; primeiro deployment Pages publicado no commit aprovado, com previews desativados**
-- Pendente na Fase 08: **correcao forward das duas falhas do smoke Pages, restante configuracao Auth, secrets, Edge Function `admin-users` e primeiro Owner, sempre mediante autorizacoes separadas**
+- Progresso da Fase 08: **testes locais e remotos concluidos; oito migracoes iniciais aplicadas e verificadas no Supabase de producao, sem seed ou dados de utilizacao; signup publico global bloqueado; correcao forward publicada no Pages; secrets configurados; Edge Function `admin-users` publicada com JWT e CORS restritos; primeiro Owner ativo, password alterada e smoke autenticado da administracao aprovado**
+- Pendente na Fase 08: **decisao final da politica de password, procedimentos de backup/restauro, privacidade e resposta a incidente; o PR #10 esta pronto para revisao, sem merge**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao
