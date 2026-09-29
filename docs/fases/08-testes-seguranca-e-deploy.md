@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; primeiro login e mudança obrigatória de password concluídos, restantes smoke tests aguardam checkpoint próprio
+- Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; smoke autenticado read-only concluído salvo a operação de listagem inexistente na Edge Function
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-29
@@ -494,6 +494,31 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - RLS e o trigger de password permanecem ativos. Não foram alterados Cloudflare,
   configuração Auth, secrets, Edge Function ou quaisquer dados adicionais.
 
+### Smoke autenticado read-only
+
+- A sessão Owner já aberta foi reutilizada sem observar credenciais, tokens,
+  storage do browser ou headers de autenticação e sem executar mutações.
+- `/administracao` carregou e permaneceu autenticada após refresh. O resumo
+  mostrou um utilizador ativo e zero equipas, épocas e membros ativos.
+- A listagem apresentou apenas `Administrador Demo` (`@demo.admin`), ativo e sem
+  fotografia. Equipas, épocas e plantéis permaneceram vazios; a auditoria
+  mostrou exclusivamente `owner.bootstrap`.
+- A route guard administrativa confirmou o contexto Owner (`isAppAdmin=true`).
+  A navegação disponível sem membership ficou limitada a Administração e
+  Definições de password.
+- Não surgiram avisos ou erros na consola do frontend após refresh, consulta dos
+  separadores e navegação autorizada.
+- A listagem read-only da área administrativa é servida pela RPC
+  `get_admin_overview`. O contrato local e publicado de `admin-users` não contém
+  `list`; expõe apenas `create`, `update`, `set-active` e `reset-password`.
+  Consequentemente, a gate específica de listagem pela Edge Function ficou
+  bloqueada sem invocar uma ação inválida ou mutável, e não houve execução da
+  função cujos logs pudessem ser avaliados neste smoke.
+- `npm run verify` passou com Node 24.19.0: formatação, lint, typecheck, 29
+  ficheiros/119 testes Vitest, 11/11 testes PostgreSQL, build e 5/5 testes Pages.
+- O diff integral da branch face a `main` foi revisto e `git diff --check`
+  passou. O PR #10 permanece Draft porque nem todas as gates pedidas passaram.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -589,6 +614,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Preflight read-only do primeiro Owner                | passou    | Três fontes, inventário vazio, identidade, transação, auditoria e rollback dirigido definidos.   |
 | Bootstrap do primeiro Owner                          | passou    | Execução única; 1 Auth, 1 perfil ativo, 1 Owner, 1 auditoria e zero sessões ou dados de domínio. |
 | Primeiro acesso e mudança obrigatória de password    | passou    | `must_change_password=false`, 1 sessão ativa, Owner válido, zero memberships e dados adicionais. |
+| Smoke autenticado: sessão, Admin e inventário        | passou    | Refresh, único utilizador, Owner, navegação permitida, zero domínio e zero erros frontend.       |
+| Listagem autenticada via Edge Function               | bloqueado | `admin-users` não implementa `list`; a UI consulta `get_admin_overview` por RPC.                 |
+| Validação final local                                | passou    | Node 24.19.0; 119 Vitest, 11 PostgreSQL, build e 5/5 Pages; diff integral revisto.               |
 
 ## Desvios ao planeamento
 
@@ -610,8 +638,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Baixo: o frontend, a Edge Function e o primeiro Owner estão ativos; o primeiro
   login e a mudança obrigatória de password foram concluídos.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
-- Baixo: a Edge Function está ativa na versão 1 com JWT e CORS validados; os
-  restantes smokes funcionais autenticados continuam sujeitos a autorização.
+- Médio: a Edge Function está ativa na versão 1 com JWT e CORS validados, mas
+  não implementa a operação read-only `list` pedida para o smoke final; a UI
+  lista utilizadores pela RPC `get_admin_overview`.
 - Baixo: `main` contém o squash do PR #9 em `[COMMIT_SHOWCASE]`; a continuação operacional permanece isolada numa nova branch.
 - Baixo: o signup Auth global está bloqueado; o provider email/password permanece deliberadamente ativo para o login por username técnico.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
@@ -646,8 +675,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Criar o primeiro Owner após autorização independente, sem iniciar sessão.
 - [x] Executar o primeiro login e a mudança obrigatória de password, seguidos de
       auditoria read-only sem dados adicionais.
-- [ ] Executar os restantes smoke tests autenticados apenas após nova
-      autorização.
+- [ ] Decidir se a listagem administrativa deve permanecer na RPC protegida ou
+      passar a ter um contrato read-only explícito na Edge Function; qualquer
+      alteração e publicação exigem novo checkpoint.
 - [x] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment autorizado.
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
 - [x] Remover CORS `*`, separar o segredo HMAC da chave elevada e recalcular o checksum do bundle antes de autorizar a Edge Function.
