@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; primeiro login, mudança obrigatória de password e smoke autenticado aguardam checkpoint próprio
+- Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; primeiro login e mudança obrigatória de password concluídos, restantes smoke tests aguardam checkpoint próprio
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-29
@@ -55,6 +55,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-29 | Aceitar a versão 1 de `admin-users` como linha de base remota.                              | A tentativa única terminou com função ativa e o smoke sem dados passou.                              | Qualquer nova versão, correção ou eliminação requer nova autorização; o Owner continuava ausente nesse checkpoint. |
 | 2026-09-29 | Fazer o primeiro Owner por identidade manual e transação SQL estritamente verificada.       | `admin-users` exige um Owner prévio e a service role não pode sair do Supabase.                      | O painel cria a única identidade; uma transação insere perfil, Owner e auditoria sem mecanismo persistente.        |
 | 2026-09-29 | Concluir o bootstrap sem iniciar sessão.                                                    | Separa a criação administrativa do primeiro acesso e mantém o alcance autorizado mínimo.             | Produção fica com uma identidade, perfil ativo, Owner e auditoria; `must_change_password=true` e zero sessões.     |
+| 2026-09-29 | Fazer o primeiro acesso manual sem observar credenciais.                                    | A password deve permanecer exclusivamente entre o responsável, o browser e o Supabase Auth.          | A auditoria posterior verifica a sessão e o contexto Owner apenas por flags, relações e contagens.                 |
 
 ## Trabalho realizado
 
@@ -473,6 +474,26 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   função, Cloudflare ou deployment. O primeiro login e a mudança de password
   exigem autorização própria.
 
+### Primeiro acesso e mudança obrigatória de password
+
+- O responsável introduziu diretamente na aplicação o username, a password
+  inicial e a nova password. Nenhum desses valores foi observado, capturado ou
+  registado.
+- Depois da confirmação manual, foi executada uma única consulta SQL read-only,
+  sem selecionar tokens, hashes, credenciais ou identificadores de sessão.
+- A consulta confirmou `must_change_password=false`, uma única sessão ativa para
+  o único utilizador, zero sessões de outras identidades e um refresh token sem
+  ler o respetivo valor.
+- A relação entre Auth, perfil e `app_admins` confirmou `isAppAdmin=true`; o
+  perfil permanece ativo e não tem memberships.
+- Continuam a existir zero equipas, épocas, memberships, categorias, multas,
+  batches, logs, pedidos administrativos, fotografias e objetos Storage.
+- `public.audit_events` continua com um único evento `owner.bootstrap`, porque
+  o trigger de mudança de password atualiza a flag mas não cria auditoria
+  pública adicional.
+- RLS e o trigger de password permanecem ativos. Não foram alterados Cloudflare,
+  configuração Auth, secrets, Edge Function ou quaisquer dados adicionais.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -567,6 +588,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Publicação da Edge Function                          | passou    | Tentativa única; versão 1 ativa, JWT preservado, CORS validado e auditoria final com zero dados. |
 | Preflight read-only do primeiro Owner                | passou    | Três fontes, inventário vazio, identidade, transação, auditoria e rollback dirigido definidos.   |
 | Bootstrap do primeiro Owner                          | passou    | Execução única; 1 Auth, 1 perfil ativo, 1 Owner, 1 auditoria e zero sessões ou dados de domínio. |
+| Primeiro acesso e mudança obrigatória de password    | passou    | `must_change_password=false`, 1 sessão ativa, Owner válido, zero memberships e dados adicionais. |
 
 ## Desvios ao planeamento
 
@@ -586,10 +608,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   Auth mínima, secrets, Edge Function e primeiro Owner; o projeto descartável
   nunca pode ser promovido.
 - Baixo: o frontend, a Edge Function e o primeiro Owner estão ativos; o primeiro
-  login e a mudança obrigatória de password ainda não foram executados.
+  login e a mudança obrigatória de password foram concluídos.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
-- Baixo: a Edge Function está ativa na versão 1 com JWT e CORS validados; o smoke
-  funcional autenticado permanece dependente do primeiro login autorizado.
+- Baixo: a Edge Function está ativa na versão 1 com JWT e CORS validados; os
+  restantes smokes funcionais autenticados continuam sujeitos a autorização.
 - Baixo: `main` contém o squash do PR #9 em `[COMMIT_SHOWCASE]`; a continuação operacional permanece isolada numa nova branch.
 - Baixo: o signup Auth global está bloqueado; o provider email/password permanece deliberadamente ativo para o login por username técnico.
 - Médio: a política final de password permanece por decidir; o frontend e Auth continuam alinhados no mínimo atual de seis caracteres até ao checkpoint autorizado.
@@ -622,8 +644,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Guardar exclusivamente os dois secrets customizados após autorização própria.
 - [x] Publicar exclusivamente a Edge Function após autorização própria e validar sem dados.
 - [x] Criar o primeiro Owner após autorização independente, sem iniciar sessão.
-- [ ] Executar o primeiro login, a mudança obrigatória de password e o smoke
-      autenticado apenas após nova autorização.
+- [x] Executar o primeiro login e a mudança obrigatória de password, seguidos de
+      auditoria read-only sem dados adicionais.
+- [ ] Executar os restantes smoke tests autenticados apenas após nova
+      autorização.
 - [x] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment autorizado.
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
 - [x] Remover CORS `*`, separar o segredo HMAC da chave elevada e recalcular o checksum do bundle antes de autorizar a Edge Function.

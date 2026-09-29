@@ -15,12 +15,13 @@ autoriza por si só novas mutações remotas.
   integrado em `[COMMIT_SHOWCASE]`; continuação em
   `feature/ativacao-producao-final`.
 - Produção contém exatamente uma identidade Auth, o perfil ativo
-  `demo.admin`, uma atribuição Owner e o evento `owner.bootstrap`; não existem
-  sessões, objetos Storage ou dados de utilização.
+  `demo.admin`, uma atribuição Owner, uma sessão válida e o evento
+  `owner.bootstrap`; não existem objetos Storage ou dados de utilização.
 - Existem exclusivamente os secrets customizados `ADMIN_ALLOWED_ORIGINS` e
   `ADMIN_PASSWORD_RESET_SECRET`; os respetivos valores não são registados.
 - A Edge Function `admin-users` está publicada na versão 1, ativa e com
-  `verify_jwt=true`; o primeiro Owner foi criado, mas ainda não iniciou sessão.
+  `verify_jwt=true`; o primeiro Owner concluiu o primeiro acesso e a mudança
+  obrigatória de password.
 - Não será executado `supabase/seed.sql` nem serão criadas fixtures.
 
 ## Gates obrigatórias
@@ -62,9 +63,10 @@ será integrado depois do fecho do rollout.
 5. Concluído: publicada `admin-users` com JWT e CORS restritos e smoke sem dados.
 6. Concluído: executado o bootstrap transacional do primeiro Owner, mantendo
    `must_change_password=true` e zero sessões.
-7. Com autorização própria, executar o primeiro login, a mudança obrigatória de
-   password e o smoke test, removendo todos os artefactos temporários e
-   comparando o inventário final.
+7. Concluído: primeiro login e mudança obrigatória de password, seguidos apenas
+   da auditoria read-only autorizada.
+8. Com autorização própria, executar os restantes smoke tests funcionais,
+   remover os artefactos temporários autorizados e comparar o inventário final.
 
 O signup público global já está bloqueado com `disable_signup=true`; o provider
 email/password permanece ativo. O rollout Cloudflare do frontend está concluído;
@@ -683,6 +685,38 @@ O checkpoint terminou sem login. O primeiro acesso, criação de sessão, mudan�
 de password, equipa, época, membership, fotografia e dados financeiros
 continuam fora desta autorização.
 
+### Primeiro acesso e mudança de password de 2026-09-29
+
+O responsável introduziu manualmente as credenciais e a nova password na
+aplicação publicada. Nenhum valor foi observado, capturado, transmitido para a
+auditoria ou registado em logs e documentação. Não foi criada qualquer sessão
+adicional pelo processo de verificação.
+
+Após a confirmação manual, uma única consulta read-only confirmou:
+
+| Verificação                        | Resultado                                  |
+| ---------------------------------- | ------------------------------------------ |
+| `auth.users` / `auth.identities`   | 1 / 1                                      |
+| Perfil ativo correspondente        | 1                                          |
+| `must_change_password`             | `false`                                    |
+| Sessões totais/ativas do Owner     | 1 / 1                                      |
+| Sessões de outros utilizadores     | 0                                          |
+| Refresh tokens                     | 1, sem leitura do valor                    |
+| `isAppAdmin`                       | `true`, pela relação exata em `app_admins` |
+| Memberships do Owner / globais     | 0 / 0                                      |
+| Equipas e épocas                   | 0 / 0                                      |
+| Categorias, multas, batches e logs | 0                                          |
+| Pedidos administrativos            | 0                                          |
+| Objetos Storage                    | 0                                          |
+| `public.audit_events`              | 1, apenas `owner.bootstrap`                |
+| Roles de referência                | apenas `captain` e `treasurer`             |
+| RLS e trigger de password          | ativos                                     |
+
+A passagem de `must_change_password` para `false` comprova a execução do trigger
+`private.sync_password_change()`. Como previsto, esse trigger não cria um novo
+evento em `public.audit_events`. Não foram criadas equipas, épocas, memberships,
+fotografias, dados financeiros ou outras contas.
+
 ## Verificação, dados temporários e limpeza
 
 Inventário antes de cada mutação:
@@ -711,8 +745,7 @@ em `finally` e verificada por caminho e contagem. Não serão criadas contas de
 smoke test, dados financeiros ou fixtures. Se a limpeza falhar, o processo para,
 preserva IDs, timestamps e respostas sem credenciais, e não avança.
 
-Inventário atual: um Auth user, um `public.users`, um `public.app_admins` e a
-auditoria de bootstrap; zero sessões e objetos Storage; apenas `captain` e
-`treasurer` nas referências; restantes tabelas sem dados de utilização. A
-mudança futura passará `must_change_password` para `false`; o trigger não cria
-um novo evento em `public.audit_events`.
+Inventário atual: um Auth user, uma identidade email, um `public.users`, um
+`public.app_admins`, uma sessão ativa, um refresh token e a auditoria de
+bootstrap; `must_change_password=false`, zero objetos Storage, apenas `captain`
+e `treasurer` nas referências e restantes tabelas sem dados de utilização.
