@@ -16,6 +16,8 @@ autoriza por si só novas mutações remotas.
   `feature/ativacao-producao-final`.
 - Não existem identidades Auth, objetos Storage ou dados de utilização em
   produção.
+- Existem exclusivamente os secrets customizados `ADMIN_ALLOWED_ORIGINS` e
+  `ADMIN_PASSWORD_RESET_SECRET`; os respetivos valores não são registados.
 - Não será executado `supabase/seed.sql` nem serão criadas fixtures.
 
 ## Gates obrigatórias
@@ -52,8 +54,8 @@ será integrado depois do fecho do rollout.
    aprovado.
 3. Concluído: Site URL e redirect Auth configurados; a password mínima permanece
    em 6 até decisão explícita.
-4. Próximo, com autorização própria: guardar os dois secrets customizados da
-   Edge Function.
+4. Concluído: guardados os dois secrets customizados da Edge Function, sem
+   publicar código.
 5. Com autorização própria, publicar `admin-users` com JWT e CORS restritos.
 6. Com autorização própria, executar o bootstrap transacional do primeiro
    Owner e obrigar à troca imediata da password.
@@ -316,25 +318,28 @@ O bundle local está aprovado para o checkpoint seguinte:
 mantém a segunda camada: valida o utilizador Auth e exige `is_active=true` e
 presença em `app_admins` antes de criar/alterar contas.
 
-### Próximo checkpoint — secrets
+### Checkpoint de secrets executado em 2026-09-29
 
 - O runtime Supabase já injeta `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS` e
-  `SUPABASE_SECRET_KEYS`; estes nomes reservados não serão criados, lidos ou
+  `SUPABASE_SECRET_KEYS`; estes nomes reservados não foram criados, lidos ou
   alterados neste checkpoint.
-- Criar exclusivamente `ADMIN_ALLOWED_ORIGINS` com o valor exato
+- Foi criado exclusivamente `ADMIN_ALLOWED_ORIGINS` com o valor exato
   `https://caixinha-showcase.pages.dev`.
-- Criar exclusivamente `ADMIN_PASSWORD_RESET_SECRET` com 32 bytes aleatórios ou
-  mais, gerados criptograficamente e nunca apresentados no chat ou logs.
-- Antes da escrita: repetir as três confirmações do project ref e inventariar
-  apenas os nomes/digests existentes, abortando se algum dos dois nomes já
-  existir.
-- Depois da escrita: listar apenas nomes/digests e exigir exatamente os dois
-  nomes customizados, sem publicar ainda a função.
-- Não usar argumentos `NAME=VALUE` nem ficheiros `.env`, para evitar exposição em
-  processos ou persistência local; os valores serão enviados apenas em memória.
+- Foi criado exclusivamente `ADMIN_PASSWORD_RESET_SECRET` com 48 bytes
+  aleatórios gerados criptograficamente e codificados em base64url; o valor não
+  foi apresentado no chat ou logs.
+- Antes da escrita, as três fontes confirmaram `showcaseprodref00001`, o dry-run
+  devolveu `wrote=false`, o vínculo local permaneceu em
+  `showcasetestref00001` e o inventário confirmou zero secrets customizados.
+- A Management API respondeu `201`; a verificação read-only posterior exigiu e
+  encontrou exatamente os dois nomes customizados. A CLI 2.117.0 não expôs um
+  campo `digest` separado, pelo que nenhum campo de valor foi apresentado.
+- Não foram usados argumentos `NAME=VALUE` nem ficheiros `.env`; o access token
+  local e os valores existiram apenas na memória do processo, que foi limpa no
+  final.
 
-Nenhum valor entra no Git, frontend, Pages, comandos mostrados, chat ou logs.
-A criação dos secrets não publica código. O futuro deployment usa o project ref
+Nenhum valor entrou no Git, frontend, Pages, comandos mostrados, chat ou logs.
+A criação dos secrets não publicou código. O futuro deployment usa o project ref
 explícito e nunca `--no-verify-jwt`.
 
 Reversão: eliminar ou rodar qualquer secret exige nova autorização. Depois da
@@ -350,17 +355,31 @@ automático.
 
 ## Primeiro Owner
 
-Dados mínimos: username válido, nome apresentado, password temporária aleatória
-gerada/guardada pelo responsável no gestor de passwords e o UUID Auth criado
-pelo Supabase. Passwords e tokens nunca são transmitidos no chat.
+Decisão aprovada para o checkpoint futuro:
+
+- produção começa com uma única identidade Auth, de username `demo.admin`;
+- a mesma identidade recebe acesso global de Owner e será posteriormente
+  associada como jogador a uma equipa, sem criar uma segunda conta;
+- a qualidade de Owner permanece privada e não é apresentada aos restantes
+  membros; quando integrar um plantel, aparece apenas com o perfil desse plantel;
+- a password inicial só será fornecida no momento autorizado da criação e nunca
+  será guardada em documentação, commits, logs ou ficheiros versionados;
+- `must_change_password=true` é obrigatório desde o bootstrap até à alteração da
+  password no primeiro acesso;
+- não serão criadas contas, fixtures ou dados adicionais neste checkpoint.
+
+Dados mínimos: username `demo.admin`, nome apresentado ainda a confirmar no
+checkpoint, password temporária fornecida nesse momento e guardada pelo
+responsável no gestor de passwords, e o UUID Auth criado pelo Supabase.
+Passwords e tokens nunca são transmitidos no chat.
 
 Procedimento:
 
 1. Confirmar zero `auth.users`, `public.users`, `public.app_admins` e
    `public.audit_events`.
-2. Criar manualmente no painel uma única identidade Auth com o email técnico
-   calculado localmente, password temporária forte e email marcado como
-   confirmado.
+2. Criar manualmente no painel a única identidade Auth, para `demo.admin`, com
+   o email técnico calculado localmente, password temporária forte fornecida no
+   momento autorizado e email marcado como confirmado.
 3. Capturar apenas o UUID. Se qualquer passo seguinte falhar, parar; a única
    limpeza admissível é eliminar essa identidade exata após autorização.
 4. Executar no SQL Editor uma única transação que obtém advisory lock, exige
@@ -375,6 +394,8 @@ Procedimento:
    `private.sync_password_change` muda `must_change_password` para `false`.
 7. Invalidar e remover do gestor a password temporária; confirmar que deixa de
    autenticar e que apenas a nova password funciona.
+8. Numa autorização posterior e separada, associar esta mesma `public.users` ao
+   plantel como jogador; nunca criar outra identidade para essa participação.
 
 Não existe caminho público ou de utilizador comum para criar um segundo Owner.
 As policies atuais permitem alteração de `app_admins` apenas a um Owner ativo;

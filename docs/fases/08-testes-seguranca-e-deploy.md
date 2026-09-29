@@ -2,7 +2,7 @@
 
 ## Estado
 
-- Estado: em curso — frontend e URL/redirect Auth ativos; hardening local da Edge Function concluído; secrets, publicação da função e Owner aguardam checkpoints próprios
+- Estado: em curso — frontend, URL/redirect Auth e secrets customizados ativos; hardening local da Edge Function concluído; publicação da função e Owner aguardam checkpoints próprios
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
 - Última atualização: 2026-09-29
@@ -49,6 +49,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-28 | Aceitar o segundo deployment apenas após merge revisto e smoke independente.                | O primeiro deployment expôs duas falhas que exigiam correção forward comprovada antes da promoção.  | O frontend publicado contém a configuração pública correta e devolve 404 seguro para assets inexistentes.     |
 | 2026-09-29 | Alterar apenas Site URL e redirects no Auth de produção.                                    | A URL canónica já foi validada e os restantes campos não pertencem a este checkpoint.               | `GET → PATCH → GET` confirmou só os dois campos autorizados; mínimo de password permanece em 6.               |
 | 2026-09-29 | Exigir CORS exato e segredo HMAC próprio na `admin-users`.                                  | A service role não deve ser reutilizada para derivação e CORS `*` deixou de ser necessário.         | A função falha fechada sem configuração, usa chaves modernas do runtime e fica pronta para revisão.           |
+| 2026-09-29 | Criar apenas os dois secrets customizados antes de publicar a função.                       | Separa configuração sensível, código e bootstrap em checkpoints reversíveis e auditáveis.           | Os valores existiram apenas em memória; a função e as identidades permaneceram inalteradas.                   |
+| 2026-09-29 | Usar uma única identidade `demo.admin` como Owner e futuro jogador.                       | Evita contas duplicadas e preserva a invisibilidade da permissão global no plantel.                 | O bootstrap exigirá `must_change_password=true`; a futura associação de jogador reutiliza o mesmo utilizador. |
 
 ## Trabalho realizado
 
@@ -350,6 +352,25 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - O frontend fica aprovado para prosseguir para a configuração Auth. Não foram
   alterados secrets, Edge Functions, identidades, Owner ou dados de utilização.
 
+### Secrets da Edge Function de 2026-09-29
+
+- O alvo foi reconfirmado por três fontes: registo versionado, projeto
+  `caixinha-showcase-producao` ativo em `eu-central-1` e dry-run com
+  `target.project_ref=showcaseprodref00001`, `dry_run=true` e `wrote=false`.
+  O vínculo local permaneceu em `showcasetestref00001`.
+- O inventário inicial tinha zero secrets customizados. Foram criados apenas
+  `ADMIN_ALLOWED_ORIGINS` e `ADMIN_PASSWORD_RESET_SECRET`; a resposta foi `201`
+  e a leitura posterior encontrou exatamente esses dois nomes.
+- O segredo de reset usa 48 bytes criptograficamente aleatórios. Access token e
+  valores permaneceram apenas em memória e foram removidos no fim; não houve
+  argumentos `NAME=VALUE`, ficheiros `.env`, valores em logs ou persistência no
+  repositório.
+- Não foram alterados os nomes reservados `SUPABASE_*`, Auth, Cloudflare, dados,
+  identidades ou Owner. A Edge Function não foi publicada.
+- O futuro primeiro Owner reutilizará uma única identidade Auth com username
+  `demo.admin`; a mesma identidade poderá ser associada como jogador, sem
+  revelar a permissão global aos membros e sem criar uma segunda conta.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -439,6 +460,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Site URL e redirect Auth em produção                 | passou    | Três fontes; `GET → PATCH → GET`; apenas os dois campos autorizados mudaram.                     |
 | Hardening local da Edge Function                     | passou    | 29 testes dirigidos; CORS exato, HMAC próprio, chaves modernas e `verify_jwt=true`.              |
 | Pipeline local após hardening                        | passou    | Node 24.19.0; 29 ficheiros/119 Vitest, 11/11 PostgreSQL, build e 5/5 Pages.                      |
+| Secrets customizados da Edge Function                | passou    | Três fontes; inventário 0→2; apenas os dois nomes autorizados; sem publish ou identidades.       |
 
 ## Desvios ao planeamento
 
@@ -454,12 +476,11 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Riscos e limitações
 
-- Elevado: o projeto Supabase de produção tem schema, políticas e configuração
-  Auth mínima, mas ainda não tem os secrets customizados, Edge Function ou
-  Owner; o projeto descartável nunca pode ser promovido.
+- Elevado: o projeto Supabase de produção tem schema, políticas, configuração
+  Auth mínima e secrets customizados, mas ainda não tem Edge Function publicada
+  ou Owner; o projeto descartável nunca pode ser promovido.
 - Baixo: o frontend corrigido está publicado e o smoke passou; o login só ficará
-  operacional depois de guardar secrets, publicar a Edge Function e criar o
-  primeiro Owner.
+  operacional depois de publicar a Edge Function e criar o primeiro Owner.
 - Baixo: a CSP está fixada exclusivamente ao Supabase de produção; previews permanecem desativados até existir uma CSP própria para o ambiente descartável.
 - Médio: o hardening local da Edge Function está pronto e testado, mas ainda não
   foi publicado; produção continua sem esta função até autorização própria.
@@ -492,7 +513,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Receber autorização final única e executar o lote coerente das oito migrações, incluindo RLS e Storage.
 - [x] Configurar Site URL e redirect exato no Auth sem alterar os restantes campos.
 - [ ] Decidir a política final de password; o mínimo permanece em 6.
-- [ ] Guardar secrets, publicar Edge Function e criar o primeiro Owner apenas após três autorizações independentes.
+- [x] Guardar exclusivamente os dois secrets customizados após autorização própria.
+- [ ] Publicar a Edge Function e criar o primeiro Owner apenas após duas autorizações independentes adicionais.
 - [x] Ligar o repositório ao Cloudflare Pages, configurar preview/produção e executar o primeiro deployment autorizado.
 - [x] Preparar o preflight conjunto de Pages, Auth, secrets, Edge Function, primeiro Owner e smoke test sem mutações remotas.
 - [x] Remover CORS `*`, separar o segredo HMAC da chave elevada e recalcular o checksum do bundle antes de autorizar a Edge Function.
