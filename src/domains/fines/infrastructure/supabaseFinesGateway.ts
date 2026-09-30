@@ -17,6 +17,7 @@ const categorySchema = z.object({
   description: z.string().nullable(),
   base_amount_cents: z.number().int(),
   amount_per_minute_cents: z.number().int().nullable(),
+  is_monthly_commission: z.boolean(),
   is_active: z.boolean(),
   display_order: z.number().int(),
 });
@@ -59,6 +60,7 @@ function mapCategory(row: z.infer<typeof categorySchema>) {
     description: row.description,
     baseAmountCents: row.base_amount_cents,
     amountPerMinuteCents: row.amount_per_minute_cents,
+    isMonthlyCommission: row.is_monthly_commission,
     isActive: row.is_active,
     displayOrder: row.display_order,
   };
@@ -90,7 +92,7 @@ export class SupabaseFinesGateway implements FinesGateway {
       await this.client
         .from('fine_categories')
         .select(
-          'id,season_id,name,description,base_amount_cents,amount_per_minute_cents,is_active,display_order',
+          'id,season_id,name,description,base_amount_cents,amount_per_minute_cents,is_monthly_commission,is_active,display_order',
         )
         .eq('season_id', seasonId)
         .order('display_order')
@@ -171,6 +173,16 @@ export class SupabaseFinesGateway implements FinesGateway {
       }),
     );
     return mapFine(fineSchema.parse(row));
+  }
+
+  async generateMonthlyCommissions(seasonId: string, month: string) {
+    const result = check(
+      await this.client.rpc('generate_monthly_commissions', {
+        p_season_id: seasonId,
+        p_month: `${month}-01`,
+      }),
+    );
+    return z.number().int().nonnegative().parse(result);
   }
 }
 

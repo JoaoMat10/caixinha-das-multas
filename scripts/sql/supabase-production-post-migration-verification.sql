@@ -101,13 +101,14 @@ with expected_tables(name) as (
 )
 select jsonb_pretty(jsonb_build_object(
   'checks', jsonb_build_object(
-    'nine_migrations_recorded', (
-      select count(*) = 9
+    'ten_migrations_recorded', (
+      select count(*) = 10
       from supabase_migrations.schema_migrations
       where version in (
         '20260911010000', '20260911020000', '20260911030000',
         '20260911040000', '20260914010000', '20260915010000',
-        '20260915020000', '20260915030000', '20260930010000'
+        '20260915020000', '20260915030000', '20260930010000',
+        '20260930020000'
       )
     ),
     'per_minute_columns_ready', (
@@ -141,7 +142,7 @@ select jsonb_pretty(jsonb_build_object(
         and allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp']
     ),
     'application_security_definers_exact',
-      (select count(*) = 32 from application_security_definers),
+      (select count(*) = 33 from application_security_definers),
     'application_security_definers_safe_search_path', not exists (
       select 1 from application_security_definers
       where proconfig is null or not ('search_path=""' = any(proconfig))

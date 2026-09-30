@@ -53,6 +53,10 @@ const migrations = [
     '20260930010000_support_per_minute_fines.sql',
     '6614aa96aba6fa86840bd355aa6a4f8da460f6b72766fc692b89e5fd569ed798',
   ],
+  [
+    '20260930020000_create_monthly_commissions.sql',
+    'db7240980cbe2cca61bafc347ea5bb1c8038292306d30ca181246946ab43ec71',
+  ],
 ];
 
 const platformBootstrap = `

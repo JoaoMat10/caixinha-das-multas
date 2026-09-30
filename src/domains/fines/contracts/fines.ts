@@ -5,6 +5,7 @@ export type FineCategory = {
   description: string | null;
   baseAmountCents: number;
   amountPerMinuteCents: number | null;
+  isMonthlyCommission: boolean;
   isActive: boolean;
   displayOrder: number;
 };
@@ -71,4 +72,5 @@ export interface FinesGateway {
   loadFines(filters: FineFilters): Promise<FinePage>;
   saveCategory(input: SaveFineCategory): Promise<FineCategory>;
   applyFine(input: ApplyFine): Promise<Fine>;
+  generateMonthlyCommissions(seasonId: string, month: string): Promise<number>;
 }

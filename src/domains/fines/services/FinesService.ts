@@ -56,4 +56,13 @@ export class FinesService {
       throw new Error('O número de minutos deve ser um inteiro não negativo.');
     return this.gateway.applyFine(input);
   }
+
+  generateMonthlyCommissions(seasonId: string, month: string) {
+    requireOnline();
+    if (!seasonId || !/^\d{4}-(0[1-9]|1[0-2])$/.test(month))
+      throw new Error('Seleciona uma época e um mês válidos.');
+    if (month < '2026-09')
+      throw new Error('A comissão mensal inicia em setembro de 2026.');
+    return this.gateway.generateMonthlyCommissions(seasonId, month);
+  }
 }

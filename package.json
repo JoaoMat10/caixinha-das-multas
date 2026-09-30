@@ -25,6 +25,7 @@
     "test:watch": "vitest",
     "populate:production": "node scripts/populate-production-roster.mjs",
     "populate:production:catalog": "node scripts/populate-production-fine-catalog.mjs",
+    "populate:production:august-fines": "node scripts/import-production-august-fines.mjs",
     "test:e2e": "node scripts/test-e2e.mjs",
     "test:e2e:install": "playwright install chromium",
     "typecheck": "tsc -b",
