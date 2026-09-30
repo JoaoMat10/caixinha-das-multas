@@ -88,6 +88,18 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
     name: 'Marcar multa como paga?',
   });
   await expect(settleDialog).toBeVisible();
+  if (testInfo.project.name === 'chromium-mobile') {
+    const dialogBox = await settleDialog.boundingBox();
+    const viewport = page.viewportSize();
+    if (!dialogBox || !viewport)
+      throw new Error('Não foi possível medir o diálogo móvel.');
+    expect(
+      Math.abs(dialogBox.y + dialogBox.height / 2 - viewport.height / 2),
+    ).toBeLessThanOrEqual(2);
+    expect(await page.evaluate<string>('document.body.style.overflow')).toBe(
+      'hidden',
+    );
+  }
   await settleDialog.getByRole('button', { name: 'Marcar como paga' }).click();
   await expect(page.getByText(/Multa marcada como paga: 0,20/)).toBeVisible();
 

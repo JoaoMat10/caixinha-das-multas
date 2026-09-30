@@ -286,6 +286,7 @@ describe('interface de multas e tesouraria', () => {
     const dialog = screen.getByRole('dialog', {
       name: 'Marcar multa como paga?',
     });
+    expect(dialog.parentElement?.parentElement).toBe(document.body);
     expect(dialog).toHaveTextContent('Confirmas que recebeste 10,00');
     await user.click(
       within(dialog).getByRole('button', { name: 'Marcar como paga' }),

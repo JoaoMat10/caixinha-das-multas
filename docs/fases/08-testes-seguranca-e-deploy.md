@@ -614,6 +614,11 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Inputs, botões, paginação e ações de formulários receberam limites e quebras
   responsivas para viewports estreitos; os diálogos passam a uma coluna abaixo
   de 360 px.
+- Os diálogos de confirmação são montados diretamente no `body`, bloqueiam o
+  scroll de fundo e ficam centrados no viewport mesmo quando a ação é iniciada
+  no fim de uma página longa no iPhone.
+- Os cartões do catálogo e da Caixa separam conteúdo, valor e ações em grelhas
+  responsivas, evitando sobreposição e quebras irregulares em ecrãs estreitos.
 
 ## Ficheiros criados ou alterados
 
@@ -635,6 +640,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `src/app/financial/FinancialUi.tsx`                                 | alterado          | Conter inputs, cartões e botões em viewports móveis estreitos.                                    |
 | `src/app/financial/FinesPage.tsx`                                   | alterado          | Empilhar ações e dimensionar controlos de forma responsiva.                                       |
 | `src/styles/index.css`                                              | alterado          | Corrigir a barra inferior e os diálogos em mobile.                                                |
+| `src/shared/components/ConfirmDialog.tsx`                           | alterado          | Montar confirmações fora do conteúdo animado e bloquear o scroll de fundo.                        |
 | `src/app/FinancialPage.test.tsx`                                    | alterado          | Cobrir a liquidação individual sem filtro de membro.                                              |
 | `e2e/financial.spec.ts`                                             | alterado          | Validar liquidação direta, 320 px e ausência de overflow horizontal.                              |
 | `docs/operacao/importacao-catalogo-multas-producao.md`              | criado            | Documentar preflight, aplicação e verificação do catálogo oficial.                                |

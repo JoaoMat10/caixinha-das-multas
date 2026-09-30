@@ -125,35 +125,37 @@ function CatalogSection({
       <ul className="mt-4 space-y-2">
         {categoriesQuery.data?.map((category) => (
           <li
-            className="border-pitch-100 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            className="border-pitch-100 grid min-w-0 gap-3 rounded-xl border p-3"
             key={category.id}
           >
-            <span className="min-w-0 flex-1">
-              <strong>{category.name}</strong>
-              <span className="text-pitch-600 block text-sm">
-                {category.description || 'Sem descrição'} · ordem{' '}
-                {category.displayOrder} ·{' '}
-                {category.isActive ? 'ativa' : 'inativa'}
-                {category.isMonthlyCommission ? ' · comissão mensal' : ''}
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="min-w-0 flex-1">
+                <strong className="block break-words">{category.name}</strong>
+                <span className="text-pitch-600 mt-1 block text-sm break-words">
+                  {category.description || 'Sem descrição'} · ordem{' '}
+                  {category.displayOrder} ·{' '}
+                  {category.isActive ? 'ativa' : 'inativa'}
+                  {category.isMonthlyCommission ? ' · comissão mensal' : ''}
+                </span>
               </span>
-            </span>
-            <strong>
-              {formatEuros(category.baseAmountCents)}
-              {category.amountPerMinuteCents === null
-                ? ''
-                : ` + ${formatEuros(category.amountPerMinuteCents)}/min`}
-            </strong>
+              <strong className="bg-gold-100 shrink-0 rounded-lg px-2.5 py-1.5 text-right text-sm leading-tight">
+                {formatEuros(category.baseAmountCents)}
+                {category.amountPerMinuteCents === null
+                  ? ''
+                  : ` + ${formatEuros(category.amountPerMinuteCents)}/min`}
+              </strong>
+            </div>
             {writable && !category.isMonthlyCommission ? (
-              <>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 <button
-                  className={secondaryButtonClass}
+                  className={`${secondaryButtonClass} w-full sm:w-auto`}
                   onClick={() => edit(category)}
                   type="button"
                 >
                   Editar
                 </button>
                 <button
-                  className={secondaryButtonClass}
+                  className={`${secondaryButtonClass} w-full sm:w-auto`}
                   disabled={busy}
                   onClick={() =>
                     void save({
@@ -173,7 +175,7 @@ function CatalogSection({
                 >
                   {category.isActive ? 'Desativar' : 'Reativar'}
                 </button>
-              </>
+              </div>
             ) : null}
           </li>
         ))}

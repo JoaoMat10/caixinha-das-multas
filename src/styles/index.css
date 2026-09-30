@@ -532,6 +532,11 @@ textarea::placeholder {
   background: rgb(0 0 0 / 0.68);
   backdrop-filter: blur(5px);
 }
+.dialog-backdrop {
+  align-items: center;
+  padding-top: calc(1rem + env(safe-area-inset-top));
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
 .more-sheet,
 .confirm-dialog {
   width: min(100%, 32rem);
@@ -659,6 +664,11 @@ textarea::placeholder {
 }
 
 .confirm-dialog {
+  max-height: calc(
+    100dvh - 2rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1.25rem;
 }
 .confirm-dialog h2 {
