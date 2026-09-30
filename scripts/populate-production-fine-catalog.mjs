@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-const cli = path.join(root, 'node_modules', '.bin', 'supabase.cmd');
+const cli = path.join(root, 'node_modules', 'supabase', 'dist', 'supabase.js');
 const projectRef = 'showcaseprodref00001';
 const teamName = 'Clube Desportivo Exemplo';
 const seasonName = '2026/2027';
@@ -46,13 +46,15 @@ const categories = [
 }));
 
 function runCli(args) {
-  const result = spawnSync(cli, args, {
+  const result = spawnSync(process.execPath, [cli, ...args], {
     cwd: root,
     encoding: 'utf8',
     windowsHide: true,
   });
   if (result.status !== 0)
-    throw new Error(result.stderr.trim() || result.stdout.trim());
+    throw new Error(
+      `Supabase CLI falhou: ${String(result.stderr ?? '')}\n${String(result.stdout ?? '')}`,
+    );
   return result.stdout;
 }
 

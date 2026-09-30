@@ -35,3 +35,11 @@ npm run populate:production:catalog -- --apply
 ```
 
 As restantes 22 categorias têm valor fixo. Nenhuma multa, pagamento ou saldo é criado pela importação do catálogo.
+
+## Resultado de 2026-09-30
+
+- migração `20260930010000_support_per_minute_fines.sql` aplicada em produção sem seed;
+- 23 categorias criadas numa única transação;
+- categoria n.º 2 confirmada com base de `3,00 €` e `0,10 €/min`;
+- auditoria final confirmou as 23 categorias exatas e zero multas, batches ou logs de pagamento;
+- dry-run final confirmou zero migrações, seeds ou roles pendentes.

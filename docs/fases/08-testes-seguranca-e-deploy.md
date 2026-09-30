@@ -574,6 +574,12 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   `ROLLBACK`, incluindo quatro cenários novos de preço por minuto.
 - A validação local passou 121 testes Vitest, 12 cenários PostgreSQL,
   TypeScript, lint e build de produção.
+- O dry-run de produção confirmou exclusivamente a nova migração, sem seed ou
+  roles. A migração foi aplicada em `showcaseprodref00001` e o importador criou
+  as 23 categorias numa única transação.
+- A auditoria final confirmou o catálogo exato, a categoria variável com
+  `3,00 € + 0,10 €/min`, zero multas/batches/logs e zero migrações, seeds ou
+  roles pendentes.
 
 ## Ficheiros criados ou alterados
 
@@ -683,7 +689,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Dry-run do importador de plantel                     | passou    | Três fontes, inventário inicial exato, 29 membros, 28 contas novas, 5 capitães, 1 tesoureiro.    |
 | Importação do plantel Clube Desportivo Exemplo                    | passou    | 29 Auth/perfis/memberships, 28 fotografias privadas e credenciais apenas no ficheiro ignorado.   |
 | Auditoria read-only pós-importação                   | passou    | Conjuntos exatos; seis roles; Owner associado; zero categorias, multas, batches ou logs.         |
-| Multas por minuto                                    | passou    | 121 Vitest, 12 PostgreSQL e 85/85 pgTAP remoto; falta apenas o rollout controlado em produção.   |
+| Multas por minuto                                    | passou    | 121 Vitest, 12 PostgreSQL e 85/85 pgTAP remoto; frontend preparado para integração em `main`.    |
+| Migração e catálogo oficial em produção              | passou    | 1 migração, 23 categorias exatas, regra variável confirmada e zero movimentos financeiros.       |
 
 ## Desvios ao planeamento
 
@@ -765,8 +772,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
       próprio e validar novamente a aplicação e a Edge Function.
 - [x] Importar a primeira equipa, época, contas, plantel, roles e fotografias em
       produção, preservando o Owner existente e zero dados financeiros.
-- [ ] Aplicar a migração por minuto e importar as 23 categorias em produção
-      depois da validação local e do merge autorizado.
+- [x] Aplicar a migração por minuto e importar as 23 categorias em produção,
+      sem seed nem movimentos financeiros.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
 ## Handoff para a fase seguinte
