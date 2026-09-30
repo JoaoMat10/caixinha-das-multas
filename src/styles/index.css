@@ -402,6 +402,7 @@ textarea::placeholder {
   min-width: 0;
   min-height: 3.75rem;
   flex: 1 1 0;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.2rem;
@@ -410,6 +411,7 @@ textarea::placeholder {
   color: var(--app-muted);
   font-size: 0.58rem;
   font-weight: 800;
+  line-height: 1.05;
   text-decoration: none;
 }
 .mobile-bottom-navigation .app-nav-link svg {
@@ -690,6 +692,23 @@ textarea::placeholder {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.65rem;
+}
+
+@media (max-width: 359px) {
+  .app-main {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .mobile-bottom-navigation {
+    right: 0.4rem;
+    left: 0.4rem;
+  }
+  .mobile-bottom-navigation .app-nav-link {
+    font-size: 0.54rem;
+  }
+  .dialog-actions {
+    grid-template-columns: 1fr;
+  }
 }
 .button-primary,
 .button-secondary,

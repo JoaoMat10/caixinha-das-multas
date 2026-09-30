@@ -272,6 +272,38 @@ describe('interface de multas e tesouraria', () => {
     );
   });
 
+  it('permite marcar uma multa individual como paga sem filtrar primeiro o membro', async () => {
+    const user = userEvent.setup();
+    const { treasuryGateway } = renderFinancial('/tesouraria');
+    await screen.findByRole('heading', { name: 'Multas da época' });
+
+    const actions = await screen.findAllByRole('button', {
+      name: 'Marcar como paga',
+    });
+    if (!actions[0]) throw new Error('Ação de pagamento não encontrada.');
+    await user.click(actions[0]);
+
+    const dialog = screen.getByRole('dialog', {
+      name: 'Marcar multa como paga?',
+    });
+    expect(dialog).toHaveTextContent('Confirmas que recebeste 10,00');
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Marcar como paga' }),
+    );
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /Multa marcada como paga: 10,00/,
+    );
+    expect(treasuryGateway.recordPayment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        memberId,
+        fineIds: [initialFine.id],
+        action: 'paid',
+        idempotencyKey: expect.any(String),
+      }),
+    );
+  });
+
   it('filtra um membro, liquida um batch, reabre e elimina apenas uma multa nunca paga', async () => {
     const user = userEvent.setup();
     const { treasuryGateway } = renderFinancial('/tesouraria');

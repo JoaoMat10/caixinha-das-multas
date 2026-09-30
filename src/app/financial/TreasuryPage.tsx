@@ -33,7 +33,7 @@ function TreasurySeason({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{
-    action: 'reopen' | 'remove';
+    action: 'settle' | 'reopen' | 'remove';
     fine: Fine;
   } | null>(null);
   const membersQuery = useQuery({
@@ -127,6 +127,35 @@ function TreasurySeason({
     }
   }
 
+  async function settleOne(fine: Fine) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const batch = await treasury.recordPayment({
+        memberId: fine.seasonMemberId,
+        fineIds: [fine.id],
+        action: 'paid',
+        idempotencyKey: crypto.randomUUID(),
+      });
+      setSelectedIds((current) => current.filter((id) => id !== fine.id));
+      await refresh();
+      setConfirmation(null);
+      setNotice(
+        `Multa marcada como paga: ${formatEuros(batch.calculatedTotalCents)}.`,
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível marcar a multa como paga.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function reopen(fine: Fine) {
     if (busy) return;
     setBusy(true);
@@ -201,6 +230,10 @@ function TreasurySeason({
       <FinancialMessage error={error} notice={notice} />
       <section className={cardClass}>
         <h2 className="text-xl font-black">Multas da época</h2>
+        <p className="text-pitch-600 mt-1 text-sm">
+          Marca uma multa individual como paga ou escolhe primeiro um membro
+          para liquidar várias de uma só vez.
+        </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-semibold">
             Membro
@@ -305,6 +338,18 @@ function TreasurySeason({
               </div>
               {writable ? (
                 <div className="mt-3 flex flex-wrap gap-2">
+                  {fine.status === 'pending' ? (
+                    <button
+                      className={primaryButtonClass}
+                      disabled={busy}
+                      onClick={() =>
+                        setConfirmation({ action: 'settle', fine })
+                      }
+                      type="button"
+                    >
+                      Marcar como paga
+                    </button>
+                  ) : null}
                   {fine.status === 'paid' ? (
                     <button
                       className={secondaryButtonClass}
@@ -340,9 +385,9 @@ function TreasurySeason({
           ) : null}
         </ul>
         {listQuery.data ? (
-          <div className="mt-4 flex items-center gap-3 text-sm">
+          <div className="mt-4 flex flex-col items-stretch gap-2 text-sm sm:flex-row sm:items-center sm:gap-3">
             <button
-              className={secondaryButtonClass}
+              className={`${secondaryButtonClass} w-full sm:w-auto`}
               disabled={page === 0}
               onClick={() => {
                 setPage(page - 1);
@@ -353,11 +398,11 @@ function TreasurySeason({
             >
               Anterior
             </button>
-            <span>
+            <span className="text-center sm:text-left">
               Página {page + 1} · {listQuery.data.total} multa(s)
             </span>
             <button
-              className={secondaryButtonClass}
+              className={`${secondaryButtonClass} w-full sm:w-auto`}
               disabled={(page + 1) * 50 >= listQuery.data.total}
               onClick={() => {
                 setPage(page + 1);
@@ -374,13 +419,19 @@ function TreasurySeason({
       <ConfirmDialog
         busy={busy}
         confirmLabel={
-          confirmation?.action === 'remove' ? 'Eliminar multa' : 'Reabrir multa'
+          confirmation?.action === 'remove'
+            ? 'Eliminar multa'
+            : confirmation?.action === 'settle'
+              ? 'Marcar como paga'
+              : 'Reabrir multa'
         }
         description={
           confirmation
             ? confirmation.action === 'remove'
               ? `«${confirmation.fine.categoryNameSnapshot}» de ${formatEuros(confirmation.fine.finalAmountCents)} será eliminada definitivamente. Esta ação não pode ser anulada.`
-              : `«${confirmation.fine.categoryNameSnapshot}» de ${formatEuros(confirmation.fine.finalAmountCents)} volta a ficar pendente e o recebido será corrigido.`
+              : confirmation.action === 'settle'
+                ? `Confirmas que recebeste ${formatEuros(confirmation.fine.finalAmountCents)} pela multa «${confirmation.fine.categoryNameSnapshot}»?`
+                : `«${confirmation.fine.categoryNameSnapshot}» de ${formatEuros(confirmation.fine.finalAmountCents)} volta a ficar pendente e o recebido será corrigido.`
             : ''
         }
         destructive={confirmation?.action === 'remove'}
@@ -389,13 +440,17 @@ function TreasurySeason({
           if (!confirmation) return;
           void (confirmation.action === 'remove'
             ? remove(confirmation.fine)
-            : reopen(confirmation.fine));
+            : confirmation.action === 'settle'
+              ? settleOne(confirmation.fine)
+              : reopen(confirmation.fine));
         }}
         open={Boolean(confirmation)}
         title={
           confirmation?.action === 'remove'
             ? 'Eliminar multa?'
-            : 'Reabrir multa?'
+            : confirmation?.action === 'settle'
+              ? 'Marcar multa como paga?'
+              : 'Reabrir multa?'
         }
       />
     </div>

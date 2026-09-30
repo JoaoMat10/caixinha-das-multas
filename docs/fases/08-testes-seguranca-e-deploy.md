@@ -58,6 +58,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-29 | Fazer o primeiro acesso manual sem observar credenciais.                                    | A password deve permanecer exclusivamente entre o responsável, o browser e o Supabase Auth.          | A auditoria posterior verifica a sessão e o contexto Owner apenas por flags, relações e contagens.                 |
 | 2026-09-30 | Iniciar a comissão mensal em setembro e excluir agosto.                                     | A decisão funcional mais recente determina a primeira contabilização em 1 de outubro.                | A comissão é fixa em 1,00 EUR, sem multiplicador, protegida e idempotente.                                         |
 | 2026-09-30 | Preservar o multiplicador histórico indicado em cada multa de agosto.                       | As funções atuais do plantel não podem reescrever o contexto histórico.                              | Óscar Rodrigues usa 2x; William Costa e Diogo Almeida usam 1x; as 18 multas ficam liquidadas.                                               |
+| 2026-09-30 | Permitir liquidar diretamente cada multa pendente na listagem da Caixa.                     | O fluxo anterior escondia a seleção até o tesoureiro filtrar primeiro um membro.                     | Cada multa pendente tem confirmação própria; a seleção em lote por membro permanece disponível.                    |
 
 ## Trabalho realizado
 
@@ -601,6 +602,19 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   estado pago e histórico de pagamento para as 18 ocorrências. O total recebido
   é `37,00 €`.
 
+## Correção da Caixa e da apresentação móvel
+
+- A Caixa passou a apresentar `Marcar como paga` em cada multa pendente, mesmo
+  quando o filtro está em `Todos os membros`. A confirmação usa a mesma RPC
+  atómica e idempotente da liquidação em lote.
+- A seleção e liquidação conjunta continua disponível depois de escolher um
+  membro específico.
+- A barra inferior móvel organiza agora ícone e texto verticalmente, incluindo
+  contas que acumulam permissões de membro, tesoureiro e Owner.
+- Inputs, botões, paginação e ações de formulários receberam limites e quebras
+  responsivas para viewports estreitos; os diálogos passam a uma coluna abaixo
+  de 360 px.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                            | Tipo de alteração | Motivo                                                                                            |
@@ -617,6 +631,12 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `supabase/migrations/20260930020000_create_monthly_commissions.sql` | criado            | Proteger e gerar comissões mensais fixas sem multiplicador a partir de setembro de 2026.          |
 | `src/domains/fines/rules/monthlyCommission.ts`                      | criado            | Determinar o último mês concluído segundo o calendário de Lisboa.                                 |
 | `src/domains/fines/rules/monthlyCommission.test.ts`                 | criado            | Cobrir a abertura em 1 de outubro e a mudança de ano.                                             |
+| `src/app/financial/TreasuryPage.tsx`                                | alterado          | Permitir liquidação individual visível sem exigir filtro prévio por membro.                       |
+| `src/app/financial/FinancialUi.tsx`                                 | alterado          | Conter inputs, cartões e botões em viewports móveis estreitos.                                    |
+| `src/app/financial/FinesPage.tsx`                                   | alterado          | Empilhar ações e dimensionar controlos de forma responsiva.                                       |
+| `src/styles/index.css`                                              | alterado          | Corrigir a barra inferior e os diálogos em mobile.                                                |
+| `src/app/FinancialPage.test.tsx`                                    | alterado          | Cobrir a liquidação individual sem filtro de membro.                                              |
+| `e2e/financial.spec.ts`                                             | alterado          | Validar liquidação direta, 320 px e ausência de overflow horizontal.                              |
 | `docs/operacao/importacao-catalogo-multas-producao.md`              | criado            | Documentar preflight, aplicação e verificação do catálogo oficial.                                |
 | `docs/operacao/importacao-historico-agosto.md`                      | criado            | Registar o mapa histórico, precondições, resultado e auditoria da importação.                     |
 | `docs/operacao/importacao-plantel-producao.md`                      | criado            | Documentar execução, proteções, credenciais locais e resultado do primeiro plantel.               |
@@ -719,6 +739,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Comissão mensal local                                | passou    | 123 Vitest e 13 PostgreSQL; agosto recusado e categoria protegida contra aplicação/edição normal. |
 | Comissão mensal no Supabase descartável              | passou    | Migração isolada e 88/88 asserções pgTAP com rollback.                                            |
 | Histórico de agosto em produção                      | passou    | 18 multas pagas, 11 batches, 18 logs, 0 comissões de agosto e total recebido de 37,00 EUR.        |
+| Correção da Caixa e layout móvel                     | passou    | 124 Vitest, 13 PostgreSQL, lint, TypeScript, build, 5/5 Pages e 10/10 E2E; validação a 320 px.    |
 
 ## Desvios ao planeamento
 

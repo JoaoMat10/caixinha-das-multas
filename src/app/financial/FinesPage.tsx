@@ -265,9 +265,9 @@ function CatalogSection({
             />
             Ativa
           </label>
-          <div className="flex gap-2 sm:col-span-2">
+          <div className="flex flex-col gap-2 sm:col-span-2 sm:flex-row">
             <button
-              className={primaryButtonClass}
+              className={`${primaryButtonClass} w-full sm:w-auto`}
               disabled={busy}
               type="submit"
             >
@@ -275,7 +275,7 @@ function CatalogSection({
             </button>
             {form.id ? (
               <button
-                className={secondaryButtonClass}
+                className={`${secondaryButtonClass} w-full sm:w-auto`}
                 onClick={() => setForm(emptyCategory)}
                 type="button"
               >
@@ -497,7 +497,7 @@ function ApplySection({
             />
           </label>
           <button
-            className={`${secondaryButtonClass} sm:col-span-2`}
+            className={`${secondaryButtonClass} w-full sm:col-span-2`}
             disabled={!selectedMember || !selectedCategory || busy}
             onClick={showPreview}
             type="button"
@@ -525,7 +525,7 @@ function ApplySection({
                 Total: {formatEuros(preview.totalCents)}
               </p>
               <button
-                className={`${primaryButtonClass} mt-3`}
+                className={`${primaryButtonClass} mt-3 w-full sm:w-auto`}
                 disabled={busy}
                 onClick={() => void confirm()}
                 type="button"
@@ -589,8 +589,8 @@ function MonthlyCommissionSection({ seasonId }: { seasonId: string }) {
       </p>
       <FinancialMessage error={error} notice={notice} />
       {available ? (
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <label className="text-sm font-semibold">
+        <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <label className="min-w-0 text-sm font-semibold">
             Mês de referência
             <input
               className={inputClass}
@@ -602,7 +602,7 @@ function MonthlyCommissionSection({ seasonId }: { seasonId: string }) {
             />
           </label>
           <button
-            className={primaryButtonClass}
+            className={`${primaryButtonClass} w-full sm:w-auto`}
             disabled={busy}
             onClick={() => void generate()}
             type="button"
