@@ -26,11 +26,15 @@ export class FinesService {
     if (
       !input.name.trim() ||
       input.baseAmountCents < 10 ||
+      (input.amountPerMinuteCents !== null &&
+        input.amountPerMinuteCents < 10) ||
       input.displayOrder < 0
     )
       throw new Error('Verifica o nome, valor e ordem da categoria.');
     if (
       !Number.isSafeInteger(input.baseAmountCents) ||
+      (input.amountPerMinuteCents !== null &&
+        !Number.isSafeInteger(input.amountPerMinuteCents)) ||
       !Number.isSafeInteger(input.displayOrder)
     )
       throw new Error('Valor e ordem devem ser números inteiros.');
@@ -48,6 +52,8 @@ export class FinesService {
       throw new Error(
         'Membro, categoria, data e chave da operação são obrigatórios.',
       );
+    if (!Number.isSafeInteger(input.minutes) || input.minutes < 0)
+      throw new Error('O número de minutos deve ser um inteiro não negativo.');
     return this.gateway.applyFine(input);
   }
 }

@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(46);
+select extensions.plan(50);
 
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000003';
@@ -568,6 +568,53 @@ select extensions.throws_ok(
   '42501',
   null,
   'escrita direta na tabela financeira e negada'
+);
+
+select extensions.lives_ok(
+  $$select * from public.save_fine_category(
+    '30000000-0000-4000-8000-000000000001',
+    null,
+    'Atraso variável',
+    null,
+    300,
+    true,
+    90,
+    10
+  )$$,
+  'tesoureiro cria categoria com acrescimo por minuto'
+);
+
+select extensions.throws_ok(
+  $$select * from public.apply_fine(
+    '40000000-0000-4000-8000-000000000002',
+    (select id from public.fine_categories where name = 'Atraso variável'),
+    '2026-09-10 18:20:00+00',
+    null,
+    '81000000-0000-4000-8000-000000000007',
+    0
+  )$$,
+  '22023',
+  'Indica pelo menos um minuto para esta categoria.',
+  'categoria variável exige minutos positivos'
+);
+
+select extensions.lives_ok(
+  $$select * from public.apply_fine(
+    '40000000-0000-4000-8000-000000000002',
+    (select id from public.fine_categories where name = 'Atraso variável'),
+    '2026-09-10 18:20:00+00',
+    null,
+    '81000000-0000-4000-8000-000000000008',
+    5
+  )$$,
+  'tesoureiro aplica categoria por minuto'
+);
+
+select extensions.results_eq(
+  $$select final_amount_cents from public.fines
+    where idempotency_key = '81000000-0000-4000-8000-000000000008'$$,
+  array[350::integer],
+  'servidor calcula 3 euros mais 10 centimos por cada um de 5 minutos'
 );
 
 reset role;

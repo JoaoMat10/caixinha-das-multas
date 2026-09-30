@@ -24,6 +24,7 @@ type CategoryForm = {
   name: string;
   description: string;
   euros: string;
+  perMinuteEuros: string;
   displayOrder: string;
   isActive: boolean;
 };
@@ -31,6 +32,7 @@ const emptyCategory: CategoryForm = {
   name: '',
   description: '',
   euros: '0,10',
+  perMinuteEuros: '',
   displayOrder: '0',
   isActive: true,
 };
@@ -59,6 +61,10 @@ function CatalogSection({
       name: category.name,
       description: category.description ?? '',
       euros: (category.baseAmountCents / 100).toFixed(2).replace('.', ','),
+      perMinuteEuros:
+        category.amountPerMinuteCents === null
+          ? ''
+          : (category.amountPerMinuteCents / 100).toFixed(2).replace('.', ','),
       displayOrder: String(category.displayOrder),
       isActive: category.isActive,
     });
@@ -77,6 +83,9 @@ function CatalogSection({
         name: input.name.trim(),
         description: input.description.trim(),
         baseAmountCents: parseEuros(input.euros),
+        amountPerMinuteCents: input.perMinuteEuros.trim()
+          ? parseEuros(input.perMinuteEuros)
+          : null,
         isActive: input.isActive,
         displayOrder: Number(input.displayOrder),
       });
@@ -126,7 +135,12 @@ function CatalogSection({
                 {category.isActive ? 'ativa' : 'inativa'}
               </span>
             </span>
-            <strong>{formatEuros(category.baseAmountCents)}</strong>
+            <strong>
+              {formatEuros(category.baseAmountCents)}
+              {category.amountPerMinuteCents === null
+                ? ''
+                : ` + ${formatEuros(category.amountPerMinuteCents)}/min`}
+            </strong>
             {writable ? (
               <>
                 <button
@@ -145,6 +159,10 @@ function CatalogSection({
                       name: category.name,
                       description: category.description ?? '',
                       euros: (category.baseAmountCents / 100).toFixed(2),
+                      perMinuteEuros:
+                        category.amountPerMinuteCents === null
+                          ? ''
+                          : (category.amountPerMinuteCents / 100).toFixed(2),
                       displayOrder: String(category.displayOrder),
                       isActive: !category.isActive,
                     })
@@ -195,6 +213,18 @@ function CatalogSection({
               value={form.euros}
               onChange={(event) =>
                 setForm({ ...form, euros: event.target.value })
+              }
+            />
+          </label>
+          <label className="text-sm font-semibold">
+            Acréscimo por minuto (€)
+            <input
+              className={inputClass}
+              inputMode="decimal"
+              placeholder="Sem acréscimo"
+              value={form.perMinuteEuros}
+              onChange={(event) =>
+                setForm({ ...form, perMinuteEuros: event.target.value })
               }
             />
           </label>
@@ -278,6 +308,7 @@ function ApplySection({
   const [categoryId, setCategoryId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
+  const [minutes, setMinutes] = useState('');
   const [preview, setPreview] = useState<{
     memberId: string;
     categoryId: string;
@@ -287,6 +318,8 @@ function ApplySection({
     totalCents: number;
     multiplier: number;
     baseCents: number;
+    variableCents: number;
+    minutes: number;
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -307,16 +340,32 @@ function ApplySection({
       setError('Seleciona membro, categoria e data.');
       return;
     }
-    const calculation = previewFine(selectedMember, selectedCategory);
+    const parsedMinutes = selectedCategory.amountPerMinuteCents
+      ? Number(minutes)
+      : 0;
+    if (
+      selectedCategory.amountPerMinuteCents &&
+      (!Number.isSafeInteger(parsedMinutes) || parsedMinutes < 1)
+    ) {
+      setError('Indica o número de minutos de atraso.');
+      return;
+    }
+    const calculation = previewFine(
+      selectedMember,
+      selectedCategory,
+      parsedMinutes,
+    );
     setPreview({
       memberId,
       categoryId,
       occurredAt: new Date(`${date}T12:00:00`).toISOString(),
       notes: notes.trim(),
+      minutes: parsedMinutes,
       idempotencyKey: crypto.randomUUID(),
       totalCents: calculation.totalCents,
       multiplier: calculation.multiplier,
       baseCents: calculation.baseAmountCents,
+      variableCents: calculation.variableAmountCents,
     });
   }
 
@@ -335,6 +384,7 @@ function ApplySection({
       });
       setPreview(null);
       setNotes('');
+      setMinutes('');
       setNotice(`Multa aplicada: ${formatEuros(fine.finalAmountCents)}.`);
     } catch (cause) {
       setError(
@@ -386,6 +436,7 @@ function ApplySection({
               value={categoryId}
               onChange={(event) => {
                 setCategoryId(event.target.value);
+                setMinutes('');
                 setPreview(null);
               }}
             >
@@ -393,6 +444,9 @@ function ApplySection({
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name} · {formatEuros(category.baseAmountCents)}
+                  {category.amountPerMinuteCents === null
+                    ? ''
+                    : ` + ${formatEuros(category.amountPerMinuteCents)}/min`}
                 </option>
               ))}
             </select>
@@ -409,6 +463,23 @@ function ApplySection({
               }}
             />
           </label>
+          {selectedCategory?.amountPerMinuteCents ? (
+            <label className="text-sm font-semibold">
+              Minutos de atraso
+              <input
+                className={inputClass}
+                type="number"
+                min="1"
+                step="1"
+                required
+                value={minutes}
+                onChange={(event) => {
+                  setMinutes(event.target.value);
+                  setPreview(null);
+                }}
+              />
+            </label>
+          ) : null}
           <label className="text-sm font-semibold">
             Observação
             <input
@@ -439,6 +510,13 @@ function ApplySection({
                 Valor base: {formatEuros(preview.baseCents)} · multiplicador:{' '}
                 {preview.multiplier}x
               </p>
+              {preview.minutes > 0 ? (
+                <p>
+                  Acréscimo: {preview.minutes} min ×{' '}
+                  {formatEuros(selectedCategory.amountPerMinuteCents ?? 0)} ={' '}
+                  {formatEuros(preview.variableCents)}
+                </p>
+              ) : null}
               <p className="text-lg font-black">
                 Total: {formatEuros(preview.totalCents)}
               </p>

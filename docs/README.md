@@ -27,7 +27,7 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 - Planeamento funcional: **aprovado**
 - Implementacao: **Fase 07 concluida; os PR #8, #9 e #10 da Fase 08 foram integrados em `main`; a importacao automatica do plantel esta em `feature/importacao-plantel-producao`**
 - Fase atual: **Fase 08 — qualidade, seguranca e deploy**
-- Progresso da Fase 08: **testes locais e remotos concluidos; producao publicada e protegida; primeiro Owner ativo; equipa Clube Desportivo Exemplo, epoca 2026/2027 e plantel inicial importados com 29 membros, roles e fotografias privadas**
+- Progresso da Fase 08: **testes locais e remotos concluidos; producao publicada e protegida; primeiro Owner ativo; equipa Clube Desportivo Exemplo, epoca 2026/2027 e plantel inicial importados; suporte e importacao controlada do catalogo de 23 multas em preparacao**
 - Pendente na Fase 08: **decisao final da politica de password, procedimentos de backup/restauro, privacidade e resposta a incidente; importacao automatica em revisao no PR #11**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 

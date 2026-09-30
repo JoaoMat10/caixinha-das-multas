@@ -552,6 +552,29 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Idade e nacionalidade da folha de recolha não fazem parte do modelo aprovado e
   não foram persistidas.
 
+## Catálogo oficial e multas por minuto
+
+- O catálogo oficial contém 23 categorias para a época `2026/2027` da equipa
+  `Clube Desportivo Exemplo`.
+- Foi acrescentado suporte opcional a um acréscimo por minuto na categoria e a
+  snapshots de preço por minuto e minutos na multa.
+- O cálculo da multa variável é executado no servidor sobre
+  `(base + preço por minuto × minutos) × multiplicador`; o multiplicador máximo
+  continua a ser 2x e abrange o total.
+- Categorias fixas e multas históricas mantêm minutos a zero e não mudam de
+  significado.
+- A RPC de aplicação recusa uma categoria variável sem minutos positivos e
+  recusa minutos numa categoria fixa. A idempotência também compara os minutos.
+- A cópia de época preserva a configuração por minuto do catálogo.
+- `scripts/populate-production-fine-catalog.mjs` valida alvo, equipa, época,
+  plantel, tesoureiro e ausência de movimentos financeiros. O modo por omissão
+  é read-only e `--apply` só aceita um catálogo vazio.
+- A migração foi aplicada primeiro no projeto descartável
+  `showcasetestref00001`, sem seed. A suite remota passou 85/85 asserções com
+  `ROLLBACK`, incluindo quatro cenários novos de preço por minuto.
+- A validação local passou 121 testes Vitest, 12 cenários PostgreSQL,
+  TypeScript, lint e build de produção.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -562,6 +585,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `.gitignore`                                                      | alterado          | Impedir a publicação de fotografias, folhas locais e credenciais.                                 |
 | `eslint.config.js`                                                | alterado          | Excluir artefactos e fotografias locais das verificações de código.                               |
 | `scripts/populate-production-roster.mjs`                          | criado            | Validar e importar contas, equipa, época, plantel, roles e fotografias com retoma segura.         |
+| `scripts/populate-production-fine-catalog.mjs`                    | criado            | Validar e importar o catálogo oficial de 23 multas sem criar movimentos financeiros.              |
+| `supabase/migrations/20260930010000_support_per_minute_fines.sql` | criado            | Guardar e calcular multas com acréscimo opcional por minuto, preservando contratos fixos.         |
+| `docs/operacao/importacao-catalogo-multas-producao.md`            | criado            | Documentar preflight, aplicação e verificação do catálogo oficial.                                |
 | `docs/operacao/importacao-plantel-producao.md`                    | criado            | Documentar execução, proteções, credenciais locais e resultado do primeiro plantel.               |
 | `vite.config.ts`                                                  | alterado          | Executar ficheiros Vitest sem paralelismo.                                                        |
 | `src/test/setup.ts`                                               | alterado          | Estabilizar esperas assíncronas de rotas lazy.                                                    |
@@ -657,6 +683,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Dry-run do importador de plantel                     | passou    | Três fontes, inventário inicial exato, 29 membros, 28 contas novas, 5 capitães, 1 tesoureiro.    |
 | Importação do plantel Clube Desportivo Exemplo                    | passou    | 29 Auth/perfis/memberships, 28 fotografias privadas e credenciais apenas no ficheiro ignorado.   |
 | Auditoria read-only pós-importação                   | passou    | Conjuntos exatos; seis roles; Owner associado; zero categorias, multas, batches ou logs.         |
+| Multas por minuto                                    | passou    | 121 Vitest, 12 PostgreSQL e 85/85 pgTAP remoto; falta apenas o rollout controlado em produção.   |
 
 ## Desvios ao planeamento
 
@@ -738,6 +765,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
       próprio e validar novamente a aplicação e a Edge Function.
 - [x] Importar a primeira equipa, época, contas, plantel, roles e fotografias em
       produção, preservando o Owner existente e zero dados financeiros.
+- [ ] Aplicar a migração por minuto e importar as 23 categorias em produção
+      depois da validação local e do merge autorizado.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
 ## Handoff para a fase seguinte

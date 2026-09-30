@@ -57,8 +57,17 @@ const category: FineCategory = {
   name: 'Atraso',
   description: null,
   baseAmountCents: 500,
+  amountPerMinuteCents: null,
   isActive: true,
   displayOrder: 1,
+};
+const variableCategory: FineCategory = {
+  ...category,
+  id: '50000000-0000-4000-8000-000000000002',
+  name: 'Atraso sem justificação',
+  baseAmountCents: 300,
+  amountPerMinuteCents: 10,
+  displayOrder: 2,
 };
 const member: FineMember = {
   id: memberId,
@@ -76,6 +85,8 @@ const initialFine: Fine = {
   seasonMemberId: memberId,
   categoryNameSnapshot: 'Atraso',
   baseAmountCentsSnapshot: 500,
+  amountPerMinuteCentsSnapshot: null,
+  minutes: 0,
   multiplier: 2,
   finalAmountCents: 1000,
   occurredAt: '2026-09-11T12:00:00Z',
@@ -89,7 +100,7 @@ function renderFinancial(path: string) {
     initialFine,
     { ...initialFine, id: '60000000-0000-4000-8000-000000000002' },
   ];
-  let categories: FineCategory[] = [category];
+  let categories: FineCategory[] = [category, variableCategory];
   const finesGateway: FinesGateway = {
     loadCategories: vi.fn(() => Promise.resolve(categories)),
     loadMembers: vi.fn(() => Promise.resolve([member])),
@@ -228,6 +239,34 @@ describe('interface de multas e tesouraria', () => {
         categoryId,
         idempotencyKey: expect.any(String),
       }),
+    );
+  });
+
+  it('pede minutos e calcula base mais acréscimo antes do multiplicador', async () => {
+    const user = userEvent.setup();
+    const { finesGateway } = renderFinancial('/multas');
+    await screen.findByRole('heading', { name: 'Aplicar multa' });
+    await screen.findByRole('option', { name: /Capitão/ });
+    await user.selectOptions(screen.getByLabelText('Membro'), memberId);
+    await user.selectOptions(
+      screen.getByLabelText('Categoria'),
+      variableCategory.id,
+    );
+    await user.type(screen.getByLabelText('Minutos de atraso'), '7');
+    await user.click(
+      screen.getByRole('button', { name: 'Ver cálculo antes de confirmar' }),
+    );
+    const confirmation = screen.getByRole('heading', {
+      name: 'Confirmar multa',
+    }).parentElement;
+    expect(confirmation).toHaveTextContent('Valor base: 3,00');
+    expect(confirmation).toHaveTextContent('7 min × 0,10');
+    expect(confirmation).toHaveTextContent('Total: 7,40');
+    await user.click(
+      screen.getByRole('button', { name: 'Confirmar aplicação' }),
+    );
+    expect(finesGateway.applyFine).toHaveBeenCalledWith(
+      expect.objectContaining({ minutes: 7 }),
     );
   });
 

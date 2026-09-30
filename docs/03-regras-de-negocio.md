@@ -45,14 +45,16 @@
 Formula:
 
 ```text
-valor final = valor base da categoria no momento da aplicacao x multiplicador do membro
+valor final = (valor base + acrescimo por minuto x minutos) x multiplicador do membro
 ```
+
+O acréscimo por minuto é opcional. Numa categoria fixa, os minutos são zero. Numa categoria variável, o tesoureiro indica um número inteiro positivo de minutos e o servidor valida e fixa todos os valores no momento da aplicação.
 
 ## 5. Aplicacao de multa
 
 1. Apenas um tesoureiro da epoca pode aplicar multas nessa epoca.
 2. Seleciona membro, categoria, data e observacao opcional.
-3. O valor nao e introduzido livremente: vem da categoria e do multiplicador.
+3. O valor nao e introduzido livremente: vem da categoria, dos minutos quando aplicável e do multiplicador.
 4. Antes da confirmacao, a app mostra membro, categoria, valor base, multiplicador e total.
 5. O servidor valida tesoureiro, epoca, membro, categoria, estado e idempotencia.
 6. A multa guarda snapshots do nome da categoria, valor base e multiplicador.
@@ -94,7 +96,7 @@ valor final = valor base da categoria no momento da aplicacao x multiplicador do
 3. O Super Admin so gere o catalogo se tambem tiver a funcao de tesoureiro nessa epoca.
 4. Valores sao apresentados em euros com duas casas decimais.
 5. O valor minimo suportado inclui `0,10 EUR`.
-6. A categoria define o valor base; o multiplicador e aplicado pela app.
+6. A categoria define o valor base e pode definir um acréscimo por minuto; o multiplicador é aplicado ao total calculado.
 7. Alterar uma categoria afeta apenas multas futuras.
 8. Categorias utilizadas podem ser desativadas, preservando referencias historicas.
 

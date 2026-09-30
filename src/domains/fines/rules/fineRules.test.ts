@@ -14,6 +14,7 @@ const category: FineCategory = {
   name: 'Atraso',
   description: null,
   baseAmountCents: 10,
+  amountPerMinuteCents: null,
   isActive: true,
   displayOrder: 0,
 };
@@ -49,8 +50,26 @@ describe('regras de apresentação de multas', () => {
       ),
     ).toEqual({
       baseAmountCents: 10,
+      variableAmountCents: 0,
+      minutes: 0,
       multiplier: 2,
       totalCents: 20,
+    });
+  });
+
+  it('soma o acréscimo por minuto antes de aplicar o multiplicador', () => {
+    expect(
+      previewFine(
+        { ...member, isCaptain: true },
+        { ...category, baseAmountCents: 300, amountPerMinuteCents: 10 },
+        7,
+      ),
+    ).toEqual({
+      baseAmountCents: 300,
+      variableAmountCents: 70,
+      minutes: 7,
+      multiplier: 2,
+      totalCents: 740,
     });
   });
 });

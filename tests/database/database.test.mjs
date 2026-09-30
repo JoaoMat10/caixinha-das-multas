@@ -1680,3 +1680,76 @@ test('contratos administrativos validam Owner, idempotencia, plantel e auditoria
     await database.close();
   }
 });
+
+test('multas por minuto calculam base, minutos e multiplicador no servidor', async () => {
+  const database = await createSeededDatabase();
+
+  try {
+    await asRole(database, 'authenticated', ids.treasurerA, async () => {
+      const category = (
+        await rows(
+          database,
+          `select * from public.save_fine_category(
+            $1, null, 'Atraso variável', null, 300, true, 90, 10
+          )`,
+          [ids.seasonA],
+        )
+      )[0];
+
+      assert.equal(category.amount_per_minute_cents, 10);
+
+      await assert.rejects(
+        database.query(
+          `select * from public.apply_fine(
+            $1, $2, '2026-09-30 18:00:00+00', null,
+            '81000000-0000-4000-8000-000000000201', 0
+          )`,
+          [ids.playerMemberA, category.id],
+        ),
+        /Indica pelo menos um minuto/,
+      );
+
+      const playerFine = (
+        await rows(
+          database,
+          `select * from public.apply_fine(
+            $1, $2, '2026-09-30 18:00:00+00', null,
+            '81000000-0000-4000-8000-000000000202', 5
+          )`,
+          [ids.playerMemberA, category.id],
+        )
+      )[0];
+      assert.equal(playerFine.base_amount_cents_snapshot, 300);
+      assert.equal(playerFine.amount_per_minute_cents_snapshot, 10);
+      assert.equal(playerFine.minutes, 5);
+      assert.equal(playerFine.multiplier, 1);
+      assert.equal(playerFine.final_amount_cents, 350);
+
+      const captainFine = (
+        await rows(
+          database,
+          `select * from public.apply_fine(
+            $1, $2, '2026-09-30 18:05:00+00', null,
+            '81000000-0000-4000-8000-000000000203', 5
+          )`,
+          [ids.captainMemberA, category.id],
+        )
+      )[0];
+      assert.equal(captainFine.multiplier, 2);
+      assert.equal(captainFine.final_amount_cents, 700);
+
+      await assert.rejects(
+        database.query(
+          `select * from public.apply_fine(
+            $1, $2, '2026-09-30 18:05:00+00', null,
+            '81000000-0000-4000-8000-000000000203', 6
+          )`,
+          [ids.captainMemberA, category.id],
+        ),
+        /Chave de idempotencia reutilizada/,
+      );
+    });
+  } finally {
+    await database.close();
+  }
+});
