@@ -100,7 +100,17 @@ O acréscimo por minuto é opcional. Numa categoria fixa, os minutos são zero. 
 7. Alterar uma categoria afeta apenas multas futuras.
 8. Categorias utilizadas podem ser desativadas, preservando referencias historicas.
 
-## 10. Rankings
+## 10. Comissão mensal sem multas
+
+1. A regra começa no mês de setembro de 2026; agosto de 2026 fica expressamente excluído.
+2. No primeiro dia do mês seguinte, o tesoureiro pode calcular a comissão do mês concluído.
+3. Cada membro ativo que não tenha qualquer multa normal nesse mês recebe uma comissão fixa de `1,00 EUR`.
+4. A comissão nunca usa multiplicador: jogadores, capitães e equipa técnica pagam sempre `1,00 EUR`.
+5. A operação é protegida, atómica e idempotente; nunca cria mais de uma comissão por membro e mês.
+6. A categoria de comissão é gerida pelo sistema e não pode ser aplicada, alterada ou desativada como uma categoria normal.
+7. O tesoureiro deve registar todas as multas do mês antes de calcular as comissões.
+
+## 11. Rankings
 
 O Mural da Vergonha tem, pelo menos:
 
@@ -110,7 +120,7 @@ O Mural da Vergonha tem, pelo menos:
 
 Multas eliminadas nao contam. Multas pagas contam no acumulado, mas nao na divida atual. O estado de Super Admin nunca e revelado.
 
-## 11. Saldos
+## 12. Saldos
 
 ```text
 total multado = multas pendentes + multas pagas
@@ -121,7 +131,7 @@ saldo disponivel para o jantar = total recebido
 
 Nao existem despesas, levantamentos ou outros movimentos de caixa no MVP.
 
-## 12. Estados permitidos
+## 13. Estados permitidos
 
 ```text
 aplicar multa  -> pending

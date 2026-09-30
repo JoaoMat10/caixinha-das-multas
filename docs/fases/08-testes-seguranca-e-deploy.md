@@ -5,7 +5,7 @@
 - Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; smoke autenticado concluído e gate de leitura da função classificada como não aplicável por desenho
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
-- Última atualização: 2026-09-29
+- Última atualização: 2026-09-30
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
 - Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado por Squash and merge em `[COMMIT_SHOWCASE]`; PR #10 em `feature/ativacao-producao-final`, Ready for review e sem merge.
 
@@ -56,6 +56,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-29 | Fazer o primeiro Owner por identidade manual e transação SQL estritamente verificada.       | `admin-users` exige um Owner prévio e a service role não pode sair do Supabase.                      | O painel cria a única identidade; uma transação insere perfil, Owner e auditoria sem mecanismo persistente.        |
 | 2026-09-29 | Concluir o bootstrap sem iniciar sessão.                                                    | Separa a criação administrativa do primeiro acesso e mantém o alcance autorizado mínimo.             | Produção fica com uma identidade, perfil ativo, Owner e auditoria; `must_change_password=true` e zero sessões.     |
 | 2026-09-29 | Fazer o primeiro acesso manual sem observar credenciais.                                    | A password deve permanecer exclusivamente entre o responsável, o browser e o Supabase Auth.          | A auditoria posterior verifica a sessão e o contexto Owner apenas por flags, relações e contagens.                 |
+| 2026-09-30 | Iniciar a comissão mensal em setembro e excluir agosto.                                     | A decisão funcional mais recente determina a primeira contabilização em 1 de outubro.                | A comissão é fixa em 1,00 EUR, sem multiplicador, protegida e idempotente.                                         |
+| 2026-09-30 | Preservar o multiplicador histórico indicado em cada multa de agosto.                       | As funções atuais do plantel não podem reescrever o contexto histórico.                              | Óscar Rodrigues usa 2x; William Costa e Diogo Almeida usam 1x; as 18 multas ficam liquidadas.                                               |
 
 ## Trabalho realizado
 
@@ -581,49 +583,72 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   `3,00 € + 0,10 €/min`, zero multas/batches/logs e zero migrações, seeds ou
   roles pendentes.
 
+## Histórico de agosto e comissão mensal
+
+- Criada uma categoria protegida `Comissão mensal sem multas`, fixa em
+  `1,00 €`, sem minutos nem multiplicador e independente do catálogo normal.
+- A operação `generate_monthly_commissions` aceita apenas meses concluídos a
+  partir de setembro de 2026, exige um tesoureiro da época e é idempotente por
+  membro, época e mês.
+- A interface disponibiliza o cálculo do mês anterior apenas depois do seu
+  fecho. A primeira execução possível é 1 de outubro de 2026, relativa a
+  setembro.
+- O importador transacional registou 18 multas de agosto e liquidou-as em 11
+  batches, produzindo 18 logs imutáveis. Não criou qualquer comissão de agosto.
+- `Óscar Rodrigues` foi resolvido para `oscar.rodrigues6`; a multa 16 de 3 de agosto usa
+  multiplicador 2x. William Costa e Diogo Almeida mantêm 1x nas ocorrências de agosto.
+- A auditoria detalhada confirmou membro, categoria, data, multiplicador,
+  estado pago e histórico de pagamento para as 18 ocorrências. O total recebido
+  é `37,00 €`.
+
 ## Ficheiros criados ou alterados
 
-| Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
-| ----------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
-| `.node-version`                                                   | criado            | Fixar Node 24.19.0.                                                                               |
-| `wrangler.toml`                                                   | criado            | Declarar configuração local do Cloudflare Pages.                                                  |
-| `package.json`                                                    | alterado          | Adicionar `npm run verify`.                                                                       |
-| `.gitignore`                                                      | alterado          | Impedir a publicação de fotografias, folhas locais e credenciais.                                 |
-| `eslint.config.js`                                                | alterado          | Excluir artefactos e fotografias locais das verificações de código.                               |
-| `scripts/populate-production-roster.mjs`                          | criado            | Validar e importar contas, equipa, época, plantel, roles e fotografias com retoma segura.         |
-| `scripts/populate-production-fine-catalog.mjs`                    | criado            | Validar e importar o catálogo oficial de 23 multas sem criar movimentos financeiros.              |
-| `supabase/migrations/20260930010000_support_per_minute_fines.sql` | criado            | Guardar e calcular multas com acréscimo opcional por minuto, preservando contratos fixos.         |
-| `docs/operacao/importacao-catalogo-multas-producao.md`            | criado            | Documentar preflight, aplicação e verificação do catálogo oficial.                                |
-| `docs/operacao/importacao-plantel-producao.md`                    | criado            | Documentar execução, proteções, credenciais locais e resultado do primeiro plantel.               |
-| `vite.config.ts`                                                  | alterado          | Executar ficheiros Vitest sem paralelismo.                                                        |
-| `src/test/setup.ts`                                               | alterado          | Estabilizar esperas assíncronas de rotas lazy.                                                    |
-| `playwright.config.ts`                                            | alterado          | Acomodar a latência real de autenticação nos E2E remotos.                                         |
-| `public/_headers`                                                 | criado            | Definir CSP, headers de segurança e cache.                                                        |
-| `public/_redirects`                                               | criado            | Reescrever exclusivamente as nove rotas funcionais conhecidas para a SPA.                         |
-| `public/404.html`                                                 | criado            | Desativar o fallback SPA global para caminhos e assets inexistentes.                              |
-| `scripts/validate-cloudflare-production-env.mjs`                  | criado            | Bloquear um build Production/main sem a configuração pública exata.                               |
-| `scripts/finalize-pages-build.mjs`                                | criado            | Gerar regras de cache exatas a partir dos assets com hash do `dist` final.                        |
-| `tests/scripts/deployment-security.test.mjs`                      | criado            | Validar configuração do Pages e garantias estáticas do frontend.                                  |
-| `src/shared/rules/adminCors.ts`                                   | criado            | Validar allowlist CORS e produzir headers exatos ou falhar fechada.                               |
-| `src/shared/rules/adminCors.test.ts`                              | criado            | Cobrir origem autorizada, recusas e configuração inválida.                                        |
-| `src/shared/rules/supabaseRuntimeKeys.ts`                         | criado            | Ler apenas as chaves modernas `default` injetadas no runtime Supabase.                            |
-| `src/shared/rules/supabaseRuntimeKeys.test.ts`                    | criado            | Recusar chaves ausentes, inválidas ou no formato legado.                                          |
-| `src/shared/rules/adminPasswordReset.ts`                          | alterado          | Exigir segredo HMAC próprio com pelo menos 32 bytes.                                              |
-| `supabase/functions/admin-users/index.ts`                         | alterado          | Fechar CORS, separar HMAC e usar as chaves modernas do runtime.                                   |
-| `tests/scripts/cloudflare-production-env.test.mjs`                | criado            | Cobrir casos positivos, negativos e não exposição da chave na gate.                               |
-| `tests/pages/pages-output.test.mjs`                               | criado            | Validar o output final e a semântica local do Pages com Wrangler.                                 |
-| `tests/database/database.test.mjs`                                | alterado          | Completar matriz RLS/RBAC, imutabilidade, idempotência e concorrência local.                      |
-| `tests/database/production-verification.test.mjs`                 | criado            | Aplicar localmente o manifesto sem seed e validar checksums e auditoria pós-migração.             |
-| `scripts/supabase-auth-test-fixture.mjs`                          | alterado          | Garantir limpeza e validação SQL das tabelas protegidas.                                          |
-| `scripts/test-concurrency-supabase.mjs`                           | criado            | Provar concorrência em duas sessões PostgreSQL independentes.                                     |
-| `scripts/verify-supabase-test-cleanup.mjs`                        | criado            | Auditar identidades e perfis temporários após cada bloco.                                         |
-| `scripts/sql/`                                                    | criado            | Inventariar e comparar exatamente a linha de base remota.                                         |
-| `scripts/sql/supabase-production-initial-inventory.sql`           | criado            | Inventariar produção de forma read-only antes de qualquer migração.                               |
-| `scripts/sql/supabase-production-post-migration-verification.sql` | criado            | Verificar read-only schema, RLS, políticas, Storage, privilégios e ausência de dados após o lote. |
-| `docs/operacao/deploy-cloudflare-pages.md`                        | criado            | Documentar configuração, separação de ambientes, promoção e rollback.                             |
-| `docs/operacao/supabase-production-preflight.md`                  | criado            | Registar alvo, checksums, políticas, privilégios, execução, verificação e rollback.               |
-| `docs/operacao/preflight-producao-auth-edge-owner.md`             | criado            | Registar o preflight conjunto de Pages, Auth, secrets, Edge Function, Owner e smoke test.         |
-| `docs/fases/08-testes-seguranca-e-deploy.md`                      | criado            | Manter o diário único e contínuo da Fase 08.                                                      |
+| Ficheiro                                                            | Tipo de alteração | Motivo                                                                                            |
+| ------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
+| `.node-version`                                                     | criado            | Fixar Node 24.19.0.                                                                               |
+| `wrangler.toml`                                                     | criado            | Declarar configuração local do Cloudflare Pages.                                                  |
+| `package.json`                                                      | alterado          | Adicionar `npm run verify`.                                                                       |
+| `.gitignore`                                                        | alterado          | Impedir a publicação de fotografias, folhas locais e credenciais.                                 |
+| `eslint.config.js`                                                  | alterado          | Excluir artefactos e fotografias locais das verificações de código.                               |
+| `scripts/populate-production-roster.mjs`                            | criado            | Validar e importar contas, equipa, época, plantel, roles e fotografias com retoma segura.         |
+| `scripts/populate-production-fine-catalog.mjs`                      | criado            | Validar e importar o catálogo oficial de 23 multas sem criar movimentos financeiros.              |
+| `scripts/import-production-august-fines.mjs`                        | criado            | Importar e auditar as 18 multas pagas de agosto e criar a categoria mensal protegida.             |
+| `supabase/migrations/20260930010000_support_per_minute_fines.sql`   | criado            | Guardar e calcular multas com acréscimo opcional por minuto, preservando contratos fixos.         |
+| `supabase/migrations/20260930020000_create_monthly_commissions.sql` | criado            | Proteger e gerar comissões mensais fixas sem multiplicador a partir de setembro de 2026.          |
+| `src/domains/fines/rules/monthlyCommission.ts`                      | criado            | Determinar o último mês concluído segundo o calendário de Lisboa.                                 |
+| `src/domains/fines/rules/monthlyCommission.test.ts`                 | criado            | Cobrir a abertura em 1 de outubro e a mudança de ano.                                             |
+| `docs/operacao/importacao-catalogo-multas-producao.md`              | criado            | Documentar preflight, aplicação e verificação do catálogo oficial.                                |
+| `docs/operacao/importacao-historico-agosto.md`                      | criado            | Registar o mapa histórico, precondições, resultado e auditoria da importação.                     |
+| `docs/operacao/importacao-plantel-producao.md`                      | criado            | Documentar execução, proteções, credenciais locais e resultado do primeiro plantel.               |
+| `vite.config.ts`                                                    | alterado          | Executar ficheiros Vitest sem paralelismo.                                                        |
+| `src/test/setup.ts`                                                 | alterado          | Estabilizar esperas assíncronas de rotas lazy.                                                    |
+| `playwright.config.ts`                                              | alterado          | Acomodar a latência real de autenticação nos E2E remotos.                                         |
+| `public/_headers`                                                   | criado            | Definir CSP, headers de segurança e cache.                                                        |
+| `public/_redirects`                                                 | criado            | Reescrever exclusivamente as nove rotas funcionais conhecidas para a SPA.                         |
+| `public/404.html`                                                   | criado            | Desativar o fallback SPA global para caminhos e assets inexistentes.                              |
+| `scripts/validate-cloudflare-production-env.mjs`                    | criado            | Bloquear um build Production/main sem a configuração pública exata.                               |
+| `scripts/finalize-pages-build.mjs`                                  | criado            | Gerar regras de cache exatas a partir dos assets com hash do `dist` final.                        |
+| `tests/scripts/deployment-security.test.mjs`                        | criado            | Validar configuração do Pages e garantias estáticas do frontend.                                  |
+| `src/shared/rules/adminCors.ts`                                     | criado            | Validar allowlist CORS e produzir headers exatos ou falhar fechada.                               |
+| `src/shared/rules/adminCors.test.ts`                                | criado            | Cobrir origem autorizada, recusas e configuração inválida.                                        |
+| `src/shared/rules/supabaseRuntimeKeys.ts`                           | criado            | Ler apenas as chaves modernas `default` injetadas no runtime Supabase.                            |
+| `src/shared/rules/supabaseRuntimeKeys.test.ts`                      | criado            | Recusar chaves ausentes, inválidas ou no formato legado.                                          |
+| `src/shared/rules/adminPasswordReset.ts`                            | alterado          | Exigir segredo HMAC próprio com pelo menos 32 bytes.                                              |
+| `supabase/functions/admin-users/index.ts`                           | alterado          | Fechar CORS, separar HMAC e usar as chaves modernas do runtime.                                   |
+| `tests/scripts/cloudflare-production-env.test.mjs`                  | criado            | Cobrir casos positivos, negativos e não exposição da chave na gate.                               |
+| `tests/pages/pages-output.test.mjs`                                 | criado            | Validar o output final e a semântica local do Pages com Wrangler.                                 |
+| `tests/database/database.test.mjs`                                  | alterado          | Completar matriz RLS/RBAC, imutabilidade, idempotência e concorrência local.                      |
+| `tests/database/production-verification.test.mjs`                   | criado            | Aplicar localmente o manifesto sem seed e validar checksums e auditoria pós-migração.             |
+| `scripts/supabase-auth-test-fixture.mjs`                            | alterado          | Garantir limpeza e validação SQL das tabelas protegidas.                                          |
+| `scripts/test-concurrency-supabase.mjs`                             | criado            | Provar concorrência em duas sessões PostgreSQL independentes.                                     |
+| `scripts/verify-supabase-test-cleanup.mjs`                          | criado            | Auditar identidades e perfis temporários após cada bloco.                                         |
+| `scripts/sql/`                                                      | criado            | Inventariar e comparar exatamente a linha de base remota.                                         |
+| `scripts/sql/supabase-production-initial-inventory.sql`             | criado            | Inventariar produção de forma read-only antes de qualquer migração.                               |
+| `scripts/sql/supabase-production-post-migration-verification.sql`   | criado            | Verificar read-only schema, RLS, políticas, Storage, privilégios e ausência de dados após o lote. |
+| `docs/operacao/deploy-cloudflare-pages.md`                          | criado            | Documentar configuração, separação de ambientes, promoção e rollback.                             |
+| `docs/operacao/supabase-production-preflight.md`                    | criado            | Registar alvo, checksums, políticas, privilégios, execução, verificação e rollback.               |
+| `docs/operacao/preflight-producao-auth-edge-owner.md`               | criado            | Registar o preflight conjunto de Pages, Auth, secrets, Edge Function, Owner e smoke test.         |
+| `docs/fases/08-testes-seguranca-e-deploy.md`                        | criado            | Manter o diário único e contínuo da Fase 08.                                                      |
 
 ## Base de dados, contratos e migrações
 
@@ -638,59 +663,62 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Testes e verificações
 
-| Comando/cenário                                      | Resultado | Observações                                                                                      |
-| ---------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------ |
-| Pesquisa de segredos no estado atual e em 35 commits | passou    | Zero literais de alto risco encontrados; ficheiros locais ignorados não foram expostos.          |
-| `npm audit --json`                                   | passou    | 0 vulnerabilidades conhecidas em 338 dependências.                                               |
-| Suite Vitest integral, três repetições               | passou    | 88/88 em cada repetição; 26 ficheiros por execução.                                              |
-| Testes de configuração e segurança estática          | passou    | 17/17; inclui fallback/cache e onze cenários da gate Cloudflare.                                 |
-| Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                     |
-| `npm run verify` com Node 24.19.0                    | passou    | Formatação, lint, tipos, 99 Vitest, 11 PostgreSQL, build e 5 testes Pages numa única cadeia.     |
-| Inspeção de `dist` final                             | passou    | 22 regras exatas de assets, redirects, três HTML, manifest, service worker e 0 source maps.      |
-| pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                        |
-| Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                    |
-| Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                                 |
-| Concorrência PostgreSQL com duas sessões             | passou    | 1 sucesso, 1 rejeição, 1 batch e 1 log; role/função temporárias removidas.                       |
-| E2E Chromium desktop e Pixel 7                       | passou    | 10/10 após estabilizar o timeout de autenticação remota em 15 segundos.                          |
-| Auditoria final remota                               | passou    | Zero temporários e `baseline_exact` para dados, Storage, RLS, políticas, triggers e funções.     |
-| Inventário inicial de produção                       | passou    | Zero tabelas públicas, Auth, buckets, objetos e políticas da aplicação.                          |
-| Dry-run de migrações de produção                     | passou    | Oito migrações pendentes; zero seeds e roles de configuração; nenhuma alteração aplicada.        |
-| Auditoria estática das oito migrações                | passou    | 14/14 tabelas com RLS, 29+4 políticas e 33/33 funções efetivas com `search_path` seguro.         |
-| Dry-run isolado com `--skip-vault`                   | passou    | Alvo explícito de produção; oito migrações, zero seeds, zero roles e nenhum vínculo alterado.    |
-| Pipeline equivalente a `npm run verify`, Node 24     | passou    | Prettier, ESLint, TypeScript, 88/88 Vitest, 11/11 PostgreSQL e build passaram.                   |
-| Migrações de produção                                | passou    | Oito migrações aplicadas numa única invocação; zero seeds, roles, Auth ou dados de utilização.   |
-| Auditoria read-only pós-migração                     | passou    | Todos os checks verdadeiros; 14/14 RLS, 29+4 políticas, bucket privado e base vazia.             |
-| Dry-run final de produção                            | passou    | `upToDate: true`; zero migrações, seeds ou roles pendentes.                                      |
-| Preflight read-only do bloqueio de signup            | passou    | Três fontes confirmaram `showcaseprodref00001`; dry-run sem escrita e payload mínimo definido.   |
-| Bloqueio do signup global em produção                | passou    | `disable_signup=true`; provider email/password ativo; restantes campos Auth idênticos.           |
-| Auditoria read-only após bloqueio                    | passou    | Zero Auth, zero Storage, duas roles de referência e zero linhas nas restantes tabelas.           |
-| Preflight Cloudflare Pages                           | passou    | Configuração, permissões, URL, verificações, credenciais e rollback definidos sem mutações.      |
-| Primeiro build Cloudflare Pages                      | passou    | Node 24.19.0, `npm run verify`, commit autorizado e deployment Production concluídos.            |
-| Isolamento Preview                                   | passou    | `None`, zero variáveis e zero deployments executáveis; uma entrada `skipped`, sem URL ou assets. |
-| Smoke HTTPS: headers, cache e PWA estática           | passou    | CSP e headers exatos; assets existentes, manifest, service worker, offline e ícones acessíveis.  |
-| Smoke HTTPS: configuração pública Supabase           | falhou    | Bundle sem variáveis Vite; frontend apresenta autenticação não configurada.                      |
-| Smoke HTTPS: asset inexistente                       | falhou    | Fallback devolve HTML com cache imutável para `/assets/nao-existe.js`.                           |
-| Gate Cloudflare Production/main                      | passou    | Casos positivos e negativos; alvo e formato validados sem expor a chave.                         |
-| Pages local sobre o `dist` final                     | passou    | 5/5; rotas explícitas, 404 de asset, cache exato, zero source maps e zero segredos.              |
-| Segundo deployment Production                        | passou    | `main` em `d0c9ac8`; build concluído e smoke independente aprovado.                              |
-| Smoke público após correção                          | passou    | Bundle com configuração pública; rota profunda 200; asset inexistente 404 sem cache imutável.    |
-| Site URL e redirect Auth em produção                 | passou    | Três fontes; `GET → PATCH → GET`; apenas os dois campos autorizados mudaram.                     |
-| Hardening local da Edge Function                     | passou    | 29 testes dirigidos; CORS exato, HMAC próprio, chaves modernas e `verify_jwt=true`.              |
-| Pipeline local após hardening                        | passou    | Node 24.19.0; 29 ficheiros/119 Vitest, 11/11 PostgreSQL, build e 5/5 Pages.                      |
-| Secrets customizados da Edge Function                | passou    | Três fontes; inventário 0→2; apenas os dois nomes autorizados; sem publish ou identidades.       |
-| Preflight read-only da Edge Function                 | passou    | Alvo, zero funções, diff, checksums, JWT, CORS, comando, verificação e rollback confirmados.     |
-| Publicação da Edge Function                          | passou    | Tentativa única; versão 1 ativa, JWT preservado, CORS validado e auditoria final com zero dados. |
-| Preflight read-only do primeiro Owner                | passou    | Três fontes, inventário vazio, identidade, transação, auditoria e rollback dirigido definidos.   |
-| Bootstrap do primeiro Owner                          | passou    | Execução única; 1 Auth, 1 perfil ativo, 1 Owner, 1 auditoria e zero sessões ou dados de domínio. |
-| Primeiro acesso e mudança obrigatória de password    | passou    | `must_change_password=false`, 1 sessão ativa, Owner válido, zero memberships e dados adicionais. |
-| Smoke autenticado: sessão, Admin e inventário        | passou    | Refresh, único utilizador, Owner, navegação permitida, zero domínio e zero erros frontend.       |
-| Leitura autenticada via Edge Function                | n/a       | Por desenho, `admin-users` é mutável; a UI consulta `get_admin_overview` por RPC.                |
-| Validação final local                                | passou    | Node 24.19.0; 119 Vitest, 11 PostgreSQL, build e 5/5 Pages; diff integral revisto.               |
-| Dry-run do importador de plantel                     | passou    | Três fontes, inventário inicial exato, 29 membros, 28 contas novas, 5 capitães, 1 tesoureiro.    |
-| Importação do plantel Clube Desportivo Exemplo                    | passou    | 29 Auth/perfis/memberships, 28 fotografias privadas e credenciais apenas no ficheiro ignorado.   |
-| Auditoria read-only pós-importação                   | passou    | Conjuntos exatos; seis roles; Owner associado; zero categorias, multas, batches ou logs.         |
-| Multas por minuto                                    | passou    | 121 Vitest, 12 PostgreSQL e 85/85 pgTAP remoto; frontend preparado para integração em `main`.    |
-| Migração e catálogo oficial em produção              | passou    | 1 migração, 23 categorias exatas, regra variável confirmada e zero movimentos financeiros.       |
+| Comando/cenário                                      | Resultado | Observações                                                                                       |
+| ---------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------- |
+| Pesquisa de segredos no estado atual e em 35 commits | passou    | Zero literais de alto risco encontrados; ficheiros locais ignorados não foram expostos.           |
+| `npm audit --json`                                   | passou    | 0 vulnerabilidades conhecidas em 338 dependências.                                                |
+| Suite Vitest integral, três repetições               | passou    | 88/88 em cada repetição; 26 ficheiros por execução.                                               |
+| Testes de configuração e segurança estática          | passou    | 17/17; inclui fallback/cache e onze cenários da gate Cloudflare.                                  |
+| Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                      |
+| `npm run verify` com Node 24.19.0                    | passou    | Formatação, lint, tipos, 99 Vitest, 11 PostgreSQL, build e 5 testes Pages numa única cadeia.      |
+| Inspeção de `dist` final                             | passou    | 22 regras exatas de assets, redirects, três HTML, manifest, service worker e 0 source maps.       |
+| pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                         |
+| Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                     |
+| Admin/Auth/Storage/Edge Function real                | passou    | 34 verificações; fotografia temporária removida.                                                  |
+| Concorrência PostgreSQL com duas sessões             | passou    | 1 sucesso, 1 rejeição, 1 batch e 1 log; role/função temporárias removidas.                        |
+| E2E Chromium desktop e Pixel 7                       | passou    | 10/10 após estabilizar o timeout de autenticação remota em 15 segundos.                           |
+| Auditoria final remota                               | passou    | Zero temporários e `baseline_exact` para dados, Storage, RLS, políticas, triggers e funções.      |
+| Inventário inicial de produção                       | passou    | Zero tabelas públicas, Auth, buckets, objetos e políticas da aplicação.                           |
+| Dry-run de migrações de produção                     | passou    | Oito migrações pendentes; zero seeds e roles de configuração; nenhuma alteração aplicada.         |
+| Auditoria estática das oito migrações                | passou    | 14/14 tabelas com RLS, 29+4 políticas e 33/33 funções efetivas com `search_path` seguro.          |
+| Dry-run isolado com `--skip-vault`                   | passou    | Alvo explícito de produção; oito migrações, zero seeds, zero roles e nenhum vínculo alterado.     |
+| Pipeline equivalente a `npm run verify`, Node 24     | passou    | Prettier, ESLint, TypeScript, 88/88 Vitest, 11/11 PostgreSQL e build passaram.                    |
+| Migrações de produção                                | passou    | Oito migrações aplicadas numa única invocação; zero seeds, roles, Auth ou dados de utilização.    |
+| Auditoria read-only pós-migração                     | passou    | Todos os checks verdadeiros; 14/14 RLS, 29+4 políticas, bucket privado e base vazia.              |
+| Dry-run final de produção                            | passou    | `upToDate: true`; zero migrações, seeds ou roles pendentes.                                       |
+| Preflight read-only do bloqueio de signup            | passou    | Três fontes confirmaram `showcaseprodref00001`; dry-run sem escrita e payload mínimo definido.    |
+| Bloqueio do signup global em produção                | passou    | `disable_signup=true`; provider email/password ativo; restantes campos Auth idênticos.            |
+| Auditoria read-only após bloqueio                    | passou    | Zero Auth, zero Storage, duas roles de referência e zero linhas nas restantes tabelas.            |
+| Preflight Cloudflare Pages                           | passou    | Configuração, permissões, URL, verificações, credenciais e rollback definidos sem mutações.       |
+| Primeiro build Cloudflare Pages                      | passou    | Node 24.19.0, `npm run verify`, commit autorizado e deployment Production concluídos.             |
+| Isolamento Preview                                   | passou    | `None`, zero variáveis e zero deployments executáveis; uma entrada `skipped`, sem URL ou assets.  |
+| Smoke HTTPS: headers, cache e PWA estática           | passou    | CSP e headers exatos; assets existentes, manifest, service worker, offline e ícones acessíveis.   |
+| Smoke HTTPS: configuração pública Supabase           | falhou    | Bundle sem variáveis Vite; frontend apresenta autenticação não configurada.                       |
+| Smoke HTTPS: asset inexistente                       | falhou    | Fallback devolve HTML com cache imutável para `/assets/nao-existe.js`.                            |
+| Gate Cloudflare Production/main                      | passou    | Casos positivos e negativos; alvo e formato validados sem expor a chave.                          |
+| Pages local sobre o `dist` final                     | passou    | 5/5; rotas explícitas, 404 de asset, cache exato, zero source maps e zero segredos.               |
+| Segundo deployment Production                        | passou    | `main` em `d0c9ac8`; build concluído e smoke independente aprovado.                               |
+| Smoke público após correção                          | passou    | Bundle com configuração pública; rota profunda 200; asset inexistente 404 sem cache imutável.     |
+| Site URL e redirect Auth em produção                 | passou    | Três fontes; `GET → PATCH → GET`; apenas os dois campos autorizados mudaram.                      |
+| Hardening local da Edge Function                     | passou    | 29 testes dirigidos; CORS exato, HMAC próprio, chaves modernas e `verify_jwt=true`.               |
+| Pipeline local após hardening                        | passou    | Node 24.19.0; 29 ficheiros/119 Vitest, 11/11 PostgreSQL, build e 5/5 Pages.                       |
+| Secrets customizados da Edge Function                | passou    | Três fontes; inventário 0→2; apenas os dois nomes autorizados; sem publish ou identidades.        |
+| Preflight read-only da Edge Function                 | passou    | Alvo, zero funções, diff, checksums, JWT, CORS, comando, verificação e rollback confirmados.      |
+| Publicação da Edge Function                          | passou    | Tentativa única; versão 1 ativa, JWT preservado, CORS validado e auditoria final com zero dados.  |
+| Preflight read-only do primeiro Owner                | passou    | Três fontes, inventário vazio, identidade, transação, auditoria e rollback dirigido definidos.    |
+| Bootstrap do primeiro Owner                          | passou    | Execução única; 1 Auth, 1 perfil ativo, 1 Owner, 1 auditoria e zero sessões ou dados de domínio.  |
+| Primeiro acesso e mudança obrigatória de password    | passou    | `must_change_password=false`, 1 sessão ativa, Owner válido, zero memberships e dados adicionais.  |
+| Smoke autenticado: sessão, Admin e inventário        | passou    | Refresh, único utilizador, Owner, navegação permitida, zero domínio e zero erros frontend.        |
+| Leitura autenticada via Edge Function                | n/a       | Por desenho, `admin-users` é mutável; a UI consulta `get_admin_overview` por RPC.                 |
+| Validação final local                                | passou    | Node 24.19.0; 119 Vitest, 11 PostgreSQL, build e 5/5 Pages; diff integral revisto.                |
+| Dry-run do importador de plantel                     | passou    | Três fontes, inventário inicial exato, 29 membros, 28 contas novas, 5 capitães, 1 tesoureiro.     |
+| Importação do plantel Clube Desportivo Exemplo                    | passou    | 29 Auth/perfis/memberships, 28 fotografias privadas e credenciais apenas no ficheiro ignorado.    |
+| Auditoria read-only pós-importação                   | passou    | Conjuntos exatos; seis roles; Owner associado; zero categorias, multas, batches ou logs.          |
+| Multas por minuto                                    | passou    | 121 Vitest, 12 PostgreSQL e 85/85 pgTAP remoto; frontend preparado para integração em `main`.     |
+| Migração e catálogo oficial em produção              | passou    | 1 migração, 23 categorias exatas, regra variável confirmada e zero movimentos financeiros.        |
+| Comissão mensal local                                | passou    | 123 Vitest e 13 PostgreSQL; agosto recusado e categoria protegida contra aplicação/edição normal. |
+| Comissão mensal no Supabase descartável              | passou    | Migração isolada e 88/88 asserções pgTAP com rollback.                                            |
+| Histórico de agosto em produção                      | passou    | 18 multas pagas, 11 batches, 18 logs, 0 comissões de agosto e total recebido de 37,00 EUR.        |
 
 ## Desvios ao planeamento
 
@@ -731,6 +759,9 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   de um uso alargado.
 - Baixo: a Mariana Ferreira está ativa sem fotografia; pode ser adicionada mais tarde
   pelo Owner sem alterar o plantel.
+- Baixo: a comissão mensal é iniciada manualmente pelo tesoureiro depois do
+  fecho do mês; todas as multas retroativas desse mês devem ser registadas antes
+  do cálculo.
 
 ## Trabalho pendente
 
@@ -774,6 +805,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
       produção, preservando o Owner existente e zero dados financeiros.
 - [x] Aplicar a migração por minuto e importar as 23 categorias em produção,
       sem seed nem movimentos financeiros.
+- [x] Importar as 18 multas liquidadas de agosto, preservando os multiplicadores
+      históricos e sem criar comissão nesse mês.
+- [x] Preparar a comissão mensal fixa a partir de setembro, com primeira
+      contabilização disponível em 1 de outubro.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
 ## Handoff para a fase seguinte

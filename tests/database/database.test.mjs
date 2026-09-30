@@ -1753,3 +1753,66 @@ test('multas por minuto calculam base, minutos e multiplicador no servidor', asy
     await database.close();
   }
 });
+
+test('comissao mensal inicia em setembro e nao aceita aplicacao normal', async () => {
+  const database = await createSeededDatabase();
+
+  try {
+    await database.query(
+      `insert into public.fine_categories (
+        season_id, name, description, base_amount_cents,
+        is_monthly_commission, display_order, created_by
+      ) values ($1, 'Comissao mensal sem multas', null, 100, true, 99, $2)`,
+      [ids.seasonA, ids.treasurerA],
+    );
+
+    await asRole(database, 'authenticated', ids.treasurerA, async () => {
+      await assert.rejects(
+        database.query(
+          `select public.generate_monthly_commissions($1, date '2026-08-01')`,
+          [ids.seasonA],
+        ),
+        /inicia em setembro de 2026/i,
+      );
+
+      await assert.rejects(
+        database.query(
+          `select * from public.apply_fine(
+            $1,
+            (select id from public.fine_categories where is_monthly_commission),
+            '2026-09-30 18:00:00+00',
+            null,
+            '81000000-0000-4000-8000-000000000301'
+          )`,
+          [ids.playerMemberA],
+        ),
+        /processo mensal protegido/i,
+      );
+
+      await assert.rejects(
+        database.query(
+          `select * from public.save_fine_category(
+            $1,
+            (select id from public.fine_categories where is_monthly_commission),
+            'Comissao alterada', null, 100, true, 99
+          )`,
+          [ids.seasonA],
+        ),
+        /gerida pelo sistema/i,
+      );
+    });
+
+    assert.equal(
+      (
+        await rows(
+          database,
+          `select count(*)::integer as count
+           from public.fines where commission_month is not null`,
+        )
+      )[0].count,
+      0,
+    );
+  } finally {
+    await database.close();
+  }
+});

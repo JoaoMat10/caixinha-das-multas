@@ -15,6 +15,7 @@ const category: FineCategory = {
   description: null,
   baseAmountCents: 10,
   amountPerMinuteCents: null,
+  isMonthlyCommission: false,
   isActive: true,
   displayOrder: 0,
 };

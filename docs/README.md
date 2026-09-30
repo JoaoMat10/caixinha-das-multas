@@ -25,10 +25,10 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 07 concluida; os PR #8, #9 e #10 da Fase 08 foram integrados em `main`; a importacao automatica do plantel esta em `feature/importacao-plantel-producao`**
+- Implementacao: **Fase 07 concluida; os PR #8 a #11 da Fase 08 foram integrados em `main`; o histórico de agosto e a comissão mensal estão em `feature/historico-agosto-comissao`**
 - Fase atual: **Fase 08 — qualidade, seguranca e deploy**
-- Progresso da Fase 08: **testes locais e remotos concluidos; producao publicada e protegida; primeiro Owner ativo; equipa Clube Desportivo Exemplo, epoca 2026/2027, plantel e catalogo oficial de 23 multas importados; frontend por minuto em revisao no PR #11**
-- Pendente na Fase 08: **decisao final da politica de password, procedimentos de backup/restauro, privacidade e resposta a incidente; importacao automatica em revisao no PR #11**
+- Progresso da Fase 08: **produção publicada; Owner, equipa, época, plantel e catálogo ativos; 18 multas pagas de agosto importadas; comissão mensal de 1,00 EUR preparada a partir de setembro**
+- Pendente na Fase 08: **integrar e publicar a interface da comissão mensal; decisão final da política de password; procedimentos de backup/restauro, privacidade e resposta a incidente**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao

@@ -58,6 +58,7 @@ const category: FineCategory = {
   description: null,
   baseAmountCents: 500,
   amountPerMinuteCents: null,
+  isMonthlyCommission: false,
   isActive: true,
   displayOrder: 1,
 };
@@ -139,6 +140,7 @@ function renderFinancial(path: string) {
       fineRows = [...fineRows, applied];
       return Promise.resolve(applied);
     }),
+    generateMonthlyCommissions: vi.fn(() => Promise.resolve(18)),
   };
   const treasuryGateway: TreasuryGateway = {
     loadTotals: vi.fn(() =>

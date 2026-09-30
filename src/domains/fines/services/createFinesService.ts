@@ -13,6 +13,8 @@ export function createFinesService() {
       saveCategory: () =>
         Promise.reject(new Error('Supabase não configurado.')),
       applyFine: () => Promise.reject(new Error('Supabase não configurado.')),
+      generateMonthlyCommissions: () =>
+        Promise.reject(new Error('Supabase não configurado.')),
     });
   return new FinesService(createSupabaseFinesGateway(configuration));
 }

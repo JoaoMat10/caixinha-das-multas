@@ -132,6 +132,7 @@ Capitao e tesoureiro podem coexistir. O Super Admin nao e registado aqui.
 - `description`, opcional;
 - `base_amount_cents`;
 - `amount_per_minute_cents`, opcional;
+- `is_monthly_commission`, identifica a única categoria de comissão mensal da época;
 - `is_active`;
 - `display_order`;
 - `created_by`;
@@ -158,6 +159,7 @@ Categorias usadas por multas nao devem ser eliminadas de forma a quebrar referen
 - `applied_by`;
 - `paid_at`, opcional;
 - `idempotency_key`;
+- `commission_month`, opcional e sempre no primeiro dia do mês a que a comissão diz respeito;
 - timestamps.
 
 Regras estruturais:
@@ -169,6 +171,8 @@ Regras estruturais:
 - uma multa com `has_ever_been_paid = true` nunca pode ser eliminada;
 - a eliminacao fisica so pode ocorrer quando `status = pending` e `has_ever_been_paid = false`, por operacao protegida de tesoureiro;
 - nao existe coluna de montante pago parcial.
+- existe no máximo uma comissão mensal por membro e mês;
+- uma comissão mensal tem sempre `1,00 EUR`, multiplicador `1`, zero minutos e só pode ser criada pela operação mensal protegida.
 
 ### `payment_batches`
 
@@ -220,8 +224,10 @@ As eliminacoes permitidas de multas nunca pagas nao criam um registo funcional d
 - `season_members(season_id, user_id)` unico;
 - `member_roles(season_member_id, role_id)` unico;
 - `fine_categories(season_id, is_active, display_order)`;
+- indice único parcial para uma categoria de comissão mensal por época;
 - `fines(season_id, season_member_id, status)`;
 - `fines(season_id, occurred_at)`;
+- indice único parcial para uma comissão mensal por membro, época e mês;
 - `payment_logs(fine_id, recorded_at)`;
 - idempotency keys unicas dentro do respetivo contexto.
 

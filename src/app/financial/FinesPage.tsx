@@ -17,6 +17,7 @@ import {
   parseEuros,
   previewFine,
 } from '@/domains/fines/rules/fineRules';
+import { previousClosedMonthInLisbon } from '@/domains/fines/rules/monthlyCommission';
 import { useFinancialServices } from '@/app/financial/financialContext';
 
 type CategoryForm = {
@@ -133,6 +134,7 @@ function CatalogSection({
                 {category.description || 'Sem descrição'} · ordem{' '}
                 {category.displayOrder} ·{' '}
                 {category.isActive ? 'ativa' : 'inativa'}
+                {category.isMonthlyCommission ? ' · comissão mensal' : ''}
               </span>
             </span>
             <strong>
@@ -141,7 +143,7 @@ function CatalogSection({
                 ? ''
                 : ` + ${formatEuros(category.amountPerMinuteCents)}/min`}
             </strong>
-            {writable ? (
+            {writable && !category.isMonthlyCommission ? (
               <>
                 <button
                   className={secondaryButtonClass}
@@ -327,7 +329,9 @@ function ApplySection({
   const members =
     membersQuery.data?.filter((member) => member.status === 'active') ?? [];
   const categories =
-    categoriesQuery.data?.filter((category) => category.isActive) ?? [];
+    categoriesQuery.data?.filter(
+      (category) => category.isActive && !category.isMonthlyCommission,
+    ) ?? [];
   const selectedMember = members.find((member) => member.id === memberId);
   const selectedCategory = categories.find(
     (category) => category.id === categoryId,
@@ -536,6 +540,86 @@ function ApplySection({
   );
 }
 
+function MonthlyCommissionSection({ seasonId }: { seasonId: string }) {
+  const { fines } = useFinancialServices();
+  const queryClient = useQueryClient();
+  const lastClosedMonth = previousClosedMonthInLisbon();
+  const [month, setMonth] = useState(
+    lastClosedMonth >= '2026-09' ? lastClosedMonth : '2026-09',
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const available = lastClosedMonth >= '2026-09';
+
+  async function generate() {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const created = await fines.generateMonthlyCommissions(seasonId, month);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['fine-list', seasonId] }),
+        queryClient.invalidateQueries({
+          queryKey: ['treasury-totals', seasonId],
+        }),
+      ]);
+      setNotice(
+        created === 0
+          ? 'A comissão deste mês já estava calculada.'
+          : `${created} comissão(ões) de 1,00 € criada(s).`,
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível calcular as comissões.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className={cardClass}>
+      <h2 className="text-xl font-black">Comissão mensal</h2>
+      <p className="text-pitch-600 mt-1 text-sm">
+        Depois do fim do mês, cobra 1,00 € a cada membro sem multas nesse mês.
+        Nunca aplica multiplicador.
+      </p>
+      <FinancialMessage error={error} notice={notice} />
+      {available ? (
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <label className="text-sm font-semibold">
+            Mês de referência
+            <input
+              className={inputClass}
+              type="month"
+              min="2026-09"
+              max={lastClosedMonth}
+              value={month}
+              onChange={(event) => setMonth(event.target.value)}
+            />
+          </label>
+          <button
+            className={primaryButtonClass}
+            disabled={busy}
+            onClick={() => void generate()}
+            type="button"
+          >
+            Calcular comissões
+          </button>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm">
+          A primeira comissão, relativa a setembro, fica disponível em 1 de
+          outubro.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function FinesPage() {
   const { user } = useAuth();
   const memberships =
@@ -573,6 +657,12 @@ export function FinesPage() {
           writable={selected.seasonStatus === 'active'}
         />
       </div>
+      {selected.seasonStatus === 'active' ? (
+        <MonthlyCommissionSection
+          key={`commission-${seasonId}`}
+          seasonId={seasonId}
+        />
+      ) : null}
     </div>
   );
 }

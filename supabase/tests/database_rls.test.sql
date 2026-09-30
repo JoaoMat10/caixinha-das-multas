@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(50);
+select extensions.plan(53);
 
 set local role authenticated;
 set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000003';
@@ -615,6 +615,65 @@ select extensions.results_eq(
     where idempotency_key = '81000000-0000-4000-8000-000000000008'$$,
   array[350::integer],
   'servidor calcula 3 euros mais 10 centimos por cada um de 5 minutos'
+);
+
+reset role;
+
+insert into public.fine_categories (
+  season_id,
+  name,
+  base_amount_cents,
+  is_monthly_commission,
+  display_order,
+  created_by
+) values (
+  '30000000-0000-4000-8000-000000000001',
+  'Comissao mensal sem multas',
+  100,
+  true,
+  99,
+  '00000000-0000-4000-8000-000000000002'
+);
+
+set local role authenticated;
+set local request.jwt.claim.sub = '00000000-0000-4000-8000-000000000002';
+
+select extensions.throws_ok(
+  $$select public.generate_monthly_commissions(
+    '30000000-0000-4000-8000-000000000001',
+    date '2026-08-01'
+  )$$,
+  '22023',
+  'A comissao mensal inicia em setembro de 2026.',
+  'agosto fica excluido da comissao mensal'
+);
+
+select extensions.throws_ok(
+  $$select * from public.apply_fine(
+    '40000000-0000-4000-8000-000000000002',
+    (select id from public.fine_categories where is_monthly_commission),
+    '2026-09-30 18:00:00+00',
+    null,
+    '81000000-0000-4000-8000-000000000301'
+  )$$,
+  '23514',
+  'A comissao mensal deve ser gerada pelo processo mensal protegido.',
+  'categoria mensal nao pode ser aplicada como multa normal'
+);
+
+select extensions.throws_ok(
+  $$select * from public.save_fine_category(
+    '30000000-0000-4000-8000-000000000001',
+    (select id from public.fine_categories where is_monthly_commission),
+    'Comissao alterada',
+    null,
+    100,
+    true,
+    99
+  )$$,
+  '55000',
+  'A categoria de comissao mensal e gerida pelo sistema.',
+  'categoria mensal nao pode ser alterada pelo catalogo'
 );
 
 reset role;
