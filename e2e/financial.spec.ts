@@ -10,7 +10,7 @@ test.beforeEach(() => {
 
 test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegível', async ({
   page,
-}) => {
+}, testInfo) => {
   const categoryName = `Multa E2E ${Date.now().toString(36)}`;
   await page.goto('/entrar');
   await page.getByLabel('Username').fill(username!);
@@ -20,6 +20,23 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
     name: /^(Tesouraria|Caixa — navegação móvel)$/,
   });
   await expect(treasuryLink).toBeVisible();
+  if (testInfo.project.name === 'chromium-mobile') {
+    await page.setViewportSize({ width: 320, height: 740 });
+    await expect
+      .poll(() =>
+        page.evaluate<number>(
+          'document.documentElement.scrollWidth - document.documentElement.clientWidth',
+        ),
+      )
+      .toBeLessThanOrEqual(0);
+    await expect
+      .poll(() =>
+        page.evaluate<string>(
+          "getComputedStyle(document.querySelector('.mobile-bottom-navigation .app-nav-link')).flexDirection",
+        ),
+      )
+      .toBe('column');
+  }
   await page.getByRole('link', { name: 'Multas' }).click();
   await expect(
     page.getByRole('heading', { name: 'Catálogo da época' }),
@@ -61,21 +78,31 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
   }
 
   await treasuryLink.click();
-  await page.getByLabel('Membro').selectOption(ownOption);
   const ownFines = page.getByRole('listitem').filter({ hasText: categoryName });
   await expect(ownFines).toHaveCount(3);
+  await ownFines
+    .getByRole('button', { name: 'Marcar como paga' })
+    .first()
+    .click();
+  const settleDialog = page.getByRole('dialog', {
+    name: 'Marcar multa como paga?',
+  });
+  await expect(settleDialog).toBeVisible();
+  await settleDialog.getByRole('button', { name: 'Marcar como paga' }).click();
+  await expect(page.getByText(/Multa marcada como paga: 0,20/)).toBeVisible();
+
+  await page.getByLabel('Membro').selectOption(ownOption);
   const selectors = ownFines.getByRole('checkbox', {
     name: /Selecionar multa/,
   });
-  await expect(selectors).toHaveCount(3);
+  await expect(selectors).toHaveCount(2);
   await selectors.nth(0).check();
-  await selectors.nth(1).check();
   await expect(
-    page.getByText(/2 multa\(s\) pendente\(s\) selecionada\(s\) · 0,40/),
+    page.getByText(/1 multa\(s\) pendente\(s\) selecionada\(s\) · 0,20/),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Liquidar seleção' }).click();
   await expect(
-    page.getByText(/Total calculado pelo servidor: 0,40/),
+    page.getByText(/Total calculado pelo servidor: 0,20/),
   ).toBeVisible();
   await ownFines.getByRole('button', { name: 'Reabrir' }).first().click();
   const reopenDialog = page.getByRole('dialog', { name: 'Reabrir multa?' });
