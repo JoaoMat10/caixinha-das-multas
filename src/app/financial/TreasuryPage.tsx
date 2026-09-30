@@ -303,44 +303,48 @@ function TreasurySeason({
               className="border-pitch-200 rounded-xl border p-4"
               key={fine.id}
             >
-              <div className="flex flex-wrap items-start gap-3">
-                {writable && memberId && fine.status === 'pending' ? (
-                  <input
-                    aria-label={`Selecionar multa ${fine.categoryNameSnapshot}`}
-                    checked={selectedIds.includes(fine.id)}
-                    className="mt-1 size-5"
-                    disabled={busy}
-                    onChange={() => toggleFine(fine.id)}
-                    type="checkbox"
-                  />
-                ) : null}
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold">
-                    {fine.categoryNameSnapshot} ·{' '}
-                    {memberNames.get(fine.seasonMemberId) ?? 'Membro'}
-                  </p>
-                  <p className="text-pitch-600 text-sm">
-                    {new Date(fine.occurredAt).toLocaleDateString('pt-PT')} ·
-                    base {formatEuros(fine.baseAmountCentsSnapshot)}
-                    {fine.amountPerMinuteCentsSnapshot === null
-                      ? ''
-                      : ` + ${formatEuros(fine.amountPerMinuteCentsSnapshot)} × ${fine.minutes} min`}{' '}
-                    × {fine.multiplier} ·{' '}
-                    {fine.status === 'paid' ? 'Paga' : 'Pendente'}
-                  </p>
-                  {fine.notes ? (
-                    <p className="text-pitch-700 mt-1 text-sm">{fine.notes}</p>
+              <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+                <div className="flex min-w-0 items-start gap-3">
+                  {writable && memberId && fine.status === 'pending' ? (
+                    <input
+                      aria-label={`Selecionar multa ${fine.categoryNameSnapshot}`}
+                      checked={selectedIds.includes(fine.id)}
+                      className="mt-1 size-5 shrink-0"
+                      disabled={busy}
+                      onChange={() => toggleFine(fine.id)}
+                      type="checkbox"
+                    />
                   ) : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold break-words">
+                      {fine.categoryNameSnapshot} ·{' '}
+                      {memberNames.get(fine.seasonMemberId) ?? 'Membro'}
+                    </p>
+                    <p className="text-pitch-600 mt-1 text-sm break-words">
+                      {new Date(fine.occurredAt).toLocaleDateString('pt-PT')} ·
+                      base {formatEuros(fine.baseAmountCentsSnapshot)}
+                      {fine.amountPerMinuteCentsSnapshot === null
+                        ? ''
+                        : ` + ${formatEuros(fine.amountPerMinuteCentsSnapshot)} × ${fine.minutes} min`}{' '}
+                      × {fine.multiplier} ·{' '}
+                      {fine.status === 'paid' ? 'Paga' : 'Pendente'}
+                    </p>
+                    {fine.notes ? (
+                      <p className="text-pitch-700 mt-1 text-sm break-words">
+                        {fine.notes}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
-                <strong className="text-lg">
+                <strong className="bg-gold-100 justify-self-start rounded-lg px-2.5 py-1.5 text-lg sm:justify-self-end">
                   {formatEuros(fine.finalAmountCents)}
                 </strong>
               </div>
               {writable ? (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap">
                   {fine.status === 'pending' ? (
                     <button
-                      className={primaryButtonClass}
+                      className={`${primaryButtonClass} w-full sm:w-auto`}
                       disabled={busy}
                       onClick={() =>
                         setConfirmation({ action: 'settle', fine })
@@ -352,7 +356,7 @@ function TreasurySeason({
                   ) : null}
                   {fine.status === 'paid' ? (
                     <button
-                      className={secondaryButtonClass}
+                      className={`${secondaryButtonClass} w-full sm:w-auto`}
                       disabled={busy}
                       onClick={() =>
                         setConfirmation({ action: 'reopen', fine })
@@ -364,7 +368,7 @@ function TreasurySeason({
                   ) : null}
                   {fine.status === 'pending' && !fine.hasEverBeenPaid ? (
                     <button
-                      className={secondaryButtonClass}
+                      className={`${secondaryButtonClass} w-full sm:w-auto`}
                       disabled={busy}
                       onClick={() =>
                         setConfirmation({ action: 'remove', fine })
