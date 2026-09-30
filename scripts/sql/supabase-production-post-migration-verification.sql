@@ -101,14 +101,23 @@ with expected_tables(name) as (
 )
 select jsonb_pretty(jsonb_build_object(
   'checks', jsonb_build_object(
-    'eight_migrations_recorded', (
-      select count(*) = 8
+    'nine_migrations_recorded', (
+      select count(*) = 9
       from supabase_migrations.schema_migrations
       where version in (
         '20260911010000', '20260911020000', '20260911030000',
         '20260911040000', '20260914010000', '20260915010000',
-        '20260915020000', '20260915030000'
+        '20260915020000', '20260915030000', '20260930010000'
       )
+    ),
+    'per_minute_columns_ready', (
+      select count(*) = 3
+      from information_schema.columns
+      where table_schema = 'public'
+        and (
+          (table_name = 'fine_categories' and column_name = 'amount_per_minute_cents')
+          or (table_name = 'fines' and column_name in ('amount_per_minute_cents_snapshot', 'minutes'))
+        )
     ),
     'public_tables_exact', not exists (
       (select name from expected_tables except select name from actual_tables)

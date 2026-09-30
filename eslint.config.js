@@ -52,6 +52,8 @@ export default tseslint.config(
       'playwright-report',
       'test-results',
       '.playwright-browsers',
+      'Fotos',
+      'outputs',
       'supabase/functions',
     ],
   },

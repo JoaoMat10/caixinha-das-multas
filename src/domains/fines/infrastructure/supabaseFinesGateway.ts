@@ -16,6 +16,7 @@ const categorySchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   base_amount_cents: z.number().int(),
+  amount_per_minute_cents: z.number().int().nullable(),
   is_active: z.boolean(),
   display_order: z.number().int(),
 });
@@ -35,6 +36,8 @@ const fineSchema = z.object({
   season_member_id: z.uuid(),
   category_name_snapshot: z.string(),
   base_amount_cents_snapshot: z.number().int(),
+  amount_per_minute_cents_snapshot: z.number().int().nullable(),
+  minutes: z.number().int(),
   multiplier: z.union([z.literal(1), z.literal(2)]),
   final_amount_cents: z.number().int(),
   occurred_at: z.string(),
@@ -55,6 +58,7 @@ function mapCategory(row: z.infer<typeof categorySchema>) {
     name: row.name,
     description: row.description,
     baseAmountCents: row.base_amount_cents,
+    amountPerMinuteCents: row.amount_per_minute_cents,
     isActive: row.is_active,
     displayOrder: row.display_order,
   };
@@ -67,6 +71,8 @@ function mapFine(row: z.infer<typeof fineSchema>) {
     seasonMemberId: row.season_member_id,
     categoryNameSnapshot: row.category_name_snapshot,
     baseAmountCentsSnapshot: row.base_amount_cents_snapshot,
+    amountPerMinuteCentsSnapshot: row.amount_per_minute_cents_snapshot,
+    minutes: row.minutes,
     multiplier: row.multiplier,
     finalAmountCents: row.final_amount_cents,
     occurredAt: row.occurred_at,
@@ -84,7 +90,7 @@ export class SupabaseFinesGateway implements FinesGateway {
       await this.client
         .from('fine_categories')
         .select(
-          'id,season_id,name,description,base_amount_cents,is_active,display_order',
+          'id,season_id,name,description,base_amount_cents,amount_per_minute_cents,is_active,display_order',
         )
         .eq('season_id', seasonId)
         .order('display_order')
@@ -118,7 +124,7 @@ export class SupabaseFinesGateway implements FinesGateway {
     let query = this.client
       .from('fines')
       .select(
-        'id,season_id,season_member_id,category_name_snapshot,base_amount_cents_snapshot,multiplier,final_amount_cents,occurred_at,notes,status,has_ever_been_paid',
+        'id,season_id,season_member_id,category_name_snapshot,base_amount_cents_snapshot,amount_per_minute_cents_snapshot,minutes,multiplier,final_amount_cents,occurred_at,notes,status,has_ever_been_paid',
         { count: 'exact' },
       )
       .eq('season_id', filters.seasonId);
@@ -145,6 +151,7 @@ export class SupabaseFinesGateway implements FinesGateway {
         p_name: input.name,
         p_description: input.description,
         p_base_amount_cents: input.baseAmountCents,
+        p_amount_per_minute_cents: input.amountPerMinuteCents,
         p_is_active: input.isActive,
         p_display_order: input.displayOrder,
       }),
@@ -159,6 +166,7 @@ export class SupabaseFinesGateway implements FinesGateway {
         p_fine_category_id: input.categoryId,
         p_occurred_at: input.occurredAt,
         p_notes: input.notes,
+        p_minutes: input.minutes,
         p_idempotency_key: input.idempotencyKey,
       }),
     );

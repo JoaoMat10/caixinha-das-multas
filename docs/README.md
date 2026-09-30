@@ -25,10 +25,10 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 07 concluida; os PR #8 e #9 da Fase 08 foram integrados em `main`; a ativacao final continua em `feature/ativacao-producao-final`**
+- Implementacao: **Fase 07 concluida; os PR #8, #9 e #10 da Fase 08 foram integrados em `main`; a importacao automatica do plantel esta em `feature/importacao-plantel-producao`**
 - Fase atual: **Fase 08 — qualidade, seguranca e deploy**
-- Progresso da Fase 08: **testes locais e remotos concluidos; oito migracoes iniciais aplicadas e verificadas no Supabase de producao, sem seed ou dados de utilizacao; signup publico global bloqueado; correcao forward publicada no Pages; secrets configurados; Edge Function `admin-users` publicada com JWT e CORS restritos; primeiro Owner ativo, password alterada e smoke autenticado da administracao aprovado**
-- Pendente na Fase 08: **decisao final da politica de password, procedimentos de backup/restauro, privacidade e resposta a incidente; o PR #10 esta pronto para revisao, sem merge**
+- Progresso da Fase 08: **testes locais e remotos concluidos; producao publicada e protegida; primeiro Owner ativo; equipa Clube Desportivo Exemplo, epoca 2026/2027, plantel e catalogo oficial de 23 multas importados; frontend por minuto em revisao no PR #11**
+- Pendente na Fase 08: **decisao final da politica de password, procedimentos de backup/restauro, privacidade e resposta a incidente; importacao automatica em revisao no PR #11**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao

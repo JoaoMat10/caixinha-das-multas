@@ -16,12 +16,19 @@ export function getFineMultiplier(member: FineMember): 1 | 2 {
   return member.memberType === 'staff' || member.isCaptain ? 2 : 1;
 }
 
-export function previewFine(member: FineMember, category: FineCategory) {
+export function previewFine(
+  member: FineMember,
+  category: FineCategory,
+  minutes = 0,
+) {
   const multiplier = getFineMultiplier(member);
+  const variableAmountCents = (category.amountPerMinuteCents ?? 0) * minutes;
   return {
     baseAmountCents: category.baseAmountCents,
+    variableAmountCents,
+    minutes,
     multiplier,
-    totalCents: category.baseAmountCents * multiplier,
+    totalCents: (category.baseAmountCents + variableAmountCents) * multiplier,
   };
 }
 

@@ -49,6 +49,10 @@ const migrations = [
     '20260915030000_harden_admin_password_reset.sql',
     'e379e0433a2de47f4b4bcd43bcee2d63076e9ff9f07f002785be01b478c64997',
   ],
+  [
+    '20260930010000_support_per_minute_fines.sql',
+    '6614aa96aba6fa86840bd355aa6a4f8da460f6b72766fc692b89e5fd569ed798',
+  ],
 ];
 
 const platformBootstrap = `

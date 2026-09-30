@@ -288,8 +288,11 @@ function TreasurySeason({
                   </p>
                   <p className="text-pitch-600 text-sm">
                     {new Date(fine.occurredAt).toLocaleDateString('pt-PT')} ·
-                    base {formatEuros(fine.baseAmountCentsSnapshot)} ×{' '}
-                    {fine.multiplier} ·{' '}
+                    base {formatEuros(fine.baseAmountCentsSnapshot)}
+                    {fine.amountPerMinuteCentsSnapshot === null
+                      ? ''
+                      : ` + ${formatEuros(fine.amountPerMinuteCentsSnapshot)} × ${fine.minutes} min`}{' '}
+                    × {fine.multiplier} ·{' '}
                     {fine.status === 'paid' ? 'Paga' : 'Pendente'}
                   </p>
                   {fine.notes ? (

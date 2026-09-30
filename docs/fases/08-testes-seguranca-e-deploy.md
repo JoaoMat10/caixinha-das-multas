@@ -524,6 +524,63 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
   passou. Com a gate corretamente classificada como não aplicável, o PR #10
   ficou pronto para revisão, sem merge.
 
+## Importação inicial do plantel de produção
+
+- Foi criado `scripts/populate-production-roster.mjs`, com preflight read-only
+  por omissão e escrita apenas através de `--apply`.
+- O manifesto e as credenciais ficam exclusivamente em `.manual-validation/`,
+  ignorado pelo Git. `Fotos/` e `outputs/` também passaram a ser ignorados para
+  impedir publicação acidental de dados pessoais.
+- O alvo foi confirmado em três fontes como `showcaseprodref00001`; o vínculo
+  local permaneceu em `showcasetestref00001`.
+- O inventário anterior continha exatamente um Auth user, um perfil e um Owner,
+  sem equipa, época, memberships, Storage ou dados financeiros.
+- A execução criou 28 contas novas com passwords temporárias únicas, guardadas
+  apenas no ficheiro local ignorado. Todas exigem mudança no primeiro acesso.
+- O Owner existente `demo.admin` foi atualizado de Administrador Demo para Administrador Demo e associado como jogador com a camisola 21; não foi criada uma segunda
+  identidade.
+- Foram criadas a equipa ativa `Clube Desportivo Exemplo`, a época ativa `2026/2027` e 29
+  memberships: 26 jogadores e 3 elementos da equipa técnica.
+- Foram atribuídos cinco capitães — António Silva Almeida, Jorge Sousa, Óscar Rodrigues, William Costa e Diogo Almeida —
+  e um tesoureiro, Jorge Sousa. O máximo de 2x continua a ser calculado pelos
+  contratos existentes.
+- Foram carregadas 28 fotografias no bucket privado e associadas aos perfis. A
+  Mariana Ferreira permanece sem fotografia porque não foi fornecido ficheiro.
+- A auditoria read-only independente confirmou 29 identidades Auth, 29 perfis
+  ativos, 29 memberships, seis member roles, 28 objetos Storage e zero
+  categorias, multas, batches ou logs de pagamento.
+- Idade e nacionalidade da folha de recolha não fazem parte do modelo aprovado e
+  não foram persistidas.
+
+## Catálogo oficial e multas por minuto
+
+- O catálogo oficial contém 23 categorias para a época `2026/2027` da equipa
+  `Clube Desportivo Exemplo`.
+- Foi acrescentado suporte opcional a um acréscimo por minuto na categoria e a
+  snapshots de preço por minuto e minutos na multa.
+- O cálculo da multa variável é executado no servidor sobre
+  `(base + preço por minuto × minutos) × multiplicador`; o multiplicador máximo
+  continua a ser 2x e abrange o total.
+- Categorias fixas e multas históricas mantêm minutos a zero e não mudam de
+  significado.
+- A RPC de aplicação recusa uma categoria variável sem minutos positivos e
+  recusa minutos numa categoria fixa. A idempotência também compara os minutos.
+- A cópia de época preserva a configuração por minuto do catálogo.
+- `scripts/populate-production-fine-catalog.mjs` valida alvo, equipa, época,
+  plantel, tesoureiro e ausência de movimentos financeiros. O modo por omissão
+  é read-only e `--apply` só aceita um catálogo vazio.
+- A migração foi aplicada primeiro no projeto descartável
+  `showcasetestref00001`, sem seed. A suite remota passou 85/85 asserções com
+  `ROLLBACK`, incluindo quatro cenários novos de preço por minuto.
+- A validação local passou 121 testes Vitest, 12 cenários PostgreSQL,
+  TypeScript, lint e build de produção.
+- O dry-run de produção confirmou exclusivamente a nova migração, sem seed ou
+  roles. A migração foi aplicada em `showcaseprodref00001` e o importador criou
+  as 23 categorias numa única transação.
+- A auditoria final confirmou o catálogo exato, a categoria variável com
+  `3,00 € + 0,10 €/min`, zero multas/batches/logs e zero migrações, seeds ou
+  roles pendentes.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                          | Tipo de alteração | Motivo                                                                                            |
@@ -531,6 +588,13 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `.node-version`                                                   | criado            | Fixar Node 24.19.0.                                                                               |
 | `wrangler.toml`                                                   | criado            | Declarar configuração local do Cloudflare Pages.                                                  |
 | `package.json`                                                    | alterado          | Adicionar `npm run verify`.                                                                       |
+| `.gitignore`                                                      | alterado          | Impedir a publicação de fotografias, folhas locais e credenciais.                                 |
+| `eslint.config.js`                                                | alterado          | Excluir artefactos e fotografias locais das verificações de código.                               |
+| `scripts/populate-production-roster.mjs`                          | criado            | Validar e importar contas, equipa, época, plantel, roles e fotografias com retoma segura.         |
+| `scripts/populate-production-fine-catalog.mjs`                    | criado            | Validar e importar o catálogo oficial de 23 multas sem criar movimentos financeiros.              |
+| `supabase/migrations/20260930010000_support_per_minute_fines.sql` | criado            | Guardar e calcular multas com acréscimo opcional por minuto, preservando contratos fixos.         |
+| `docs/operacao/importacao-catalogo-multas-producao.md`            | criado            | Documentar preflight, aplicação e verificação do catálogo oficial.                                |
+| `docs/operacao/importacao-plantel-producao.md`                    | criado            | Documentar execução, proteções, credenciais locais e resultado do primeiro plantel.               |
 | `vite.config.ts`                                                  | alterado          | Executar ficheiros Vitest sem paralelismo.                                                        |
 | `src/test/setup.ts`                                               | alterado          | Estabilizar esperas assíncronas de rotas lazy.                                                    |
 | `playwright.config.ts`                                            | alterado          | Acomodar a latência real de autenticação nos E2E remotos.                                         |
@@ -622,6 +686,11 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Smoke autenticado: sessão, Admin e inventário        | passou    | Refresh, único utilizador, Owner, navegação permitida, zero domínio e zero erros frontend.       |
 | Leitura autenticada via Edge Function                | n/a       | Por desenho, `admin-users` é mutável; a UI consulta `get_admin_overview` por RPC.                |
 | Validação final local                                | passou    | Node 24.19.0; 119 Vitest, 11 PostgreSQL, build e 5/5 Pages; diff integral revisto.               |
+| Dry-run do importador de plantel                     | passou    | Três fontes, inventário inicial exato, 29 membros, 28 contas novas, 5 capitães, 1 tesoureiro.    |
+| Importação do plantel Clube Desportivo Exemplo                    | passou    | 29 Auth/perfis/memberships, 28 fotografias privadas e credenciais apenas no ficheiro ignorado.   |
+| Auditoria read-only pós-importação                   | passou    | Conjuntos exatos; seis roles; Owner associado; zero categorias, multas, batches ou logs.         |
+| Multas por minuto                                    | passou    | 121 Vitest, 12 PostgreSQL e 85/85 pgTAP remoto; frontend preparado para integração em `main`.    |
+| Migração e catálogo oficial em produção              | passou    | 1 migração, 23 categorias exatas, regra variável confirmada e zero movimentos financeiros.       |
 
 ## Desvios ao planeamento
 
@@ -653,6 +722,15 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Baixo: o Pages confirmou Node 24.19.0 a partir de `.node-version`; o Node global
   desta máquina continua fora da versão autorizada e não deve ser usado.
 - Baixo: o plano gratuito Supabase pode pausar por inatividade e não inclui backups automáticos nem SLA.
+- Médio: 28 passwords temporárias permanecem num ficheiro local ignorado até à
+  distribuição. O ficheiro deve ser eliminado depois das mudanças obrigatórias.
+- Médio: uma versão legacy da chave `service_role` foi apresentada integralmente
+  pela CLI durante um diagnóstico local. O valor não foi persistido nem
+  versionado e o importador usa apenas uma chave secreta moderna em memória, mas
+  as chaves legacy devem ser rodadas ou desativadas num checkpoint próprio antes
+  de um uso alargado.
+- Baixo: a Mariana Ferreira está ativa sem fotografia; pode ser adicionada mais tarde
+  pelo Owner sem alterar o plantel.
 
 ## Trabalho pendente
 
@@ -690,6 +768,12 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - [x] Desativar exclusivamente o signup público global em produção, mantendo o provider email/password e todos os restantes campos Auth inalterados.
 - [x] Atualizar o preflight específico do Cloudflare Pages sem criar ou configurar recursos.
 - [ ] Executar backup/restauro apenas entre ambientes autorizados e nunca sobre produção.
+- [ ] Rodar ou desativar as chaves legacy do projeto de produção num checkpoint
+      próprio e validar novamente a aplicação e a Edge Function.
+- [x] Importar a primeira equipa, época, contas, plantel, roles e fotografias em
+      produção, preservando o Owner existente e zero dados financeiros.
+- [x] Aplicar a migração por minuto e importar as 23 categorias em produção,
+      sem seed nem movimentos financeiros.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
 ## Handoff para a fase seguinte

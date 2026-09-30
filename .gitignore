@@ -16,6 +16,10 @@ test-results/
 !.env.example
 .manual-validation/
 
+# Dados operacionais locais e fotografias do plantel
+Fotos/
+outputs/
+
 # Ficheiros do sistema e editores
 .DS_Store
 Thumbs.db

@@ -4,6 +4,7 @@ export type FineCategory = {
   name: string;
   description: string | null;
   baseAmountCents: number;
+  amountPerMinuteCents: number | null;
   isActive: boolean;
   displayOrder: number;
 };
@@ -25,6 +26,8 @@ export type Fine = {
   seasonMemberId: string;
   categoryNameSnapshot: string;
   baseAmountCentsSnapshot: number;
+  amountPerMinuteCentsSnapshot: number | null;
+  minutes: number;
   multiplier: 1 | 2;
   finalAmountCents: number;
   occurredAt: string;
@@ -48,6 +51,7 @@ export type SaveFineCategory = {
   name: string;
   description: string;
   baseAmountCents: number;
+  amountPerMinuteCents: number | null;
   isActive: boolean;
   displayOrder: number;
 };
@@ -57,6 +61,7 @@ export type ApplyFine = {
   categoryId: string;
   occurredAt: string;
   notes: string;
+  minutes: number;
   idempotencyKey: string;
 };
 

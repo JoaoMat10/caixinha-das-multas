@@ -131,6 +131,7 @@ Capitao e tesoureiro podem coexistir. O Super Admin nao e registado aqui.
 - `name`;
 - `description`, opcional;
 - `base_amount_cents`;
+- `amount_per_minute_cents`, opcional;
 - `is_active`;
 - `display_order`;
 - `created_by`;
@@ -146,6 +147,8 @@ Categorias usadas por multas nao devem ser eliminadas de forma a quebrar referen
 - `fine_category_id`;
 - `category_name_snapshot`;
 - `base_amount_cents_snapshot`;
+- `amount_per_minute_cents_snapshot`, opcional;
+- `minutes`, zero para multas fixas e positivo para multas por minuto;
 - `multiplier`: `1` ou `2`;
 - `final_amount_cents`;
 - `occurred_at`;
@@ -159,7 +162,7 @@ Categorias usadas por multas nao devem ser eliminadas de forma a quebrar referen
 
 Regras estruturais:
 
-- `final_amount_cents = base_amount_cents_snapshot * multiplier`;
+- `final_amount_cents = (base_amount_cents_snapshot + amount_per_minute_cents_snapshot * minutes) * multiplier`, considerando zero quando não existe acréscimo por minuto;
 - o multiplicador e obtido no momento da aplicacao e nunca recalculado retroativamente;
 - multa pendente nao contribui para recebido;
 - multa paga contribui para recebido;
