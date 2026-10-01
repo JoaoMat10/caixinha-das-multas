@@ -8,6 +8,7 @@ import type {
 } from '@/domains/admin/contracts/admin';
 import {
   fieldClass,
+  formActionsClass,
   primaryButtonClass,
   secondaryButtonClass,
   SectionCard,
@@ -170,7 +171,7 @@ export function AdminRosterSection({ overview, service, busy, run }: Props) {
             <legend className="text-sm font-semibold">
               Funções adicionais
             </legend>
-            <div className="mt-2 flex gap-4">
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-3">
               {(['captain', 'treasurer'] as const).map((role) => (
                 <label className="flex items-center gap-2 text-sm" key={role}>
                   <input
@@ -196,7 +197,7 @@ export function AdminRosterSection({ overview, service, busy, run }: Props) {
               <option value="inactive">Inativo</option>
             </select>
           </label>
-          <div className="flex gap-2">
+          <div className={formActionsClass}>
             <button
               className={primaryButtonClass}
               disabled={busy}
@@ -227,14 +228,14 @@ export function AdminRosterSection({ overview, service, busy, run }: Props) {
             );
             return (
               <li
-                className="border-pitch-100 flex items-center justify-between gap-3 rounded-2xl border p-4"
+                className="border-pitch-100 grid min-w-0 gap-3 rounded-2xl border p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                 key={member.id}
               >
-                <div>
-                  <p className="font-bold">
+                <div className="min-w-0">
+                  <p className="font-bold break-words">
                     {user?.displayName ?? 'Utilizador'}
                   </p>
-                  <p className="text-pitch-600 text-sm">
+                  <p className="text-pitch-600 text-sm break-words">
                     {member.memberType === 'player'
                       ? `Jogador · #${member.shirtNumber}`
                       : `Equipa técnica · ${member.staffFunction}`}{' '}
@@ -258,6 +259,11 @@ export function AdminRosterSection({ overview, service, busy, run }: Props) {
               </li>
             );
           })}
+          {members.length === 0 ? (
+            <li className="text-pitch-600 border-pitch-200 rounded-xl border border-dashed p-4 text-sm">
+              Esta época ainda não tem membros no plantel.
+            </li>
+          ) : null}
         </ul>
       </SectionCard>
     </div>

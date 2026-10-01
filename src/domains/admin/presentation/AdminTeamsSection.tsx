@@ -7,6 +7,7 @@ import type {
 } from '@/domains/admin/contracts/admin';
 import {
   fieldClass,
+  formActionsClass,
   primaryButtonClass,
   secondaryButtonClass,
   SectionCard,
@@ -123,7 +124,7 @@ export function AdminTeamsSection({ overview, service, busy, run }: Props) {
               />{' '}
               Equipa ativa
             </label>
-            <div className="flex gap-2">
+            <div className={formActionsClass}>
               <button
                 className={primaryButtonClass}
                 disabled={busy}
@@ -231,7 +232,7 @@ export function AdminTeamsSection({ overview, service, busy, run }: Props) {
                 </select>
               </label>
             ) : null}
-            <div className="flex gap-2 sm:col-span-2">
+            <div className={`${formActionsClass} sm:col-span-2`}>
               <button
                 className={primaryButtonClass}
                 disabled={busy}
@@ -260,9 +261,9 @@ export function AdminTeamsSection({ overview, service, busy, run }: Props) {
               className="border-pitch-100 rounded-2xl border p-4"
               key={team.id}
             >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-bold">{team.name}</h3>
+              <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className="min-w-0">
+                  <h3 className="font-bold break-words">{team.name}</h3>
                   <p className="text-pitch-600 text-sm">
                     {team.isActive ? 'Ativa' : 'Desativada'}
                   </p>
@@ -291,9 +292,20 @@ export function AdminTeamsSection({ overview, service, busy, run }: Props) {
                       </button>
                     </li>
                   ))}
+                {overview.seasons.filter((season) => season.teamId === team.id)
+                  .length === 0 ? (
+                  <li className="text-pitch-600 border-pitch-200 rounded-xl border border-dashed p-3 text-sm sm:col-span-2 lg:col-span-3">
+                    Esta equipa ainda não tem épocas.
+                  </li>
+                ) : null}
               </ul>
             </article>
           ))}
+          {overview.teams.length === 0 ? (
+            <p className="text-pitch-600 border-pitch-200 rounded-xl border border-dashed p-4 text-sm">
+              Ainda não existem equipas.
+            </p>
+          ) : null}
         </div>
       </SectionCard>
     </div>

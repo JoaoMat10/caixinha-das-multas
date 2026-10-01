@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { expectMobileLayout } from './mobileLayout';
+
 const username = process.env.E2E_ADMIN_USERNAME;
 const password = process.env.E2E_ADMIN_PASSWORD;
 
@@ -10,19 +12,18 @@ test.beforeEach(() => {
 
 test('Owner abre a Administração e cria uma conta temporária', async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto('/entrar');
   await page.getByLabel('Username').fill(username!);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  const administrationLink = page.getByRole('link', {
-    name: /^(Administração|Admin — navegação móvel)$/,
-  });
-  await expect(administrationLink).toBeVisible();
-  await administrationLink.click();
+  await expect(page).toHaveURL(/\/administracao$/);
   await expect(
     page.getByRole('heading', { name: 'Administração' }),
   ).toBeVisible();
+  if (testInfo.project.name === 'chromium-mobile') {
+    await expectMobileLayout(page);
+  }
 
   await page.getByRole('button', { name: 'Utilizadores' }).click();
   const suffix = Date.now().toString(36);

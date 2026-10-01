@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import {
   getPrimaryNavigationItems,
@@ -16,12 +16,15 @@ function getNavigationClassName({ isActive }: { isActive: boolean }) {
 
 export function AppShell() {
   const { user, logout, isBusy } = useAuth();
+  const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const sheetRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!moreOpen) return;
     const previous = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const controls = () =>
       Array.from(
         sheetRef.current?.querySelectorAll<HTMLElement>(
@@ -47,6 +50,7 @@ export function AppShell() {
     document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
       previous?.focus();
     };
   }, [moreOpen]);
@@ -55,6 +59,11 @@ export function AppShell() {
 
   const primaryItems = getPrimaryNavigationItems(user);
   const secondaryItems = getSecondaryNavigationItems(user);
+  const mobilePrimaryItems = primaryItems.slice(0, 4);
+  const mobileOverflowItems = primaryItems.slice(4);
+  const moreIsActive = [...mobileOverflowItems, ...secondaryItems].some(
+    (item) => location.pathname === item.to,
+  );
   const theme = themes[0]!;
 
   return (
@@ -126,7 +135,7 @@ export function AppShell() {
           </div>
           <button
             aria-expanded={moreOpen}
-            aria-label="Abrir definições"
+            aria-label="Abrir mais opções"
             className="header-action"
             onClick={() => setMoreOpen(true)}
             type="button"
@@ -144,7 +153,7 @@ export function AppShell() {
         aria-label="Navegação principal"
         className="mobile-bottom-navigation"
       >
-        {primaryItems.map((item) => (
+        {mobilePrimaryItems.map((item) => (
           <NavLink
             aria-label={`${item.shortLabel ?? item.label} — navegação móvel`}
             className={getNavigationClassName}
@@ -158,7 +167,9 @@ export function AppShell() {
         ))}
         <button
           aria-expanded={moreOpen}
-          className={moreOpen ? 'app-nav-link active' : 'app-nav-link'}
+          className={
+            moreOpen || moreIsActive ? 'app-nav-link active' : 'app-nav-link'
+          }
           onClick={() => setMoreOpen(true)}
           type="button"
         >
@@ -191,6 +202,17 @@ export function AppShell() {
                 <small>{theme.name}</small>
               </span>
             </div>
+            {mobileOverflowItems.map((item) => (
+              <NavLink
+                className="sheet-link"
+                key={item.to}
+                onClick={() => setMoreOpen(false)}
+                to={item.to}
+              >
+                <AppIcon name={item.icon} />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
             {secondaryItems.map((item) => (
               <NavLink
                 className="sheet-link"

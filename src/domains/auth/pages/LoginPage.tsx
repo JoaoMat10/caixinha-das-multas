@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -18,6 +19,7 @@ const inputClasses =
 
 export function LoginPage() {
   const { login, error, isBusy, status } = useAuth();
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const {
     register,
     handleSubmit,
@@ -63,14 +65,27 @@ export function LoginPage() {
           <label className="text-sm font-bold" htmlFor="password">
             Password
           </label>
-          <input
-            {...register('password')}
-            autoComplete="current-password"
-            className={inputClasses}
-            disabled={disabled}
-            id="password"
-            type="password"
-          />
+          <div className="password-input-wrap">
+            <input
+              {...register('password')}
+              autoComplete="current-password"
+              className={inputClasses}
+              disabled={disabled}
+              id="password"
+              type={passwordVisible ? 'text' : 'password'}
+            />
+            <button
+              aria-label={
+                passwordVisible ? 'Ocultar password' : 'Mostrar password'
+              }
+              className="password-toggle"
+              disabled={disabled}
+              onClick={() => setPasswordVisible((current) => !current)}
+              type="button"
+            >
+              {passwordVisible ? 'Ocultar' : 'Mostrar'}
+            </button>
+          </div>
           {errors.password && (
             <p className="mt-2 text-sm text-red-700">
               {errors.password.message}

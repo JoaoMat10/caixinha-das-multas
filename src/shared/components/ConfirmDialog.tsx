@@ -68,6 +68,7 @@ export function ConfirmDialog({
         aria-labelledby="confirm-title"
         aria-modal="true"
         className="confirm-dialog"
+        aria-busy={busy}
         ref={dialogRef}
         role="dialog"
       >
@@ -92,7 +93,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             type="button"
           >
-            {confirmLabel}
+            {busy ? 'A guardar…' : confirmLabel}
           </button>
         </div>
       </section>

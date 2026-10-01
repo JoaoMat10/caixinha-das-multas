@@ -7,6 +7,7 @@ import type {
 } from '@/domains/admin/contracts/admin';
 import {
   fieldClass,
+  formActionsClass,
   primaryButtonClass,
   secondaryButtonClass,
   SectionCard,
@@ -123,7 +124,7 @@ export function AdminUsersSection({ overview, service, busy, run }: Props) {
               value={displayName}
             />
           </label>
-          <div className="flex gap-2">
+          <div className={formActionsClass}>
             <button
               className={primaryButtonClass}
               disabled={busy}
@@ -178,10 +179,10 @@ export function AdminUsersSection({ overview, service, busy, run }: Props) {
               className="border-pitch-100 rounded-2xl border p-4"
               key={user.id}
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-bold">{user.displayName}</p>
-                  <p className="text-pitch-600 text-sm">
+              <div className="grid min-w-0 gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold break-words">{user.displayName}</p>
+                  <p className="text-pitch-600 text-sm break-words">
                     @{user.username} · {user.isActive ? 'Ativo' : 'Desativado'}
                     {user.mustChangePassword
                       ? ' · alteração de password pendente'
@@ -191,7 +192,7 @@ export function AdminUsersSection({ overview, service, busy, run }: Props) {
                     {user.avatarPath ? 'Com fotografia' : 'Sem fotografia'}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   <button
                     className={secondaryButtonClass}
                     disabled={busy}
@@ -255,6 +256,11 @@ export function AdminUsersSection({ overview, service, busy, run }: Props) {
               </div>
             </li>
           ))}
+          {filtered.length === 0 ? (
+            <li className="text-pitch-600 border-pitch-200 rounded-xl border border-dashed p-4 text-sm">
+              Nenhum utilizador corresponde à pesquisa.
+            </li>
+          ) : null}
         </ul>
       </SectionCard>
     </div>

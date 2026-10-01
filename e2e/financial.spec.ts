@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { expectMobileLayout } from './mobileLayout';
+
 const username = process.env.E2E_FINANCIAL_USERNAME;
 const password = process.env.E2E_FINANCIAL_PASSWORD;
 
@@ -14,21 +16,15 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
   const categoryName = `Multa E2E ${Date.now().toString(36)}`;
   await page.goto('/entrar');
   await page.getByLabel('Username').fill(username!);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
   const treasuryLink = page.getByRole('link', {
     name: /^(Tesouraria|Caixa — navegação móvel)$/,
   });
   await expect(treasuryLink).toBeVisible();
   if (testInfo.project.name === 'chromium-mobile') {
+    await expectMobileLayout(page);
     await page.setViewportSize({ width: 320, height: 740 });
-    await expect
-      .poll(() =>
-        page.evaluate<number>(
-          'document.documentElement.scrollWidth - document.documentElement.clientWidth',
-        ),
-      )
-      .toBeLessThanOrEqual(0);
     await expect
       .poll(() =>
         page.evaluate<string>(
@@ -41,6 +37,9 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
   await expect(
     page.getByRole('heading', { name: 'Catálogo da época' }),
   ).toBeVisible();
+  if (testInfo.project.name === 'chromium-mobile') {
+    await expectMobileLayout(page);
+  }
 
   await page.getByLabel('Nome').fill(categoryName);
   await page.getByLabel('Valor base (€)').fill('0,10');
@@ -78,6 +77,9 @@ test('tesoureiro gere catálogo, aplica, liquida, reabre e elimina multa elegív
   }
 
   await treasuryLink.click();
+  if (testInfo.project.name === 'chromium-mobile') {
+    await expectMobileLayout(page);
+  }
   const ownFines = page.getByRole('listitem').filter({ hasText: categoryName });
   await expect(ownFines).toHaveCount(3);
   await ownFines

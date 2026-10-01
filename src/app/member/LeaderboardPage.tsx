@@ -11,6 +11,7 @@ import { useMemberServices } from '@/app/member/memberContext';
 import { useAuth } from '@/domains/auth';
 import type { LeaderboardMember } from '@/domains/leaderboard/contracts/leaderboard';
 import { formatEuros } from '@/shared/formatters/money';
+import { PageHeader } from '@/shared/components/PageHeader';
 
 function RankingSection({
   title,
@@ -37,16 +38,18 @@ function RankingSection({
         <ol className="mt-4 space-y-3">
           {members.map((member, index) => (
             <li
-              className="border-pitch-100 flex items-center gap-3 rounded-xl border p-3"
+              className="border-pitch-100 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-xl border p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
               key={member.id}
             >
-              <span className="bg-pitch-900 grid size-8 shrink-0 place-items-center rounded-full text-sm font-black text-white">
+              <span className="bg-pitch-900 row-span-2 grid size-8 shrink-0 place-items-center rounded-full text-sm font-black text-white sm:row-span-1">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">
                 <MemberIdentity compact member={member} />
               </div>
-              <strong className="shrink-0 text-right">{value(member)}</strong>
+              <strong className="col-start-2 min-w-0 text-left sm:col-start-3 sm:text-right">
+                {value(member)}
+              </strong>
             </li>
           ))}
         </ol>
@@ -72,16 +75,11 @@ export function LeaderboardPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-pitch-600 text-sm font-bold tracking-wider uppercase">
-          {membership.teamName} · {membership.seasonName}
-        </p>
-        <h1 className="mt-1 text-3xl font-black">Mural da Vergonha</h1>
-        <p className="text-pitch-600 mt-2">
-          Rankings coletivos da equipa. O detalhe de cada multa permanece
-          privado.
-        </p>
-      </header>
+      <PageHeader
+        description="Rankings coletivos da equipa. O detalhe de cada multa permanece privado."
+        eyebrow={`${membership.teamName} · ${membership.seasonName}`}
+        title="Mural da Vergonha"
+      />
       <MemberSeasonSelect
         memberships={memberships}
         seasonId={seasonId}
