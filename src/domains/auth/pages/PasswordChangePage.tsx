@@ -19,6 +19,11 @@ export function PasswordChangePage({
 }) {
   const { changePassword, error, isBusy, logout } = useAuth();
   const [success, setSuccess] = useState(false);
+  const [visible, setVisible] = useState({
+    current: false,
+    next: false,
+    confirmation: false,
+  });
   const {
     register,
     handleSubmit,
@@ -46,14 +51,34 @@ export function PasswordChangePage({
         <label className="text-sm font-bold" htmlFor="current-password">
           Password atual
         </label>
-        <input
-          {...register('currentPassword')}
-          autoComplete="current-password"
-          className={inputClasses}
-          disabled={disabled}
-          id="current-password"
-          type="password"
-        />
+        <div className="password-input-wrap">
+          <input
+            {...register('currentPassword')}
+            autoComplete="current-password"
+            className={inputClasses}
+            disabled={disabled}
+            id="current-password"
+            type={visible.current ? 'text' : 'password'}
+          />
+          <button
+            aria-label={
+              visible.current
+                ? 'Ocultar password atual'
+                : 'Mostrar password atual'
+            }
+            className="password-toggle"
+            disabled={disabled}
+            onClick={() =>
+              setVisible((current) => ({
+                ...current,
+                current: !current.current,
+              }))
+            }
+            type="button"
+          >
+            {visible.current ? 'Ocultar' : 'Mostrar'}
+          </button>
+        </div>
         {errors.currentPassword && (
           <p className="mt-2 text-sm text-red-700">
             {errors.currentPassword.message}
@@ -64,14 +89,32 @@ export function PasswordChangePage({
         <label className="text-sm font-bold" htmlFor="new-password">
           Nova password
         </label>
-        <input
-          {...register('newPassword')}
-          autoComplete="new-password"
-          className={inputClasses}
-          disabled={disabled}
-          id="new-password"
-          type="password"
-        />
+        <div className="password-input-wrap">
+          <input
+            {...register('newPassword')}
+            autoComplete="new-password"
+            className={inputClasses}
+            disabled={disabled}
+            id="new-password"
+            type={visible.next ? 'text' : 'password'}
+          />
+          <button
+            aria-label={
+              visible.next ? 'Ocultar nova password' : 'Mostrar nova password'
+            }
+            className="password-toggle"
+            disabled={disabled}
+            onClick={() =>
+              setVisible((current) => ({
+                ...current,
+                next: !current.next,
+              }))
+            }
+            type="button"
+          >
+            {visible.next ? 'Ocultar' : 'Mostrar'}
+          </button>
+        </div>
         {errors.newPassword && (
           <p className="mt-2 text-sm text-red-700">
             {errors.newPassword.message}
@@ -82,14 +125,34 @@ export function PasswordChangePage({
         <label className="text-sm font-bold" htmlFor="confirm-password">
           Confirmar nova password
         </label>
-        <input
-          {...register('confirmPassword')}
-          autoComplete="new-password"
-          className={inputClasses}
-          disabled={disabled}
-          id="confirm-password"
-          type="password"
-        />
+        <div className="password-input-wrap">
+          <input
+            {...register('confirmPassword')}
+            autoComplete="new-password"
+            className={inputClasses}
+            disabled={disabled}
+            id="confirm-password"
+            type={visible.confirmation ? 'text' : 'password'}
+          />
+          <button
+            aria-label={
+              visible.confirmation
+                ? 'Ocultar confirmação da password'
+                : 'Mostrar confirmação da password'
+            }
+            className="password-toggle"
+            disabled={disabled}
+            onClick={() =>
+              setVisible((current) => ({
+                ...current,
+                confirmation: !current.confirmation,
+              }))
+            }
+            type="button"
+          >
+            {visible.confirmation ? 'Ocultar' : 'Mostrar'}
+          </button>
+        </div>
         {errors.confirmPassword && (
           <p className="mt-2 text-sm text-red-700">
             {errors.confirmPassword.message}

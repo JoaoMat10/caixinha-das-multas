@@ -2,7 +2,7 @@ import type { SeasonMembership } from '@/domains/auth/contracts/auth';
 import { memberDescription } from '@/domains/dashboard/rules/dashboardRules';
 
 export const memberCardClass =
-  'member-card rounded-2xl border border-pitch-200 bg-white p-4 shadow-sm sm:p-6';
+  'member-card min-w-0 rounded-2xl border border-pitch-200 bg-white p-4 shadow-sm sm:p-6';
 
 export function MemberSeasonSelect({
   memberships,
@@ -18,7 +18,7 @@ export function MemberSeasonSelect({
     <label className="block max-w-lg space-y-2 text-sm font-semibold">
       <span>Equipa e época</span>
       <select
-        className="border-pitch-200 text-pitch-950 min-h-11 w-full rounded-xl border bg-white px-3 py-2"
+        className="border-pitch-200 text-pitch-950 min-h-12 w-full rounded-xl border bg-white px-3 py-2 text-base sm:text-sm"
         value={seasonId}
         onChange={(event) => onChange(event.target.value)}
       >
@@ -86,7 +86,9 @@ export function MemberIdentity({
       />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <strong className={compact ? 'truncate' : 'text-xl'}>
+          <strong
+            className={compact ? 'max-w-full min-w-0 truncate' : 'text-xl'}
+          >
             {member.displayName}
           </strong>
           {member.isCaptain ? (
@@ -99,7 +101,9 @@ export function MemberIdentity({
             </span>
           ) : null}
         </div>
-        <p className="text-pitch-600 text-sm">{memberDescription(member)}</p>
+        <p className="text-pitch-600 text-sm break-words">
+          {memberDescription(member)}
+        </p>
       </div>
     </div>
   );

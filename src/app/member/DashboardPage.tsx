@@ -12,6 +12,7 @@ import { useAuth } from '@/domains/auth';
 import type { PersonalFine } from '@/domains/dashboard/contracts/dashboard';
 import { formatMemberDate } from '@/domains/dashboard/rules/dashboardRules';
 import { formatEuros } from '@/shared/formatters/money';
+import { PageHeader } from '@/shared/components/PageHeader';
 
 function BalanceCard({ label, value }: { label: string; value: string }) {
   return (
@@ -114,15 +115,11 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-pitch-600 text-sm font-bold tracking-wider uppercase">
-          {membership.teamName} · {membership.seasonName}
-        </p>
-        <h1 className="mt-1 text-3xl font-black">O meu painel</h1>
-        <p className="text-pitch-600 mt-2">
-          Totais e histórico financeiro apenas da tua associação nesta época.
-        </p>
-      </header>
+      <PageHeader
+        description="Totais e histórico financeiro apenas da tua associação nesta época."
+        eyebrow={`${membership.teamName} · ${membership.seasonName}`}
+        title="O meu painel"
+      />
       <MemberSeasonSelect
         memberships={memberships}
         seasonId={seasonId}
@@ -148,7 +145,7 @@ export function DashboardPage() {
                 </strong>
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <BalanceCard
                 label="Total histórico"
                 value={formatEuros(query.data.balance.totalFinedCents)}

@@ -102,6 +102,13 @@ button,
 a {
   touch-action: manipulation;
 }
+input[type='checkbox'],
+input[type='radio'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  accent-color: var(--app-brand);
+}
 button:disabled {
   cursor: not-allowed;
 }
@@ -154,6 +161,10 @@ button:disabled {
 .border-pitch-300 {
   border-color: var(--app-border) !important;
 }
+.bg-pitch-800.text-white,
+.bg-pitch-900.text-white {
+  color: var(--app-brand-contrast) !important;
+}
 
 input,
 select,
@@ -163,16 +174,46 @@ textarea {
   color: var(--app-text) !important;
 }
 
+@media (max-width: 639px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 1rem !important;
+  }
+}
+
 input::placeholder,
 textarea::placeholder {
   color: var(--app-muted);
 }
 
+.password-input-wrap {
+  position: relative;
+}
+.password-input-wrap input {
+  padding-right: 5.5rem;
+}
+.password-toggle {
+  position: absolute;
+  top: calc(50% + 0.25rem);
+  right: 0.35rem;
+  min-width: 4.75rem;
+  min-height: 2.5rem;
+  padding: 0 0.65rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: var(--app-surface-raised);
+  color: var(--app-brand-soft);
+  font-size: 0.72rem;
+  font-weight: 850;
+  transform: translateY(-50%);
+}
+
 .auth-shell {
   display: grid;
   min-height: 100dvh;
-  place-items: center;
-  padding: calc(2rem + env(safe-area-inset-top)) 1rem
+  place-items: start center;
+  padding: calc(1rem + env(safe-area-inset-top)) 1rem
     calc(2rem + env(safe-area-inset-bottom));
   background:
     radial-gradient(circle at 85% 0, rgb(223 179 79 / 0.16), transparent 24rem),
@@ -181,6 +222,34 @@ textarea::placeholder {
 .auth-container {
   width: 100%;
   max-width: 28rem;
+}
+
+.page-header {
+  min-width: 0;
+}
+.page-eyebrow {
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+.page-title {
+  margin-top: 0.3rem;
+  font-size: clamp(1.75rem, 8vw, 2.25rem);
+  font-weight: 950;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+.page-description {
+  max-width: 48rem;
+  margin-top: 0.65rem;
+  color: var(--app-muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
 }
 .auth-brand {
   display: flex;
@@ -287,6 +356,14 @@ textarea::placeholder {
   font-weight: 950;
   letter-spacing: -0.05em;
 }
+.treasury-total-featured {
+  border-color: rgb(223 179 79 / 0.35);
+  background: linear-gradient(
+    135deg,
+    var(--app-surface),
+    rgb(223 179 79 / 0.1)
+  );
+}
 
 .app-frame {
   min-height: 100dvh;
@@ -381,10 +458,11 @@ textarea::placeholder {
 .mobile-bottom-navigation {
   position: fixed;
   z-index: 40;
-  right: 0.75rem;
+  right: auto;
   bottom: calc(0.55rem + env(safe-area-inset-bottom));
-  left: 0.75rem;
+  left: 50%;
   display: flex;
+  width: min(calc(100% - 1.5rem), 32rem);
   min-height: 4.5rem;
   align-items: stretch;
   justify-content: space-around;
@@ -394,6 +472,7 @@ textarea::placeholder {
   background: rgb(13 33 25 / 0.94);
   box-shadow: 0 16px 45px rgb(0 0 0 / 0.45);
   backdrop-filter: blur(20px);
+  transform: translateX(-50%);
 }
 
 .mobile-bottom-navigation .app-nav-link {
@@ -409,7 +488,7 @@ textarea::placeholder {
   border: 0;
   background: transparent;
   color: var(--app-muted);
-  font-size: 0.58rem;
+  font-size: 0.64rem;
   font-weight: 800;
   line-height: 1.05;
   text-decoration: none;
@@ -546,6 +625,11 @@ textarea::placeholder {
   background: var(--app-surface);
   box-shadow: 0 28px 70px rgb(0 0 0 / 0.58);
 }
+.more-sheet {
+  max-height: calc(100dvh - 1rem - env(safe-area-inset-top));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 .sheet-handle {
   display: block;
   width: 2.5rem;
@@ -619,7 +703,7 @@ textarea::placeholder {
   flex: 1;
 }
 .system-banner button {
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   border: 0;
   border-radius: 0.65rem;
   background: var(--app-brand);
@@ -631,6 +715,23 @@ textarea::placeholder {
   border-color: rgb(255 209 106 / 0.35);
   background: #3a2a12;
   color: #ffe1a0;
+}
+
+.feedback-stack {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+.feedback-stack.floating {
+  position: sticky;
+  z-index: 25;
+  top: calc(4.8rem + env(safe-area-inset-top));
+}
+.feedback-stack.floating > * {
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.42);
+}
+.catalog-form {
+  scroll-margin-top: calc(5.5rem + env(safe-area-inset-top));
 }
 
 .page-loader {
@@ -704,20 +805,63 @@ textarea::placeholder {
   gap: 0.65rem;
 }
 
+.admin-section-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-right: -1rem;
+  margin-left: -1rem;
+  padding: 0.1rem 1rem 0.55rem;
+  overflow-x: auto;
+  scroll-padding-inline: 1rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.admin-section-nav::-webkit-scrollbar {
+  display: none;
+}
+.admin-section-tab {
+  min-height: 2.75rem;
+  flex: 0 0 auto;
+  padding: 0 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  scroll-snap-align: start;
+}
+.admin-section-tab.active {
+  border-color: var(--app-brand);
+  background: var(--app-brand);
+  color: var(--app-brand-contrast);
+}
+
 @media (max-width: 359px) {
   .app-main {
     padding-right: 0.75rem;
     padding-left: 0.75rem;
   }
   .mobile-bottom-navigation {
-    right: 0.4rem;
-    left: 0.4rem;
+    width: calc(100% - 0.8rem);
   }
   .mobile-bottom-navigation .app-nav-link {
-    font-size: 0.54rem;
+    font-size: 0.58rem;
   }
   .dialog-actions {
     grid-template-columns: 1fr;
+  }
+  .admin-section-nav {
+    margin-right: -0.75rem;
+    margin-left: -0.75rem;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+  .system-banner.update {
+    flex-wrap: wrap;
+  }
+  .system-banner.update button {
+    width: 100%;
   }
 }
 .button-primary,
@@ -743,12 +887,15 @@ textarea::placeholder {
   color: #ffb6b6;
 }
 
-.rounded-panel,
-.rounded-2xl {
+.rounded-panel {
   box-shadow: var(--app-shadow);
 }
 
 @media (min-width: 640px) {
+  .auth-shell {
+    place-items: center;
+    padding-top: calc(2rem + env(safe-area-inset-top));
+  }
   .app-main {
     padding: 2rem 1.5rem calc(7.5rem + env(safe-area-inset-bottom));
   }
@@ -756,6 +903,12 @@ textarea::placeholder {
     right: 1.5rem;
     left: auto;
     width: min(30rem, calc(100% - 3rem));
+  }
+  .admin-section-nav {
+    margin-right: 0;
+    margin-left: 0;
+    padding-right: 0;
+    padding-left: 0;
   }
 }
 
@@ -796,6 +949,9 @@ textarea::placeholder {
   }
   .dialog-backdrop {
     align-items: center;
+  }
+  .feedback-stack.floating {
+    position: static;
   }
 }
 

@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -101,6 +101,62 @@ describe('autenticação e rotas da aplicação', () => {
     expect(screen.getByRole('link', { name: 'Password' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Tesouraria' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Administração' })).toBeNull();
+  });
+
+  it('mantém no máximo quatro destinos na navegação móvel e envia o restante para Mais', async () => {
+    const user = userEvent.setup();
+    const fullAccess = {
+      ...member,
+      isAppAdmin: true,
+      memberships: [
+        {
+          ...member.memberships[0]!,
+          roles: ['treasurer' as const],
+        },
+      ],
+    };
+    renderRoute('/definicoes/password', createGateway(fullAccess));
+
+    const mobileNavigation = await screen.findByRole('navigation', {
+      name: 'Navegação principal',
+    });
+    expect(
+      within(mobileNavigation)
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Painel', 'Mural', 'Multas', 'Caixa']);
+    expect(
+      within(mobileNavigation).queryByRole('link', { name: /Admin/ }),
+    ).toBeNull();
+
+    await user.click(
+      within(mobileNavigation).getByRole('button', { name: 'Mais' }),
+    );
+    const sheet = screen.getByRole('dialog', {
+      name: 'Definições e sessão',
+    });
+    expect(
+      within(sheet).getByRole('link', { name: 'Administração' }),
+    ).toBeInTheDocument();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    await user.keyboard('{Escape}');
+    expect(
+      screen.queryByRole('dialog', { name: 'Definições e sessão' }),
+    ).toBeNull();
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('permite mostrar e voltar a ocultar a password no login', async () => {
+    const user = userEvent.setup();
+    renderRoute('/entrar', createGateway(null));
+
+    const password = await screen.findByLabelText('Password');
+    expect(password).toHaveAttribute('type', 'password');
+    await user.click(screen.getByRole('button', { name: 'Mostrar password' }));
+    expect(password).toHaveAttribute('type', 'text');
+    await user.click(screen.getByRole('button', { name: 'Ocultar password' }));
+    expect(password).toHaveAttribute('type', 'password');
   });
 
   it('não permite enumerar contas através do erro de login', async () => {

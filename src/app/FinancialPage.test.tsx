@@ -216,6 +216,14 @@ describe('interface de multas e tesouraria', () => {
     const user = userEvent.setup();
     const { finesGateway } = renderFinancial('/multas');
     await screen.findByRole('heading', { name: 'Aplicar multa' });
+    const applyHeading = screen.getByRole('heading', { name: 'Aplicar multa' });
+    const catalogHeading = screen.getByRole('heading', {
+      name: 'Catálogo da época',
+    });
+    expect(
+      applyHeading.compareDocumentPosition(catalogHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     await screen.findByRole('option', { name: /Capitão/ });
     await user.selectOptions(screen.getByLabelText('Membro'), memberId);
     await user.selectOptions(screen.getByLabelText('Categoria'), categoryId);

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useAuth } from '@/domains/auth';
 import type { FineCategory } from '@/domains/fines/contracts/fines';
@@ -19,6 +19,7 @@ import {
 } from '@/domains/fines/rules/fineRules';
 import { previousClosedMonthInLisbon } from '@/domains/fines/rules/monthlyCommission';
 import { useFinancialServices } from '@/app/financial/financialContext';
+import { PageHeader } from '@/shared/components/PageHeader';
 
 type CategoryForm = {
   id?: string;
@@ -55,6 +56,7 @@ function CatalogSection({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   function edit(category: FineCategory) {
     setForm({
@@ -71,6 +73,9 @@ function CatalogSection({
     });
     setError(null);
     setNotice(null);
+    window.setTimeout(() =>
+      formRef.current?.scrollIntoView({ block: 'start' }),
+    );
   }
 
   async function save(input = form) {
@@ -187,7 +192,8 @@ function CatalogSection({
       </ul>
       {writable ? (
         <form
-          className="mt-6 grid gap-3 sm:grid-cols-2"
+          className="catalog-form mt-6 grid gap-3 sm:grid-cols-2"
+          ref={formRef}
           onSubmit={(event) => {
             event.preventDefault();
             void save();
@@ -234,9 +240,10 @@ function CatalogSection({
           </label>
           <label className="text-sm font-semibold sm:col-span-2">
             Descrição
-            <input
+            <textarea
               className={inputClass}
               maxLength={500}
+              rows={3}
               value={form.description}
               onChange={(event) =>
                 setForm({ ...form, description: event.target.value })
@@ -488,9 +495,10 @@ function ApplySection({
           ) : null}
           <label className="text-sm font-semibold">
             Observação
-            <input
+            <textarea
               className={inputClass}
               maxLength={500}
+              rows={3}
               value={notes}
               onChange={(event) => {
                 setNotes(event.target.value);
@@ -636,35 +644,31 @@ export function FinesPage() {
     return <p role="alert">Não há época de tesouraria disponível.</p>;
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-black">Multas</h1>
-        <p className="text-pitch-600 mt-2">
-          Catálogo e aplicação de multas por época.
-        </p>
-      </header>
+      <PageHeader
+        description="Aplicação, comissões e catálogo de multas da época."
+        title="Multas"
+      />
       <TreasurerSeasonSelect
         memberships={memberships}
         seasonId={seasonId}
         onChange={setSeasonId}
       />
-      <div className="grid items-start gap-6 xl:grid-cols-2">
-        <CatalogSection
-          key={`catalog-${seasonId}`}
-          seasonId={seasonId}
-          writable={selected.seasonStatus !== 'archived'}
-        />
-        <ApplySection
-          key={`apply-${seasonId}`}
-          seasonId={seasonId}
-          writable={selected.seasonStatus === 'active'}
-        />
-      </div>
+      <ApplySection
+        key={`apply-${seasonId}`}
+        seasonId={seasonId}
+        writable={selected.seasonStatus === 'active'}
+      />
       {selected.seasonStatus === 'active' ? (
         <MonthlyCommissionSection
           key={`commission-${seasonId}`}
           seasonId={seasonId}
         />
       ) : null}
+      <CatalogSection
+        key={`catalog-${seasonId}`}
+        seasonId={seasonId}
+        writable={selected.seasonStatus !== 'archived'}
+      />
     </div>
   );
 }
