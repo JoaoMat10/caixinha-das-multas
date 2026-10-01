@@ -7,7 +7,7 @@
 - Início: 2026-09-22
 - Última atualização: 2026-10-01
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
-- Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado em `[COMMIT_SHOWCASE]`; PR #10 integrado em `7cedae1`; PR #13 integrado em `fd38160`; auditoria móvel no PR #14, branch `feature/corrigir-modal-cards-mobile`, sem merge.
+- Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado em `[COMMIT_SHOWCASE]`; PR #10 integrado em `7cedae1`; PR #13 integrado em `fd38160`; PR #14 integrado em `4af0a33`; auditoria móvel no PR #15, branch `feature/auditoria-ui-mobile`, sem merge.
 
 ## Objetivo
 
