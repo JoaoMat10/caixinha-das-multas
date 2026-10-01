@@ -51,6 +51,11 @@ export function AdminAuditSection({ overview }: { overview: AdminOverview }) {
             </p>
           </li>
         ))}
+        {overview.auditEvents.length === 0 ? (
+          <li className="text-pitch-600 border-pitch-200 rounded-xl border border-dashed p-4 text-sm">
+            Ainda não existem eventos administrativos.
+          </li>
+        ) : null}
       </ol>
     </SectionCard>
   );

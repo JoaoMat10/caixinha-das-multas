@@ -14,6 +14,7 @@ import {
 import { formatEuros, memberLabel } from '@/domains/fines/rules/fineRules';
 import { useFinancialServices } from '@/app/financial/financialContext';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
+import { PageHeader } from '@/shared/components/PageHeader';
 
 function TreasurySeason({
   seasonId,
@@ -208,15 +209,30 @@ function TreasurySeason({
   return (
     <div className="space-y-6">
       <section
-        className="grid gap-3 sm:grid-cols-3"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3"
         aria-label="Totais da tesouraria"
       >
         {[
-          ['Total multado', totalsQuery.data?.totalFinedCents],
-          ['Recebido · saldo disponível', totalsQuery.data?.totalReceivedCents],
-          ['Dívida atual', totalsQuery.data?.totalDebtCents],
-        ].map(([label, value]) => (
-          <div className={cardClass} key={String(label)}>
+          {
+            label: 'Recebido · saldo disponível',
+            value: totalsQuery.data?.totalReceivedCents,
+            featured: true,
+          },
+          {
+            label: 'Dívida atual',
+            value: totalsQuery.data?.totalDebtCents,
+            featured: false,
+          },
+          {
+            label: 'Total multado',
+            value: totalsQuery.data?.totalFinedCents,
+            featured: false,
+          },
+        ].map(({ label, value, featured }) => (
+          <div
+            className={`${cardClass} ${featured ? 'treasury-total-featured col-span-2 sm:col-span-1' : ''}`}
+            key={label}
+          >
             <p className="text-pitch-600 text-sm font-semibold">{label}</p>
             <p className="mt-2 text-2xl font-black">
               {typeof value === 'number' ? formatEuros(value) : '—'}
@@ -227,7 +243,7 @@ function TreasurySeason({
       {totalsQuery.isError ? (
         <p role="alert">Não foi possível carregar os totais autorizados.</p>
       ) : null}
-      <FinancialMessage error={error} notice={notice} />
+      <FinancialMessage error={error} floating notice={notice} />
       <section className={cardClass}>
         <h2 className="text-xl font-black">Multas da época</h2>
         <p className="text-pitch-600 mt-1 text-sm">
@@ -278,7 +294,7 @@ function TreasurySeason({
               O servidor confirma o total e regista todas no mesmo batch.
             </p>
             <button
-              className={`${primaryButtonClass} mt-3`}
+              className={`${primaryButtonClass} mt-3 w-full sm:w-auto`}
               disabled={busy}
               onClick={() => void settle()}
               type="button"
@@ -475,12 +491,10 @@ export function TreasuryPage() {
     return <p role="alert">Não há época de tesouraria disponível.</p>;
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-black">Tesouraria</h1>
-        <p className="text-pitch-600 mt-2">
-          Multas, liquidações e saldo da época.
-        </p>
-      </header>
+      <PageHeader
+        description="Multas, liquidações e saldo da época."
+        title="Tesouraria"
+      />
       <TreasurerSeasonSelect
         memberships={memberships}
         seasonId={seasonId}

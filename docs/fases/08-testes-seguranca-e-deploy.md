@@ -5,9 +5,9 @@
 - Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; smoke autenticado concluído e gate de leitura da função classificada como não aplicável por desenho
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
-- Última atualização: 2026-09-30
+- Última atualização: 2026-10-01
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
-- Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado por Squash and merge em `[COMMIT_SHOWCASE]`; PR #10 em `feature/ativacao-producao-final`, Ready for review e sem merge.
+- Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado em `[COMMIT_SHOWCASE]`; PR #10 integrado em `7cedae1`; PR #13 integrado em `fd38160`; PR #14 integrado em `4af0a33`; auditoria móvel no PR #15, branch `feature/auditoria-ui-mobile`, sem merge.
 
 ## Objetivo
 
@@ -25,40 +25,41 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 
 ## Decisões tomadas
 
-| Data       | Decisão                                                                                     | Justificação                                                                                         | Impacto                                                                                                            |
-| ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                           | Nenhuma alteração é feita diretamente em `main`.                                                                   |
-| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                          | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                                |
-| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.          | `.node-version` passa a definir o runtime esperado.                                                                |
-| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.         | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                         |
-| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.         | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                                     |
-| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                           | O checkpoint local foi revisto antes de qualquer teste remoto.                                                     |
-| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                   | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base.        |
-| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.       | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.                   |
-| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado.  | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.              |
-| 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.      | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                               |
-| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.             | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.               |
-| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.              | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                             |
-| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                            | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.              |
-| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                              | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                                  |
-| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                       | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.                     |
-| 2026-09-24 | Bloquear o signup apenas com `disable_signup=true`.                                         | `external_email_enabled` mantém o provider de email/password necessário ao login técnico.            | O provider permanece ativo; a reversão futura repõe apenas `disable_signup=false`, após nova autorização.          |
-| 2026-09-24 | Manter previews Pages desativados e limitar a GitHub App a um repositório.                  | Previews não podem usar produção e a instalação deve minimizar o alcance no GitHub.                  | Só `main` publica; a instalação seleciona exclusivamente `JoaoMat10/caixinha-das-multas`.                               |
-| 2026-09-28 | Substituir o fallback nativo por rotas explícitas e cache gerado pós-build.                 | O smoke real provou que um asset inexistente recebia o documento SPA e cache imutável.               | `404.html` bloqueia o fallback global; só rotas conhecidas reescrevem e só assets existentes ficam imutáveis.      |
-| 2026-09-28 | Tornar as variáveis públicas uma precondição do build Production/main.                      | Valores visíveis no painel não demonstram que chegaram ao processo Vite que produziu o bundle.       | A gate valida quatro variáveis sem expor a chave e não afeta desenvolvimento ou testes locais.                     |
-| 2026-09-28 | Aceitar o segundo deployment apenas após merge revisto e smoke independente.                | O primeiro deployment expôs duas falhas que exigiam correção forward comprovada antes da promoção.   | O frontend publicado contém a configuração pública correta e devolve 404 seguro para assets inexistentes.          |
-| 2026-09-29 | Alterar apenas Site URL e redirects no Auth de produção.                                    | A URL canónica já foi validada e os restantes campos não pertencem a este checkpoint.                | `GET → PATCH → GET` confirmou só os dois campos autorizados; mínimo de password permanece em 6.                    |
-| 2026-09-29 | Exigir CORS exato e segredo HMAC próprio na `admin-users`.                                  | A service role não deve ser reutilizada para derivação e CORS `*` deixou de ser necessário.          | A função falha fechada sem configuração, usa chaves modernas do runtime e fica pronta para revisão.                |
-| 2026-09-29 | Criar apenas os dois secrets customizados antes de publicar a função.                       | Separa configuração sensível, código e bootstrap em checkpoints reversíveis e auditáveis.            | Os valores existiram apenas em memória; a função e as identidades permaneceram inalteradas.                        |
-| 2026-09-29 | Usar uma única identidade `demo.admin` como Owner e futuro jogador.                       | Evita contas duplicadas e preserva a invisibilidade da permissão global no plantel.                  | O bootstrap exigirá `must_change_password=true`; a futura associação de jogador reutiliza o mesmo utilizador.      |
-| 2026-09-29 | Publicar futuramente apenas `admin-users`, com versão atribuída pela plataforma.            | Produção ainda tem zero funções e não existe uma versão anterior que possa ser presumida ou reposta. | O deploy usará alvo explícito, `--use-api`, um job e `verify_jwt=true`, sem prune nem publicação em lote.          |
-| 2026-09-29 | Aceitar a versão 1 de `admin-users` como linha de base remota.                              | A tentativa única terminou com função ativa e o smoke sem dados passou.                              | Qualquer nova versão, correção ou eliminação requer nova autorização; o Owner continuava ausente nesse checkpoint. |
-| 2026-09-29 | Fazer o primeiro Owner por identidade manual e transação SQL estritamente verificada.       | `admin-users` exige um Owner prévio e a service role não pode sair do Supabase.                      | O painel cria a única identidade; uma transação insere perfil, Owner e auditoria sem mecanismo persistente.        |
-| 2026-09-29 | Concluir o bootstrap sem iniciar sessão.                                                    | Separa a criação administrativa do primeiro acesso e mantém o alcance autorizado mínimo.             | Produção fica com uma identidade, perfil ativo, Owner e auditoria; `must_change_password=true` e zero sessões.     |
-| 2026-09-29 | Fazer o primeiro acesso manual sem observar credenciais.                                    | A password deve permanecer exclusivamente entre o responsável, o browser e o Supabase Auth.          | A auditoria posterior verifica a sessão e o contexto Owner apenas por flags, relações e contagens.                 |
-| 2026-09-30 | Iniciar a comissão mensal em setembro e excluir agosto.                                     | A decisão funcional mais recente determina a primeira contabilização em 1 de outubro.                | A comissão é fixa em 1,00 EUR, sem multiplicador, protegida e idempotente.                                         |
-| 2026-09-30 | Preservar o multiplicador histórico indicado em cada multa de agosto.                       | As funções atuais do plantel não podem reescrever o contexto histórico.                              | Óscar Rodrigues usa 2x; William Costa e Diogo Almeida usam 1x; as 18 multas ficam liquidadas.                                               |
-| 2026-09-30 | Permitir liquidar diretamente cada multa pendente na listagem da Caixa.                     | O fluxo anterior escondia a seleção até o tesoureiro filtrar primeiro um membro.                     | Cada multa pendente tem confirmação própria; a seleção em lote por membro permanece disponível.                    |
+| Data       | Decisão                                                                                     | Justificação                                                                                                   | Impacto                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-22 | Criar a branch `feature/qualidade-seguranca-deploy` a partir de `main` no commit `9c1d4db`. | Isola a última fase do MVP e preserva o fluxo de revisão por pull request.                                     | Nenhuma alteração é feita diretamente em `main`.                                                                        |
+| 2026-09-22 | Adotar Cloudflare Pages para o frontend.                                                    | Decisão explícita recebida para o fornecedor de alojamento.                                                    | A preparação local usa o formato de configuração e de headers suportado pelo Pages.                                     |
+| 2026-09-22 | Fixar Node 24.19.0 para comandos locais e builds do Pages.                                  | Garante uma versão compatível e reproduzível; o Node 21.7.2 do sistema não serve o projeto.                    | `.node-version` passa a definir o runtime esperado.                                                                     |
+| 2026-09-23 | Executar os ficheiros Vitest sem paralelismo e dar 3 segundos às esperas assíncronas da UI. | As falhas ocorriam apenas sob contenção, durante transformação e carregamento de rotas lazy.                   | Três execuções integrais consecutivas passaram sem aumentar o timeout dos próprios testes.                              |
+| 2026-09-23 | Usar o fallback SPA nativo do Pages, sem uma regra global `_redirects`.                     | Regras globais do Pages têm precedência sobre assets e poderiam intercetar JavaScript e CSS.                   | A ausência de `404.html` ativa o fallback nativo sem afetar assets existentes.                                          |
+| 2026-09-23 | Manter operações Cloudflare e Supabase suspensas no primeiro checkpoint.                    | A autorização inicial limitava-se a preparação, auditoria e testes locais.                                     | O checkpoint local foi revisto antes de qualquer teste remoto.                                                          |
+| 2026-09-23 | Executar testes remotos apenas em `showcasetestref00001`, com inventário e limpeza.         | O projeto foi confirmado como descartável e exclusivo para testes.                                             | As mutações temporárias foram delimitadas por prefixos únicos, `finally` e asserção exata da linha de base.             |
+| 2026-09-23 | Usar uma role e função PostgreSQL temporárias na prova de concorrência.                     | Duas instâncias passwordless da CLI rodam a credencial interna e não são concorrentes fiáveis.                 | A credencial ficou apenas em memória; role, função, grants e dados foram removidos no `finally`.                        |
+| 2026-09-23 | Criar a produção em `showcaseprodref00001`, mantendo o vínculo local no projeto de testes.  | Separa definitivamente produção do projeto descartável e evita operações implícitas no alvo errado.            | Todos os comandos de inventário e dry-run usam a referência explícita; nenhuma migração foi aplicada.                   |
+| 2026-09-23 | Preparar o deployment Supabase num worktree isolado e usar `--skip-vault`.                  | Preserva o vínculo local de testes e impede alterações implícitas de secrets durante `db push`.                | O comando final usa a referência de produção explícita e exclui seed, roles e Vault.                                    |
+| 2026-09-23 | Separar autorização e execução das seis operações restantes de produção.                    | URL Pages, Auth, CORS, Edge Function e bootstrap têm dependências e rollback diferentes.                       | O preflight define gates, inventários e rollback por operação; nenhuma mutação remota foi executada.                    |
+| 2026-09-23 | Reprovar para publicação a Edge Function enquanto mantiver CORS `*`.                        | A origem final só fica conhecida após criar o Pages e CORS permissivo não é necessário.                        | O checksum atual é apenas inventário; a autorização Edge exige novo bundle e checksum.                                  |
+| 2026-09-23 | Restringir a CSP do frontend exclusivamente ao Supabase de produção.                        | A referência de produção já é conhecida e previews continuam desativados.                                      | Só HTTPS permite `showcaseprodref00001`; wildcard, WSS e projeto descartável são rejeitados em teste.                   |
+| 2026-09-23 | Manter a password mínima em seis caracteres até ao checkpoint Auth.                         | A política final requer decisão e autorização próprias.                                                        | Nenhuma validação de password ou configuração Auth foi alterada neste checkpoint.                                       |
+| 2026-09-23 | Registar a ativação posterior numa branch e PR próprios.                                    | Separa a revisão do MVP das mutações operacionais autorizadas por checkpoints.                                 | Após o merge do PR #8, usar `feature/ativacao-producao` e continuar o diário único da Fase 08.                          |
+| 2026-09-24 | Bloquear o signup apenas com `disable_signup=true`.                                         | `external_email_enabled` mantém o provider de email/password necessário ao login técnico.                      | O provider permanece ativo; a reversão futura repõe apenas `disable_signup=false`, após nova autorização.               |
+| 2026-09-24 | Manter previews Pages desativados e limitar a GitHub App a um repositório.                  | Previews não podem usar produção e a instalação deve minimizar o alcance no GitHub.                            | Só `main` publica; a instalação seleciona exclusivamente `JoaoMat10/caixinha-das-multas`.                                    |
+| 2026-09-28 | Substituir o fallback nativo por rotas explícitas e cache gerado pós-build.                 | O smoke real provou que um asset inexistente recebia o documento SPA e cache imutável.                         | `404.html` bloqueia o fallback global; só rotas conhecidas reescrevem e só assets existentes ficam imutáveis.           |
+| 2026-09-28 | Tornar as variáveis públicas uma precondição do build Production/main.                      | Valores visíveis no painel não demonstram que chegaram ao processo Vite que produziu o bundle.                 | A gate valida quatro variáveis sem expor a chave e não afeta desenvolvimento ou testes locais.                          |
+| 2026-09-28 | Aceitar o segundo deployment apenas após merge revisto e smoke independente.                | O primeiro deployment expôs duas falhas que exigiam correção forward comprovada antes da promoção.             | O frontend publicado contém a configuração pública correta e devolve 404 seguro para assets inexistentes.               |
+| 2026-09-29 | Alterar apenas Site URL e redirects no Auth de produção.                                    | A URL canónica já foi validada e os restantes campos não pertencem a este checkpoint.                          | `GET → PATCH → GET` confirmou só os dois campos autorizados; mínimo de password permanece em 6.                         |
+| 2026-09-29 | Exigir CORS exato e segredo HMAC próprio na `admin-users`.                                  | A service role não deve ser reutilizada para derivação e CORS `*` deixou de ser necessário.                    | A função falha fechada sem configuração, usa chaves modernas do runtime e fica pronta para revisão.                     |
+| 2026-09-29 | Criar apenas os dois secrets customizados antes de publicar a função.                       | Separa configuração sensível, código e bootstrap em checkpoints reversíveis e auditáveis.                      | Os valores existiram apenas em memória; a função e as identidades permaneceram inalteradas.                             |
+| 2026-09-29 | Usar uma única identidade `demo.admin` como Owner e futuro jogador.                       | Evita contas duplicadas e preserva a invisibilidade da permissão global no plantel.                            | O bootstrap exigirá `must_change_password=true`; a futura associação de jogador reutiliza o mesmo utilizador.           |
+| 2026-09-29 | Publicar futuramente apenas `admin-users`, com versão atribuída pela plataforma.            | Produção ainda tem zero funções e não existe uma versão anterior que possa ser presumida ou reposta.           | O deploy usará alvo explícito, `--use-api`, um job e `verify_jwt=true`, sem prune nem publicação em lote.               |
+| 2026-09-29 | Aceitar a versão 1 de `admin-users` como linha de base remota.                              | A tentativa única terminou com função ativa e o smoke sem dados passou.                                        | Qualquer nova versão, correção ou eliminação requer nova autorização; o Owner continuava ausente nesse checkpoint.      |
+| 2026-09-29 | Fazer o primeiro Owner por identidade manual e transação SQL estritamente verificada.       | `admin-users` exige um Owner prévio e a service role não pode sair do Supabase.                                | O painel cria a única identidade; uma transação insere perfil, Owner e auditoria sem mecanismo persistente.             |
+| 2026-09-29 | Concluir o bootstrap sem iniciar sessão.                                                    | Separa a criação administrativa do primeiro acesso e mantém o alcance autorizado mínimo.                       | Produção fica com uma identidade, perfil ativo, Owner e auditoria; `must_change_password=true` e zero sessões.          |
+| 2026-09-29 | Fazer o primeiro acesso manual sem observar credenciais.                                    | A password deve permanecer exclusivamente entre o responsável, o browser e o Supabase Auth.                    | A auditoria posterior verifica a sessão e o contexto Owner apenas por flags, relações e contagens.                      |
+| 2026-09-30 | Iniciar a comissão mensal em setembro e excluir agosto.                                     | A decisão funcional mais recente determina a primeira contabilização em 1 de outubro.                          | A comissão é fixa em 1,00 EUR, sem multiplicador, protegida e idempotente.                                              |
+| 2026-09-30 | Preservar o multiplicador histórico indicado em cada multa de agosto.                       | As funções atuais do plantel não podem reescrever o contexto histórico.                                        | Óscar Rodrigues usa 2x; William Costa e Diogo Almeida usam 1x; as 18 multas ficam liquidadas.                                                    |
+| 2026-09-30 | Permitir liquidar diretamente cada multa pendente na listagem da Caixa.                     | O fluxo anterior escondia a seleção até o tesoureiro filtrar primeiro um membro.                               | Cada multa pendente tem confirmação própria; a seleção em lote por membro permanece disponível.                         |
+| 2026-10-01 | Dar prioridade integral à experiência móvel entre 320 e 430 px.                             | O uso real ocorre principalmente em telemóveis e revelou excesso de ações na navegação e formulários extensos. | A navegação, hierarquia, controlos táteis, feedback e páginas privilegiadas passam a ter comportamento móvel explícito. |
 
 ## Trabalho realizado
 
@@ -620,6 +621,34 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Os cartões do catálogo e da Caixa separam conteúdo, valor e ações em grelhas
   responsivas, evitando sobreposição e quebras irregulares em ecrãs estreitos.
 
+## Auditoria UI/UX mobile-first
+
+- A barra inferior apresenta no máximo quatro destinos principais e a ação
+  `Mais`; os restantes destinos são movidos para uma folha móvel com rota ativa,
+  bloqueio do scroll de fundo e fecho por seleção ou `Escape`.
+- Todas as páginas funcionais usam um cabeçalho partilhado, reduzindo títulos
+  duplicados e tornando a hierarquia visual consistente em ecrãs estreitos.
+- Inputs e seletores usam 16 px no telemóvel para impedir zoom automático no
+  iPhone; botões, checkboxes e ações principais têm alvos táteis entre 44 e
+  48 px e o botão dourado mantém contraste escuro legível.
+- No fluxo de multas, a aplicação de uma multa aparece antes do catálogo; notas
+  e descrições longas usam áreas de texto e editar uma categoria desloca o foco
+  visual para o formulário.
+- Painel e Caixa compactam os resumos financeiros, destacam o recebido e mantêm
+  o resultado das operações visível no topo enquanto o tesoureiro percorre a
+  listagem.
+- Administração usa separadores horizontais deslocáveis, ações empilhadas,
+  cartões sem overflow e estados vazios claros em utilizadores, equipas,
+  plantel e auditoria.
+- Login e mudança de password permitem mostrar ou ocultar cada password sem
+  reduzir o alvo tátil. O aviso de atualização PWA adapta-se a 320 px.
+- A matriz autenticada detetou e eliminou o último overflow do Mural; as linhas
+  do ranking apresentam o valor numa segunda linha em mobile. A execução final
+  passou 10/10 percursos em Chromium desktop e móvel, com verificações a 320,
+  390 e 430 px.
+- Não foram alteradas regras financeiras, contratos PostgreSQL, RLS/RBAC,
+  migrações, dados de produção ou integrações externas.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                            | Tipo de alteração | Motivo                                                                                            |
@@ -639,10 +668,16 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `src/app/financial/TreasuryPage.tsx`                                | alterado          | Permitir liquidação individual visível sem exigir filtro prévio por membro.                       |
 | `src/app/financial/FinancialUi.tsx`                                 | alterado          | Conter inputs, cartões e botões em viewports móveis estreitos.                                    |
 | `src/app/financial/FinesPage.tsx`                                   | alterado          | Empilhar ações e dimensionar controlos de forma responsiva.                                       |
-| `src/styles/index.css`                                              | alterado          | Corrigir a barra inferior e os diálogos em mobile.                                                |
+| `src/app/layout/AppShell.tsx`                                       | alterado          | Limitar a navegação móvel direta, organizar destinos excedentes e bloquear o scroll da folha.     |
+| `src/shared/components/PageHeader.tsx`                              | criado            | Uniformizar títulos e descrições das páginas funcionais.                                          |
+| `src/app/admin/`                                                    | alterado          | Adaptar tabs, formulários, cartões, ações e estados vazios à utilização móvel.                    |
+| `src/app/auth/`                                                     | alterado          | Adicionar controlos acessíveis para mostrar e ocultar passwords.                                  |
+| `src/styles/index.css`                                              | alterado          | Reforçar navegação, alvos táteis, contraste, formulários, feedback e layouts entre 320 e 430 px.  |
 | `src/shared/components/ConfirmDialog.tsx`                           | alterado          | Montar confirmações fora do conteúdo animado e bloquear o scroll de fundo.                        |
 | `src/app/FinancialPage.test.tsx`                                    | alterado          | Cobrir a liquidação individual sem filtro de membro.                                              |
-| `e2e/financial.spec.ts`                                             | alterado          | Validar liquidação direta, 320 px e ausência de overflow horizontal.                              |
+| `src/app/App.test.tsx`                                              | alterado          | Cobrir navegação móvel, folha Mais, bloqueio de scroll e visibilidade da password.                |
+| `e2e/mobileLayout.ts`                                               | criado            | Validar ausência de overflow horizontal a 320, 390 e 430 px.                                      |
+| `e2e/*.spec.ts`                                                     | alterado          | Aplicar a matriz móvel aos fluxos Auth, membro, multas, Caixa e Administração.                    |
 | `docs/operacao/importacao-catalogo-multas-producao.md`              | criado            | Documentar preflight, aplicação e verificação do catálogo oficial.                                |
 | `docs/operacao/importacao-historico-agosto.md`                      | criado            | Registar o mapa histórico, precondições, resultado e auditoria da importação.                     |
 | `docs/operacao/importacao-plantel-producao.md`                      | criado            | Documentar execução, proteções, credenciais locais e resultado do primeiro plantel.               |
@@ -746,6 +781,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Comissão mensal no Supabase descartável              | passou    | Migração isolada e 88/88 asserções pgTAP com rollback.                                            |
 | Histórico de agosto em produção                      | passou    | 18 multas pagas, 11 batches, 18 logs, 0 comissões de agosto e total recebido de 37,00 EUR.        |
 | Correção da Caixa e layout móvel                     | passou    | 124 Vitest, 13 PostgreSQL, lint, TypeScript, build, 5/5 Pages e 10/10 E2E; validação a 320 px.    |
+| Auditoria UI/UX móvel local                          | passou    | 126 Vitest, 13 PostgreSQL, lint, TypeScript, build e 5/5 Pages; inspeção visual da autenticação.  |
+| Matriz E2E móvel autenticada                         | passou    | 10/10 em desktop e mobile; 320, 390 e 430 px sem overflow e limpeza remota com zero temporários.  |
 
 ## Desvios ao planeamento
 
@@ -836,6 +873,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
       históricos e sem criar comissão nesse mês.
 - [x] Preparar a comissão mensal fixa a partir de setembro, com primeira
       contabilização disponível em 1 de outubro.
+- [x] Auditar e corrigir localmente a experiência móvel das páginas de
+      autenticação, membro, multas, Caixa, Administração e definições.
+- [x] Executar a matriz E2E autenticada a 320, 390 e 430 px no projeto
+      descartável e confirmar zero identidades e perfis temporários no final.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
 ## Handoff para a fase seguinte

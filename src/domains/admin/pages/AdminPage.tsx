@@ -8,6 +8,7 @@ import { AdminTeamsSection } from '@/domains/admin/presentation/AdminTeamsSectio
 import { AdminUsersSection } from '@/domains/admin/presentation/AdminUsersSection';
 import { FormError } from '@/domains/admin/presentation/adminUi';
 import { useAdminService } from '@/domains/admin/state/useAdminService';
+import { PageHeader } from '@/shared/components/PageHeader';
 
 type AdminView = 'summary' | 'users' | 'teams' | 'roster' | 'audit';
 
@@ -74,30 +75,16 @@ export function AdminPage() {
   const overview = overviewQuery.data;
   return (
     <div className="space-y-6">
-      <header>
-        <p className="text-pitch-700 text-sm font-bold tracking-widest uppercase">
-          Área reservada
-        </p>
-        <h1 className="mt-1 text-3xl font-black tracking-tight">
-          Administração
-        </h1>
-        <p className="text-pitch-600 mt-2 max-w-3xl">
-          Configuração global de contas, equipas, épocas, plantéis e
-          fotografias. A permissão Owner permanece privada.
-        </p>
-      </header>
-      <nav
-        aria-label="Secções da administração"
-        className="flex gap-2 overflow-x-auto pb-1"
-      >
+      <PageHeader
+        description="Configuração global de contas, equipas, épocas, plantéis e fotografias. A permissão Owner permanece privada."
+        eyebrow="Área reservada"
+        title="Administração"
+      />
+      <nav aria-label="Secções da administração" className="admin-section-nav">
         {views.map((item) => (
           <button
             aria-current={view === item.id ? 'page' : undefined}
-            className={
-              view === item.id
-                ? 'bg-pitch-900 min-h-11 shrink-0 rounded-full px-4 text-sm font-bold text-white'
-                : 'border-pitch-200 min-h-11 shrink-0 rounded-full border bg-white px-4 text-sm font-bold'
-            }
+            className={`admin-section-tab ${view === item.id ? 'active' : ''}`}
             key={item.id}
             onClick={() => setView(item.id)}
             type="button"

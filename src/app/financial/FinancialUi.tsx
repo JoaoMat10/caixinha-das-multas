@@ -1,7 +1,7 @@
 import type { SeasonMembership } from '@/domains/auth/contracts/auth';
 
 export const inputClass =
-  'mt-2 block min-h-12 w-full min-w-0 max-w-full rounded-xl border border-pitch-200 bg-white px-3 py-2 text-pitch-950';
+  'mt-2 block min-h-12 w-full min-w-0 max-w-full rounded-xl border border-pitch-200 bg-white px-3 py-2 text-base text-pitch-950 sm:text-sm';
 export const primaryButtonClass =
   'inline-flex min-h-12 max-w-full items-center justify-center rounded-xl bg-pitch-900 px-4 py-2 text-center leading-tight font-black text-white disabled:opacity-50';
 export const secondaryButtonClass =
@@ -40,12 +40,15 @@ export function TreasurerSeasonSelect({
 export function FinancialMessage({
   error,
   notice,
+  floating = false,
 }: {
   error: string | null;
   notice: string | null;
+  floating?: boolean;
 }) {
+  if (!error && !notice) return null;
   return (
-    <>
+    <div className={`feedback-stack ${floating ? 'floating' : ''}`}>
       {error ? (
         <p
           className="rounded-xl bg-red-100 p-3 text-sm font-semibold text-red-900"
@@ -62,6 +65,6 @@ export function FinancialMessage({
           {notice}
         </p>
       ) : null}
-    </>
+    </div>
   );
 }

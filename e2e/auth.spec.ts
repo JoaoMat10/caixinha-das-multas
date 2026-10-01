@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { expectMobileLayout } from './mobileLayout';
+
 const username = process.env.E2E_AUTH_USERNAME;
 const password = process.env.E2E_AUTH_PASSWORD;
 
@@ -9,23 +11,28 @@ test.beforeEach(() => {
   }
 });
 
-test('protege rotas, recupera a sessão e permite logout', async ({ page }) => {
+test('protege rotas, recupera a sessão e permite logout', async ({
+  page,
+}, testInfo) => {
   await page.goto('/painel');
 
   await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible();
   await expect(page.getByLabel('Username')).toBeVisible();
-  await expect(page.getByLabel('Password')).toBeVisible();
+  await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
   await expect(page.getByLabel(/email/i)).toHaveCount(0);
+  if (testInfo.project.name === 'chromium-mobile') {
+    await expectMobileLayout(page);
+  }
 
   await page.getByLabel('Username').fill('utilizador.inexistente');
-  await page.getByLabel('Password').fill('Errada1');
+  await page.getByLabel('Password', { exact: true }).fill('Errada1');
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByRole('alert')).toHaveText(
     'Não foi possível iniciar sessão. Confirma os dados e tenta novamente.',
   );
 
   await page.getByLabel('Username').fill(username!);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
 
   await expect(page).toHaveURL(/\/alterar-password-obrigatoria$/);

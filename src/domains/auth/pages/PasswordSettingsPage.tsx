@@ -1,22 +1,17 @@
 import { PasswordChangePage } from '@/domains/auth/pages/PasswordChangePage';
 import { themes } from '@/shared/theme/theme';
+import { PageHeader } from '@/shared/components/PageHeader';
 
 export function PasswordSettingsPage() {
   const theme = themes[0]!;
   return (
     <section className="mx-auto max-w-2xl" aria-labelledby="password-title">
-      <p className="text-pitch-700 text-sm font-bold tracking-[0.18em] uppercase">
-        Definições
-      </p>
-      <h1
-        id="password-title"
-        className="mt-3 text-3xl font-black tracking-tight"
-      >
-        Definições
-      </h1>
-      <p className="text-pitch-700 mt-3 mb-7 leading-7">
-        Aparência, segurança e acesso à tua conta.
-      </p>
+      <PageHeader
+        description="Aparência, segurança e acesso à tua conta."
+        eyebrow="Definições"
+        title="A tua conta"
+        titleId="password-title"
+      />
       <section
         className="rounded-panel border-pitch-200 shadow-panel mb-6 border bg-white p-5 sm:p-6"
         aria-labelledby="theme-title"

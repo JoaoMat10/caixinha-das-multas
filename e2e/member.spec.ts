@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { expectMobileLayout } from './mobileLayout';
+
 const username = process.env.E2E_FINANCIAL_USERNAME;
 const password = process.env.E2E_FINANCIAL_PASSWORD;
 
@@ -10,12 +12,12 @@ test.beforeEach(() => {
 
 test('membro consulta o painel pessoal e os rankings da equipa', async ({
   page,
-}) => {
+}, testInfo) => {
   const categoryName = `Painel E2E ${Date.now().toString(36)}`;
   const note = `Histórico ${Date.now().toString(36)}`;
   await page.goto('/entrar');
   await page.getByLabel('Username').fill(username!);
-  await page.getByLabel('Password').fill(password!);
+  await page.getByLabel('Password', { exact: true }).fill(password!);
   await page.getByRole('button', { name: 'Entrar' }).click();
 
   await page.getByRole('link', { name: 'Multas' }).click();
@@ -45,6 +47,9 @@ test('membro consulta o painel pessoal e os rankings da equipa', async ({
   await expect(
     page.getByRole('heading', { name: 'O meu painel' }),
   ).toBeVisible();
+  if (testInfo.project.name === 'chromium-mobile') {
+    await expectMobileLayout(page);
+  }
   await page.reload();
   await expect(
     page.getByRole('heading', { name: 'O meu painel' }),
@@ -72,6 +77,9 @@ test('membro consulta o painel pessoal e os rankings da equipa', async ({
   await expect(
     page.getByRole('heading', { name: 'Maior dívida atual' }),
   ).toBeVisible();
+  if (testInfo.project.name === 'chromium-mobile') {
+    await expectMobileLayout(page);
+  }
   await expect(
     page.getByRole('main').getByText('Tesoureiro E2E').first(),
   ).toBeVisible();
