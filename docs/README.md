@@ -4,15 +4,16 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 
 ## Fonte de verdade
 
-| Documento                                          | Conteudo                                             |
-| -------------------------------------------------- | ---------------------------------------------------- |
-| [00-contexto-e-escopo.md](00-contexto-e-escopo.md) | Objetivo, utilizadores, limites e definicao do MVP   |
-| [01-arquitetura.md](01-arquitetura.md)             | Stack, modulos, seguranca, autenticacao e alojamento |
-| [02-modelo-de-dados.md](02-modelo-de-dados.md)     | Entidades, relacoes, estados e constraints           |
-| [03-regras-de-negocio.md](03-regras-de-negocio.md) | Regras funcionais e fluxos criticos aprovados        |
-| [04-plano-de-execucao.md](04-plano-de-execucao.md) | Fases, ordem, entregaveis e criterios de conclusao   |
-| [rls-rbac.md](rls-rbac.md)                         | Matriz executavel de autorizacao da base de dados    |
-| [fases/TEMPLATE.md](fases/TEMPLATE.md)             | Modelo obrigatorio do diario de cada fase            |
+| Documento                                                                        | Conteudo                                             |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| [00-contexto-e-escopo.md](00-contexto-e-escopo.md)                               | Objetivo, utilizadores, limites e definicao do MVP   |
+| [01-arquitetura.md](01-arquitetura.md)                                           | Stack, modulos, seguranca, autenticacao e alojamento |
+| [02-modelo-de-dados.md](02-modelo-de-dados.md)                                   | Entidades, relacoes, estados e constraints           |
+| [03-regras-de-negocio.md](03-regras-de-negocio.md)                               | Regras funcionais e fluxos criticos aprovados        |
+| [04-plano-de-execucao.md](04-plano-de-execucao.md)                               | Fases, ordem, entregaveis e criterios de conclusao   |
+| [rls-rbac.md](rls-rbac.md)                                                       | Matriz executavel de autorizacao da base de dados    |
+| [portfolio-guia-tecnico-e-entrevista.md](portfolio-guia-tecnico-e-entrevista.md) | Visão técnica, decisões e preparação de entrevista   |
+| [fases/TEMPLATE.md](fases/TEMPLATE.md)                                           | Modelo obrigatorio do diario de cada fase            |
 
 ## Como iniciar uma nova fase de implementacao
 
@@ -25,10 +26,10 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 ## Estado global
 
 - Planeamento funcional: **aprovado**
-- Implementacao: **Fase 07 concluida; os PR #8 a #11 da Fase 08 foram integrados em `main`; o histórico de agosto e a comissão mensal estão em `feature/historico-agosto-comissao`**
+- Implementacao: **Fases 01 a 07 integradas; a Fase 08 tem produção, histórico financeiro, comissão mensal e auditoria mobile-first integrados em `main`**
 - Fase atual: **Fase 08 — qualidade, seguranca e deploy**
 - Progresso da Fase 08: **produção publicada; Owner, equipa, época, plantel e catálogo ativos; 18 multas pagas de agosto importadas; comissão mensal de 1,00 EUR preparada a partir de setembro**
-- Pendente na Fase 08: **integrar e publicar a interface da comissão mensal; decisão final da política de password; procedimentos de backup/restauro, privacidade e resposta a incidente**
+- Pendente na Fase 08: **decisão final da política de password; procedimentos de backup/restauro, privacidade e resposta a incidente**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 
 ## Principios imutaveis sem nova aprovacao

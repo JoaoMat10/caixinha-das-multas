@@ -5,9 +5,9 @@
 - Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; smoke autenticado concluído e gate de leitura da função classificada como não aplicável por desenho
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
-- Última atualização: 2026-10-01
+- Última atualização: 2026-10-06
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
-- Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado em `[COMMIT_SHOWCASE]`; PR #10 integrado em `7cedae1`; PR #13 integrado em `fd38160`; PR #14 integrado em `4af0a33`; auditoria móvel no PR #15, branch `feature/auditoria-ui-mobile`, sem merge.
+- Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado em `[COMMIT_SHOWCASE]`; PR #10 integrado em `7cedae1`; PR #13 integrado em `fd38160`; PR #14 integrado em `4af0a33`; PR #15 integrado em `[COMMIT_SHOWCASE]`; preparação de portefólio em `feature/documentacao-portfolio`.
 
 ## Objetivo
 
@@ -60,6 +60,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-30 | Preservar o multiplicador histórico indicado em cada multa de agosto.                       | As funções atuais do plantel não podem reescrever o contexto histórico.                                        | Óscar Rodrigues usa 2x; William Costa e Diogo Almeida usam 1x; as 18 multas ficam liquidadas.                                                    |
 | 2026-09-30 | Permitir liquidar diretamente cada multa pendente na listagem da Caixa.                     | O fluxo anterior escondia a seleção até o tesoureiro filtrar primeiro um membro.                               | Cada multa pendente tem confirmação própria; a seleção em lote por membro permanece disponível.                         |
 | 2026-10-01 | Dar prioridade integral à experiência móvel entre 320 e 430 px.                             | O uso real ocorre principalmente em telemóveis e revelou excesso de ações na navegação e formulários extensos. | A navegação, hierarquia, controlos táteis, feedback e páginas privilegiadas passam a ter comportamento móvel explícito. |
+| 2026-10-06 | Preservar o repositório privado e o histórico integral durante a preparação do portefólio.  | Commits e pull requests reais demonstram evolução, revisão e correção incremental do produto.                  | A limpeza limita-se a ficheiros locais ignorados e artefactos regeneráveis; não existe reescrita de histórico.          |
 
 ## Trabalho realizado
 
@@ -649,6 +650,23 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Não foram alteradas regras financeiras, contratos PostgreSQL, RLS/RBAC,
   migrações, dados de produção ou integrações externas.
 
+## Preparação para portefólio
+
+- O repositório permanece privado e conserva integralmente commits, branches
+  publicadas e pull requests. Não foi criado um repositório artificial sem
+  histórico nem executada qualquer reescrita.
+- Foi criado um guia técnico de portefólio que explica produto, arquitetura,
+  frontend, PWA, autenticação, RLS/RBAC, modelo de dados, contabilidade,
+  segurança, testes, deployment, decisões, limitações e preparação para
+  entrevista.
+- O `README.md` e o índice de documentação passaram a apontar para o guia e a
+  refletir o estado publicado do MVP.
+- Ficheiros operacionais privados foram movidos, sem eliminação, para um arquivo
+  local fora do checkout. Dependências, caches, builds e relatórios ignorados
+  foram removidos por serem regeneráveis.
+- Não foram alterados código funcional, dados de produção, configuração remota,
+  contratos, migrações ou recursos de infraestrutura.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                            | Tipo de alteração | Motivo                                                                                            |
@@ -710,13 +728,16 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `docs/operacao/supabase-production-preflight.md`                    | criado            | Registar alvo, checksums, políticas, privilégios, execução, verificação e rollback.               |
 | `docs/operacao/preflight-producao-auth-edge-owner.md`               | criado            | Registar o preflight conjunto de Pages, Auth, secrets, Edge Function, Owner e smoke test.         |
 | `docs/fases/08-testes-seguranca-e-deploy.md`                        | criado            | Manter o diário único e contínuo da Fase 08.                                                      |
+| `docs/portfolio-guia-tecnico-e-entrevista.md`                       | criado            | Explicar o projeto tecnicamente e preparar a sua apresentação em entrevista.                     |
+| `README.md`                                                         | alterado          | Destacar o guia e atualizar o estado corrente do produto.                                        |
+| `docs/README.md`                                                    | alterado          | Indexar o guia e atualizar o resumo da implementação.                                             |
 
 ## Base de dados, contratos e migrações
 
 - Migrações adicionadas: nenhuma neste checkpoint.
 - Alterações de schema: nenhuma.
-- Funções/RPCs: nenhuma alteração. Edge Function: hardening local preparado,
-  ainda não publicado em produção.
+- Funções/RPCs: nenhuma alteração neste checkpoint. A Edge Function
+  `admin-users` mantém-se publicada e protegida em produção.
 - Políticas RLS: nenhuma alteração; os testes existentes foram alargados.
 - Contratos públicos: adicionado apenas o comando de engenharia `npm run verify`.
 - Compatibilidade e dados existentes: todas as mutações, roles, funções, extensões e ficheiros temporários foram removidos; o inventário remoto regressou exatamente à linha de base.
@@ -732,6 +753,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Testes de configuração e segurança estática          | passou    | 17/17; inclui fallback/cache e onze cenários da gate Cloudflare.                                  |
 | Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                      |
 | `npm run verify` com Node 24.19.0                    | passou    | Formatação, lint, tipos, 99 Vitest, 11 PostgreSQL, build e 5 testes Pages numa única cadeia.      |
+| Verificação antes da limpeza local, Node 24.19.0     | passou    | Formatação, lint, tipos, 126 Vitest, 13 PostgreSQL, build e 5 testes Pages.                        |
 | Inspeção de `dist` final                             | passou    | 22 regras exatas de assets, redirects, três HTML, manifest, service worker e 0 source maps.       |
 | pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                         |
 | Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                     |
@@ -877,6 +899,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
       autenticação, membro, multas, Caixa, Administração e definições.
 - [x] Executar a matriz E2E autenticada a 320, 390 e 430 px no projeto
       descartável e confirmar zero identidades e perfis temporários no final.
+- [x] Preparar o repositório privado para portefólio, preservando o histórico,
+      arquivando dados locais privados e criando o guia técnico de entrevista.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
 ## Handoff para a fase seguinte

@@ -2,9 +2,18 @@
 
 Aplicação web mobile-first para gerir as multas internas de uma equipa de futebol. A implementação segue as fases e as regras descritas em [`docs/`](docs/README.md).
 
+Para uma visão técnica orientada a portefólio, decisões arquiteturais e preparação
+de entrevista, consultar o
+[`guia técnico e de entrevista`](docs/portfolio-guia-tecnico-e-entrevista.md).
+
 ## Estado atual
 
-A Fase 06 — Dashboard e Mural — está integrada em `main`. A Fase 07 — UI Mobile e PWA — está concluída e validada na branch `feature/ui-mobile-e-pwa`; o PR Draft #7 aguarda revisão e integração. A direção visual “Balneário Premium” é o tema disponível e a arquitetura permanece preparada para famílias futuras.
+O MVP web/PWA está publicado e funcional. As Fases 01 a 07 estão integradas em
+`main`; a Fase 08 consolidou produção, segurança, testes, dados iniciais e a
+auditoria mobile-first. Permanecem como trabalho operacional a política final de
+passwords e os procedimentos formais de backup/restauro, privacidade e resposta
+a incidentes. A direção visual “Balneário Premium” é o tema disponível e a
+arquitetura permanece preparada para famílias futuras.
 
 O fluxo de branches, commits, validações e pull requests está descrito em [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
