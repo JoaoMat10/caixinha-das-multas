@@ -11,8 +11,7 @@ test-results/
 
 # Variaveis de ambiente locais
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
 .manual-validation/
 
@@ -26,6 +25,12 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.cursor/
+.cursorrules
+.windsurfrules
+.prompts/
+.ai/
+chat_history/
 
 # Logs
 *.log

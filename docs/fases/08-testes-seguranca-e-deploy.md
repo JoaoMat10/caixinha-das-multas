@@ -5,7 +5,7 @@
 - Estado: em curso — frontend, Auth, secrets, Edge Function `admin-users` e primeiro Owner ativos; smoke autenticado concluído e gate de leitura da função classificada como não aplicável por desenho
 - Responsável: equipa de engenharia
 - Início: 2026-09-22
-- Última atualização: 2026-10-06
+- Última atualização: 2026-10-08
 - Dependências recebidas: Fase 07 e primeiro bloco da Fase 08 integrados em `main`; interface “Balneário Premium”, PWA online-first, gates locais e contratos funcionais existentes.
 - Revisão: PR #8 integrado em `[COMMIT_SHOWCASE]`; PR #9 integrado em `[COMMIT_SHOWCASE]`; PR #10 integrado em `7cedae1`; PR #13 integrado em `fd38160`; PR #14 integrado em `4af0a33`; PR #15 integrado em `[COMMIT_SHOWCASE]`; preparação de portefólio no PR #16, branch `feature/documentacao-portfolio`, sem merge.
 
@@ -61,6 +61,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | 2026-09-30 | Permitir liquidar diretamente cada multa pendente na listagem da Caixa.                     | O fluxo anterior escondia a seleção até o tesoureiro filtrar primeiro um membro.                               | Cada multa pendente tem confirmação própria; a seleção em lote por membro permanece disponível.                         |
 | 2026-10-01 | Dar prioridade integral à experiência móvel entre 320 e 430 px.                             | O uso real ocorre principalmente em telemóveis e revelou excesso de ações na navegação e formulários extensos. | A navegação, hierarquia, controlos táteis, feedback e páginas privilegiadas passam a ter comportamento móvel explícito. |
 | 2026-10-06 | Preservar o repositório privado e o histórico integral durante a preparação do portefólio.  | Commits e pull requests reais demonstram evolução, revisão e correção incremental do produto.                  | A limpeza limita-se a ficheiros locais ignorados e artefactos regeneráveis; não existe reescrita de histórico.          |
+| 2026-10-08 | Auditar o estado atual para uma futura publicação sem reescrever o histórico.               | A neutralidade, os segredos e os resíduos podem ser validados sem alterar commits já publicados.               | O estado atual fica sanitizado; dados pessoais históricos permanecem um bloqueio explícito à mudança de visibilidade.   |
+| 2026-10-08 | Fixar `sharp` em `0.35.5` através de `overrides`.                                           | A versão transitiva usada por `miniflare` continha uma vulnerabilidade alta já corrigida num patch compatível. | `npm audit` passa de sete vulnerabilidades para zero sem `--force` nem mudança major.                                   |
 
 ## Trabalho realizado
 
@@ -667,14 +669,43 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Não foram alterados código funcional, dados de produção, configuração remota,
   contratos, migrações ou recursos de infraestrutura.
 
+## Auditoria para publicação do repositório
+
+- O ficheiro local de instruções internas foi removido; nunca esteve versionado
+  nem aparece no histórico alcançável.
+- A referência residual a configuração de alojamento foi substituída por uma
+  descrição neutra e a ocorrência de credencial no diário passou a usar
+  explicitamente `[CHAVE_REDACTADA]`.
+- A pesquisa em `src/`, `supabase/`, `docs/`, `tests/` e `scripts/` não encontrou
+  texto residual de ferramentas ou conversas. A única correspondência mantida é
+  o evento web legítimo `beforeinstallprompt`.
+- Não existem diretórios ou ficheiros residuais de editores, conversas ou do
+  sistema. O `.gitignore` passou a bloquear esses caminhos e todos os ficheiros
+  `.env.*`, preservando apenas `.env.example`.
+- A varredura do estado atual e de todos os commits alcançáveis encontrou zero
+  chaves secretas Supabase, JWTs completos, URIs PostgreSQL com credenciais,
+  chaves privadas, tokens GitHub ou credenciais AWS.
+- O frontend usa apenas nome e URL públicos da aplicação, URL Supabase e
+  `VITE_SUPABASE_PUBLISHABLE_KEY`. A credencial elevada permanece exclusivamente
+  no runtime server-side da Edge Function.
+- `npm audit` identificou inicialmente sete vulnerabilidades transitivas. As
+  atualizações compatíveis corrigiram seis e o override de patch de `sharp`
+  corrigiu a última cadeia; a auditoria final devolve zero vulnerabilidades.
+- A publicação continua bloqueada por dados pessoais e operacionais reais em
+  scripts e documentação versionados, incluindo nomes, usernames e histórico
+  financeiro. A sua remoção integral exigirá anonimização do estado atual e uma
+  decisão explícita sobre filtragem do histórico.
+- Um commit anterior conserva a antiga referência de alojamento entretanto
+  neutralizada. Não foi executada reescrita nem force-push.
+
 ## Ficheiros criados ou alterados
 
 | Ficheiro                                                            | Tipo de alteração | Motivo                                                                                            |
 | ------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
 | `.node-version`                                                     | criado            | Fixar Node 24.19.0.                                                                               |
 | `wrangler.toml`                                                     | criado            | Declarar configuração local do Cloudflare Pages.                                                  |
-| `package.json`                                                      | alterado          | Adicionar `npm run verify`.                                                                       |
-| `.gitignore`                                                        | alterado          | Impedir a publicação de fotografias, folhas locais e credenciais.                                 |
+| `package.json`                                                      | alterado          | Adicionar `npm run verify` e fixar o patch seguro de `sharp`.                                     |
+| `.gitignore`                                                        | alterado          | Impedir a publicação de credenciais, dados locais e resíduos de ferramentas ou sistema.           |
 | `eslint.config.js`                                                  | alterado          | Excluir artefactos e fotografias locais das verificações de código.                               |
 | `scripts/populate-production-roster.mjs`                            | criado            | Validar e importar contas, equipa, época, plantel, roles e fotografias com retoma segura.         |
 | `scripts/populate-production-fine-catalog.mjs`                      | criado            | Validar e importar o catálogo oficial de 23 multas sem criar movimentos financeiros.              |
@@ -710,8 +741,8 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `tests/scripts/deployment-security.test.mjs`                        | criado            | Validar configuração do Pages e garantias estáticas do frontend.                                  |
 | `src/shared/rules/adminCors.ts`                                     | criado            | Validar allowlist CORS e produzir headers exatos ou falhar fechada.                               |
 | `src/shared/rules/adminCors.test.ts`                                | criado            | Cobrir origem autorizada, recusas e configuração inválida.                                        |
-| `src/shared/rules/supabaseRuntimeKeys.ts`                           | criado            | Ler apenas as chaves modernas `default` injetadas no runtime Supabase.                            |
-| `src/shared/rules/supabaseRuntimeKeys.test.ts`                      | criado            | Recusar chaves ausentes, inválidas ou no formato legado.                                          |
+| `supabase/functions/_shared/supabaseRuntimeKeys.ts`                 | movido            | Isolar no servidor a leitura das chaves modernas `default` injetadas pelo runtime Supabase.       |
+| `tests/scripts/supabase-runtime-keys.test.mjs`                      | movido            | Recusar chaves ausentes, inválidas ou no formato legado sem as colocar na árvore do frontend.     |
 | `src/shared/rules/adminPasswordReset.ts`                            | alterado          | Exigir segredo HMAC próprio com pelo menos 32 bytes.                                              |
 | `supabase/functions/admin-users/index.ts`                           | alterado          | Fechar CORS, separar HMAC e usar as chaves modernas do runtime.                                   |
 | `tests/scripts/cloudflare-production-env.test.mjs`                  | criado            | Cobrir casos positivos, negativos e não exposição da chave na gate.                               |
@@ -728,9 +759,11 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | `docs/operacao/supabase-production-preflight.md`                    | criado            | Registar alvo, checksums, políticas, privilégios, execução, verificação e rollback.               |
 | `docs/operacao/preflight-producao-auth-edge-owner.md`               | criado            | Registar o preflight conjunto de Pages, Auth, secrets, Edge Function, Owner e smoke test.         |
 | `docs/fases/08-testes-seguranca-e-deploy.md`                        | criado            | Manter o diário único e contínuo da Fase 08.                                                      |
-| `docs/portfolio-guia-tecnico-e-entrevista.md`                       | criado            | Explicar o projeto tecnicamente e preparar a sua apresentação em entrevista.                     |
-| `README.md`                                                         | alterado          | Destacar o guia e atualizar o estado corrente do produto.                                        |
+| `docs/portfolio-guia-tecnico-e-entrevista.md`                       | criado            | Explicar o projeto tecnicamente e preparar a sua apresentação em entrevista.                      |
+| `README.md`                                                         | alterado          | Destacar o guia e atualizar o estado corrente do produto.                                         |
 | `docs/README.md`                                                    | alterado          | Indexar o guia e atualizar o resumo da implementação.                                             |
+| `package-lock.json`                                                 | alterado          | Registar as versões transitivas corrigidas de forma reproduzível.                                 |
+| `docs/fases/01-fundacao-web.md`                                     | alterado          | Neutralizar uma referência residual a configuração de alojamento.                                 |
 
 ## Base de dados, contratos e migrações
 
@@ -753,7 +786,7 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Testes de configuração e segurança estática          | passou    | 17/17; inclui fallback/cache e onze cenários da gate Cloudflare.                                  |
 | Testes PostgreSQL embebidos                          | passou    | 11/11; inclui o manifesto de produção sem seed e a verificação pós-migração.                      |
 | `npm run verify` com Node 24.19.0                    | passou    | Formatação, lint, tipos, 99 Vitest, 11 PostgreSQL, build e 5 testes Pages numa única cadeia.      |
-| Verificação antes da limpeza local, Node 24.19.0     | passou    | Formatação, lint, tipos, 126 Vitest, 13 PostgreSQL, build e 5 testes Pages.                        |
+| Verificação antes da limpeza local, Node 24.19.0     | passou    | Formatação, lint, tipos, 126 Vitest, 13 PostgreSQL, build e 5 testes Pages.                       |
 | Inspeção de `dist` final                             | passou    | 22 regras exatas de assets, redirects, três HTML, manifest, service worker e 0 source maps.       |
 | pgTAP remoto em transações com `ROLLBACK`            | passou    | 81/81 asserções de Admin, Auth, RLS/RBAC e base de dados.                                         |
 | Supabase Auth real                                   | passou    | 9/9 cenários; login, password, contexto, inativação e logout.                                     |
@@ -805,6 +838,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 | Correção da Caixa e layout móvel                     | passou    | 124 Vitest, 13 PostgreSQL, lint, TypeScript, build, 5/5 Pages e 10/10 E2E; validação a 320 px.    |
 | Auditoria UI/UX móvel local                          | passou    | 126 Vitest, 13 PostgreSQL, lint, TypeScript, build e 5/5 Pages; inspeção visual da autenticação.  |
 | Matriz E2E móvel autenticada                         | passou    | 10/10 em desktop e mobile; 320, 390 e 430 px sem overflow e limpeza remota com zero temporários.  |
+| `npx tsc --noEmit`, Node 24.19.0                     | passou    | Verificação TypeScript estrita concluída sem diagnósticos.                                        |
+| `npm run build`, Node 24.19.0                        | passou    | 290 módulos; bundle principal 391,13 kB, gzip 122,72 kB; 22 assets finalizados.                   |
+| `npm test`, Node 24.19.0                             | passou    | 30 ficheiros e 126/126 testes Vitest; zero falhas.                                                |
+| `npm audit`, Node 24.19.0                            | passou    | 0 vulnerabilidades após atualizações compatíveis e override de patch; sem `--force`.              |
 
 ## Desvios ao planeamento
 
@@ -838,11 +875,11 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
 - Baixo: o plano gratuito Supabase pode pausar por inatividade e não inclui backups automáticos nem SLA.
 - Médio: 28 passwords temporárias permanecem num ficheiro local ignorado até à
   distribuição. O ficheiro deve ser eliminado depois das mudanças obrigatórias.
-- Médio: uma versão legacy da chave `service_role` foi apresentada integralmente
-  pela CLI durante um diagnóstico local. O valor não foi persistido nem
-  versionado e o importador usa apenas uma chave secreta moderna em memória, mas
-  as chaves legacy devem ser rodadas ou desativadas num checkpoint próprio antes
-  de um uso alargado.
+- Médio: durante um diagnóstico local foi detetada exposição transitória de uma
+  credencial legacy, tratada nos registos como `[CHAVE_REDACTADA]`. O valor não
+  foi persistido nem versionado e o importador usa apenas uma credencial moderna
+  em memória, mas as credenciais legacy devem ser rodadas ou desativadas num
+  checkpoint próprio antes de um uso alargado.
 - Baixo: a Mariana Ferreira está ativa sem fotografia; pode ser adicionada mais tarde
   pelo Owner sem alterar o plantel.
 - Baixo: a comissão mensal é iniciada manualmente pelo tesoureiro depois do
@@ -901,6 +938,10 @@ Endurecer a qualidade e a segurança do MVP Web/PWA, separar teste e produção,
       descartável e confirmar zero identidades e perfis temporários no final.
 - [x] Preparar o repositório privado para portefólio, preservando o histórico,
       arquivando dados locais privados e criando o guia técnico de entrevista.
+- [x] Sanitizar o estado atual, reforçar exclusões locais e executar varreduras
+      de neutralidade e segredos no código e histórico alcançável.
+- [ ] Anonimizar dados pessoais e operacionais e decidir como filtrar o histórico
+      antes de alterar a visibilidade do repositório para público.
 - [x] Abrir o PR #8, concluir os sete commits de implementação no checkpoint `eba69ad` e colocá-lo Ready for review; depois, corrigir apenas a deriva documental, sem merge ou deployment.
 
 ## Handoff para a fase seguinte

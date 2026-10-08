@@ -14,7 +14,7 @@ import {
 import {
   createSupabaseSecretKeyFetch,
   resolveSupabaseRuntimeKeys,
-} from '../../../src/shared/rules/supabaseRuntimeKeys.ts';
+} from '../_shared/supabaseRuntimeKeys.ts';
 
 type JsonRecord = Record<string, unknown>;
 

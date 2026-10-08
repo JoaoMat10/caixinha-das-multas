@@ -42,7 +42,7 @@ Criar uma fundacao web executavel, mobile-first, tipada, modular e testavel para
 
 - Leitura integral das instrucoes internas do repositorio e de todos os ficheiros Markdown existentes em `docs/`.
 - Confirmacao de que o repositorio contem apenas documentacao e ainda nao tem implementacao da aplicacao.
-- Confirmacao de que nao existe `ficheiros residuais de alojamento` nem configuracao de alojamento a preservar.
+- Confirmação de que não existem ficheiros residuais de alojamento a preservar.
 
 ### Fundacao tecnica e interface
 

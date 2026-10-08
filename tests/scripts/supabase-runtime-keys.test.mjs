@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createSupabaseSecretKeyFetch,
   resolveSupabaseRuntimeKeys,
-} from '@/shared/rules/supabaseRuntimeKeys';
+} from '../../supabase/functions/_shared/supabaseRuntimeKeys.ts';
 
 const publishableKey = 'sb_publishable_publica';
 const secretKey = 'sb_secret_servidor';
@@ -38,10 +38,10 @@ describe('chaves injetadas no runtime Supabase', () => {
   );
 
   it('envia a chave elevada apenas em apikey, nunca como JWT', async () => {
-    let capturedInit: RequestInit | undefined;
-    const implementation: typeof fetch = (_input, init) => {
+    let capturedInit;
+    const implementation = (_input, init) => {
       capturedInit = init;
-      return Promise.resolve(new Response(null));
+      return Promise.resolve(new globalThis.Response(null));
     };
     const secureFetch = createSupabaseSecretKeyFetch(secretKey, implementation);
 
@@ -52,16 +52,16 @@ describe('chaves injetadas no runtime Supabase', () => {
       },
     });
 
-    const headers = new Headers(capturedInit?.headers);
+    const headers = new globalThis.Headers(capturedInit?.headers);
     expect(headers.get('apikey')).toBe(secretKey);
     expect(headers.has('Authorization')).toBe(false);
   });
 
   it('preserva um Authorization que contenha um JWT real', async () => {
-    let capturedInit: RequestInit | undefined;
-    const implementation: typeof fetch = (_input, init) => {
+    let capturedInit;
+    const implementation = (_input, init) => {
       capturedInit = init;
-      return Promise.resolve(new Response(null));
+      return Promise.resolve(new globalThis.Response(null));
     };
     const secureFetch = createSupabaseSecretKeyFetch(secretKey, implementation);
 
@@ -69,7 +69,7 @@ describe('chaves injetadas no runtime Supabase', () => {
       headers: { Authorization: 'Bearer jwt-utilizador' },
     });
 
-    const headers = new Headers(capturedInit?.headers);
+    const headers = new globalThis.Headers(capturedInit?.headers);
     expect(headers.get('Authorization')).toBe('Bearer jwt-utilizador');
   });
 });
