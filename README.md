@@ -2,6 +2,10 @@
 
 Aplicação web mobile-first para gerir as multas internas de uma equipa de futebol. A implementação segue as fases e as regras descritas em [`docs/`](docs/README.md).
 
+> **Showcase público:** nomes de pessoas, clube, identificadores de infraestrutura e resultados operacionais são fictícios. Este repositório não está ligado ao ambiente de produção original; para executar a aplicação, configure um projeto Supabase próprio através de `.env.local`.
+
+**Autor:** João Matos
+
 Para uma visão técnica orientada a portefólio, decisões arquiteturais e preparação
 de entrevista, consultar o
 [`guia técnico e de entrevista`](docs/portfolio-guia-tecnico-e-entrevista.md).

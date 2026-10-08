@@ -1,3 +1,4 @@
+// Showcase público: referências externas e dados operacionais deste script são placeholders fictícios.
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

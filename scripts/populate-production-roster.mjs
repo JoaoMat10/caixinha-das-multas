@@ -1,3 +1,4 @@
+// Showcase público: referências externas e dados operacionais deste script são placeholders fictícios.
 import { createClient } from '@supabase/supabase-js';
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';

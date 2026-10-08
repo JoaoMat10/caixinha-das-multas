@@ -1,5 +1,7 @@
 # Importação do plantel em produção
 
+> **Modelo demonstrativo:** todos os nomes, URLs, referências, identificadores e resultados abaixo são fictícios e servem apenas para documentar o procedimento. Substitua os placeholders por recursos próprios antes de executar qualquer operação.
+
 Este procedimento popula uma equipa, uma época e o respetivo plantel através de
 um manifesto local. Não executa `supabase/seed.sql`, não cria categorias nem
 introduz multas ou pagamentos.

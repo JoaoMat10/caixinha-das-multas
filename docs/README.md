@@ -2,6 +2,8 @@
 
 Esta pasta contem a especificacao aprovada e o historico de implementacao da aplicacao. Deve ser usada como fonte de contexto em todas as fases de trabalho neste projeto.
 
+> Os registos operacionais deste showcase foram pseudonimizados. Pessoas, clube, projetos externos, URLs e identificadores são exemplos sem ligação ao ambiente privado original.
+
 ## Fonte de verdade
 
 | Documento                                                                        | Conteudo                                             |
@@ -13,6 +15,7 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 | [04-plano-de-execucao.md](04-plano-de-execucao.md)                               | Fases, ordem, entregaveis e criterios de conclusao   |
 | [rls-rbac.md](rls-rbac.md)                                                       | Matriz executavel de autorizacao da base de dados    |
 | [portfolio-guia-tecnico-e-entrevista.md](portfolio-guia-tecnico-e-entrevista.md) | Visão técnica, decisões e preparação de entrevista   |
+| [SHOWCASE.md](SHOWCASE.md)                                                       | Política de anonimização e utilização do espelho     |
 | [fases/TEMPLATE.md](fases/TEMPLATE.md)                                           | Modelo obrigatorio do diario de cada fase            |
 
 ## Como iniciar uma nova fase de implementacao
@@ -28,7 +31,7 @@ Esta pasta contem a especificacao aprovada e o historico de implementacao da apl
 - Planeamento funcional: **aprovado**
 - Implementacao: **Fases 01 a 07 integradas; a Fase 08 tem produção, histórico financeiro, comissão mensal e auditoria mobile-first integrados em `main`**
 - Fase atual: **Fase 08 — qualidade, seguranca e deploy**
-- Progresso da Fase 08: **produção publicada; Owner, equipa, época, plantel e catálogo ativos; 18 multas pagas de agosto importadas; comissão mensal de 1,00 EUR preparada a partir de setembro**
+- Progresso da Fase 08: **implementação e registos técnicos preservados como demonstração; dados pessoais, clube e infraestrutura foram substituídos por exemplos fictícios**
 - Pendente na Fase 08: **decisão final da política de password; procedimentos de backup/restauro, privacidade e resposta a incidente**
 - App nativa: fora do MVP atual; sera planeada depois da estabilizacao da PWA
 

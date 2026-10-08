@@ -1,5 +1,7 @@
 # Preflight Supabase de produção
 
+> **Modelo demonstrativo:** todos os nomes, URLs, referências, identificadores e resultados abaixo são fictícios e servem apenas para documentar o procedimento. Substitua os placeholders por recursos próprios antes de executar qualquer operação.
+
 ## Estado e alvo
 
 - Estado: executado e validado em 2026-09-23.

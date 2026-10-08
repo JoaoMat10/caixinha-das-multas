@@ -1,5 +1,7 @@
 # Preflight de ativação de produção
 
+> **Modelo demonstrativo:** todos os nomes, URLs, referências, identificadores e resultados abaixo são fictícios e servem apenas para documentar o procedimento. Substitua os placeholders por recursos próprios antes de executar qualquer operação.
+
 ## Estado e limites
 
 Este documento descreve a ativação do frontend, Auth, secrets, Edge Function,
@@ -114,7 +116,7 @@ qualquer novo deployment ou rollback exige novo checkpoint.
 | Campo              | Valor                                |
 | ------------------ | ------------------------------------ |
 | Projeto            | `caixinha-das-multas`                |
-| Repositório        | `JoaoMat10/caixinha-das-multas`           |
+| Repositório        | `JoaoMat10/caixinha-das-multas`      |
 | Branch de produção | `main`                               |
 | Diretório raiz     | `/`                                  |
 | Comando de build   | `npm run verify`                     |
@@ -159,17 +161,17 @@ verificações e rollback está em `docs/operacao/deploy-cloudflare-pages.md`.
 
 Leitura dry-run de `showcaseprodref00001`, sem escrita:
 
-| Campo                                              | Estado após o checkpoint                 | Resultado                                |
-| -------------------------------------------------- | ---------------------------------------- | ---------------------------------------- |
+| Campo                                              | Estado após o checkpoint               | Resultado                                |
+| -------------------------------------------------- | -------------------------------------- | ---------------------------------------- |
 | Site URL                                           | `https://caixinha-showcase.pages.dev`  | alterado apenas no checkpoint autorizado |
 | Redirects                                          | `https://caixinha-showcase.pages.dev/` | alterado apenas no checkpoint autorizado |
-| Signup global (`disable_signup`)                   | desativado                               | alterado de `false` para `true`          |
-| Provider email/password (`external_email_enabled`) | ativo                                    | mantido; necessário ao login técnico     |
-| Confirmação de email                               | ativa                                    | sem alteração                            |
-| Password mínima                                    | 6                                        | sem alteração; decisão continua pendente |
-| Caracteres                                         | sem requisito remoto explícito           | sem alteração; decisão continua pendente |
-| Alteração segura por email                         | desativada                               | sem alteração                            |
-| TOTP                                               | ativo na plataforma                      | sem alteração                            |
+| Signup global (`disable_signup`)                   | desativado                             | alterado de `false` para `true`          |
+| Provider email/password (`external_email_enabled`) | ativo                                  | mantido; necessário ao login técnico     |
+| Confirmação de email                               | ativa                                  | sem alteração                            |
+| Password mínima                                    | 6                                      | sem alteração; decisão continua pendente |
+| Caracteres                                         | sem requisito remoto explícito         | sem alteração; decisão continua pendente |
+| Alteração segura por email                         | desativada                             | sem alteração                            |
+| TOTP                                               | ativo na plataforma                    | sem alteração                            |
 
 ### Checkpoint Auth executado em 2026-09-29
 
@@ -541,9 +543,9 @@ da identidade é efetivamente alterada. `public.users`, `public.app_admins` e
 | Campo                | Valor/estado                                                      |
 | -------------------- | ----------------------------------------------------------------- |
 | Projeto              | `showcaseprodref00001`                                            |
-| Username             | `demo.admin`                                                    |
-| Username normalizado | `demo.admin`                                                    |
-| Email técnico Auth   | `u-mrsw23zomfsg22lo@auth.caixinha.invalid`                    |
+| Username             | `demo.admin`                                                      |
+| Username normalizado | `demo.admin`                                                      |
+| Email técnico Auth   | `u-mrsw23zomfsg22lo@auth.caixinha.invalid`                        |
 | Nome apresentado     | **a indicar antes da escrita**                                    |
 | Password inicial     | **a criar no gestor de passwords no momento autorizado**          |
 | UUID                 | gerado pelo Supabase Auth e reutilizado nas duas tabelas públicas |
@@ -671,7 +673,7 @@ A auditoria read-only pós-commit confirmou:
 | ------------------------------------------- | --------------------------------------------- |
 | `auth.users` / `auth.identities`            | 1 / 1, identidade email confirmada            |
 | Sessões / refresh tokens                    | 0 / 0                                         |
-| `public.users`                              | 1, `Administrador Demo`, ativo e sem avatar           |
+| `public.users`                              | 1, `Administrador Demo`, ativo e sem avatar   |
 | `must_change_password`                      | `true`                                        |
 | `public.app_admins`                         | 1, para o mesmo UUID do perfil e Auth         |
 | `public.audit_events`                       | 1, evento exato `owner.bootstrap`             |
@@ -726,18 +728,18 @@ Foi reutilizada exclusivamente a sessão Owner já aberta, sem ler credenciais,
 tokens, storage do browser ou headers de autenticação e sem acionar qualquer
 controlo de criação, edição, desativação, eliminação ou upload.
 
-| Verificação                                  | Resultado                                                             |
-| -------------------------------------------- | --------------------------------------------------------------------- |
-| `/administracao` e refresh                   | passou; a sessão e o contexto administrativo foram preservados        |
+| Verificação                                  | Resultado                                                                   |
+| -------------------------------------------- | --------------------------------------------------------------------------- |
+| `/administracao` e refresh                   | passou; a sessão e o contexto administrativo foram preservados              |
 | Único utilizador                             | passou; apenas `Administrador Demo` / `@demo.admin`, ativo e sem fotografia |
-| `isAppAdmin`                                 | passou; a route guard e a área administrativa autorizaram o Owner     |
-| Equipas / épocas / memberships               | passou; contadores `0 / 0 / 0` e listas vazias                        |
-| Fotografias e dados financeiros              | passou; perfil sem fotografia e nenhum dado de domínio no inventário  |
-| Navegação autorizada                         | passou; disponíveis apenas Administração e Definições de password     |
-| Consola do frontend                          | passou; zero avisos ou erros após refresh e navegação                 |
-| Listagem read-only de utilizadores           | passou pela RPC `get_admin_overview`                                  |
-| Listagem read-only pela função `admin-users` | não aplicável; a função contém exclusivamente operações mutáveis      |
-| Erros da Edge Function durante o smoke       | não aplicável; nenhuma operação mutável foi invocada                  |
+| `isAppAdmin`                                 | passou; a route guard e a área administrativa autorizaram o Owner           |
+| Equipas / épocas / memberships               | passou; contadores `0 / 0 / 0` e listas vazias                              |
+| Fotografias e dados financeiros              | passou; perfil sem fotografia e nenhum dado de domínio no inventário        |
+| Navegação autorizada                         | passou; disponíveis apenas Administração e Definições de password           |
+| Consola do frontend                          | passou; zero avisos ou erros após refresh e navegação                       |
+| Listagem read-only de utilizadores           | passou pela RPC `get_admin_overview`                                        |
+| Listagem read-only pela função `admin-users` | não aplicável; a função contém exclusivamente operações mutáveis            |
+| Erros da Edge Function durante o smoke       | não aplicável; nenhuma operação mutável foi invocada                        |
 
 Não será implementada uma operação `list`: duplicaria a RPC protegida por
 RLS/RBAC e alargaria desnecessariamente o contrato da função. A classificação

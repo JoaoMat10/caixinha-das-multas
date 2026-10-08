@@ -1,5 +1,7 @@
 # Deploy do frontend no Cloudflare Pages
 
+> **Modelo demonstrativo:** todos os nomes, URLs, referências, identificadores e resultados abaixo são fictícios e servem apenas para documentar o procedimento. Substitua os placeholders por recursos próprios antes de executar qualquer operação.
+
 ## Estado
 
 Segundo deployment Production executado em 2026-09-28; a correção forward e o
@@ -23,7 +25,7 @@ O projeto `caixinha-das-multas` está ligado exclusivamente a
 | Campo               | Valor                                      |
 | ------------------- | ------------------------------------------ |
 | Projeto             | `caixinha-das-multas`                      |
-| Repositório         | `JoaoMat10/caixinha-das-multas`                 |
+| Repositório         | `JoaoMat10/caixinha-das-multas`            |
 | Branch de produção  | `main`                                     |
 | Diretório raiz      | `/`                                        |
 | Framework preset    | configuração personalizada                 |
@@ -50,7 +52,7 @@ Configurar exclusivamente no ambiente Production:
 | Variável                        | Valor de produção                                          |
 | ------------------------------- | ---------------------------------------------------------- |
 | `VITE_APP_NAME`                 | `Caixinha das Multas`                                      |
-| `VITE_PUBLIC_APP_URL`           | `https://caixinha-showcase.pages.dev`, após confirmação  |
+| `VITE_PUBLIC_APP_URL`           | `https://caixinha-showcase.pages.dev`, após confirmação    |
 | `VITE_SUPABASE_URL`             | `https://showcaseprodref00001.supabase.co`                 |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | chave `sb_publishable_…` pública de `showcaseprodref00001` |
 
@@ -187,7 +189,7 @@ checkpoint.
 
 | Verificação                   | Resultado         | Evidência                                                                                                                              |
 | ----------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Build e commit                | passou            | Node 24.19.0; `npm run verify`; 88/88 Vitest; 11/11 PostgreSQL; commit `[COMMIT_SHOWCASE]`.                     |
+| Build e commit                | passou            | Node 24.19.0; `npm run verify`; 88/88 Vitest; 11/11 PostgreSQL; commit `[COMMIT_SHOWCASE]`.                                            |
 | Projeto e ambientes           | passou            | Hostname exato; `main`; raiz `/`; output `dist`; Preview `None`, sem variáveis e sem deployments.                                      |
 | Headers e CSP                 | passou            | CSP restrita à origem de produção; HSTS; `nosniff`; `DENY`; `no-referrer`; Permissions-Policy esperada.                                |
 | Cache previsto                | passou com desvio | HTML, assets com hash, manifest e service worker corretos; `/offline.html` normaliza para `/offline` com `max-age=0, must-revalidate`. |

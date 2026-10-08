@@ -1,5 +1,7 @@
 # Importação do catálogo de multas em produção
 
+> **Modelo demonstrativo:** todos os nomes, URLs, referências, identificadores e resultados abaixo são fictícios e servem apenas para documentar o procedimento. Substitua os placeholders por recursos próprios antes de executar qualquer operação.
+
 ## Objetivo
 
 Importar, de forma controlada, as 23 categorias da época `2026/2027` da equipa `Clube Desportivo Exemplo`.
